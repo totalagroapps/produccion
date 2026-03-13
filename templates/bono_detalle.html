@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Detalle Bono</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body {font-family:Segoe UI;background:#f4f6f9;padding:40px;}
+.card {background:white;padding:25px;border-radius:14px;box-shadow:0 8px 25px rgba(0,0,0,0.05);}
+h2 {margin-top:0;}
+table {width:100%;border-collapse:collapse;margin-top:25px;}
+th {background:#2c3e50;color:white;padding:12px;}
+td {padding:12px;text-align:center;border-bottom:1px solid #eee;}
+.badge {padding:6px 10px;border-radius:20px;color:white;font-size:13px;}
+.green{background:#27ae60;}
+.yellow{background:#f39c12;}
+.red{background:#e74c3c;}
+.simulador {margin-top:30px;padding:20px;background:#f8fafc;border-radius:12px;}
+input {padding:8px;width:80px;}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+<h2>📊 {{nombre}} — {{mes}}/{{anio}}</h2>
+
+<h3>Total Bono Actual: 💰 ${{total_bono}}</h3>
+
+<table>
+<tr>
+<th>Actividad</th>
+<th>Unidades</th>
+<th>Horas</th>
+<th>Rendimiento</th>
+<th>Eficiencia</th>
+<th>% Bono</th>
+<th>Valor</th>
+</tr>
+
+{% for d in detalle %}
+<tr>
+<td>{{d.actividad}}</td>
+<td>{{d.unidades}}</td>
+<td>{{d.horas}}</td>
+<td>{{d.rendimiento}}</td>
+<td>{{d.eficiencia}}%</td>
+<td>
+{% if d.porcentaje == 4 %}
+<span class="badge green">4%</span>
+{% elif d.porcentaje == 3 %}
+<span class="badge yellow">3%</span>
+{% elif d.porcentaje == 2 %}
+<span class="badge red">2%</span>
+{% else %}
+0%
+{% endif %}
+</td>
+<td><strong>${{d.bono}}</strong></td>
+</tr>
+{% endfor %}
+</table>
+
+<canvas id="grafico" style="margin-top:40px;"></canvas>
+
+<div class="simulador">
+<h3>🧮 Simulador de Mejora</h3>
+<p>Si mejora su eficiencia en: 
+<input type="number" id="mejora" value="5"> %
+<button onclick="simular()">Calcular</button>
+</p>
+<p id="resultado_simulacion"></p>
+</div>
+
+</div>
+
+<script>
+const actividades = {{ detalle | tojson }};
+const labels = actividades.map(a => a.actividad);
+const eficiencia = actividades.map(a => a.eficiencia);
+
+new Chart(document.getElementById('grafico'), {
+type: 'bar',
+data: {
+labels: labels,
+datasets: [{
+label: 'Eficiencia (%)',
+data: eficiencia
+}]
+},
+options: {
+scales: {
+y: { beginAtZero: true }
+}
+}
+});
+
+function simular() {
+let mejora = parseFloat(document.getElementById("mejora").value) || 0;
+let totalActual = {{total_bono}};
+let proyeccion = totalActual * (1 + mejora/100);
+
+document.getElementById("resultado_simulacion").innerHTML =
+"💰 Nuevo bono estimado: <strong>$" + proyeccion.toFixed(2) + "</strong>";
+}
+</script>
+
+</body>
+</html>

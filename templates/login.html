@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Login Administrador</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+body{
+    font-family:'Inter', sans-serif;
+    background:linear-gradient(135deg,#0f172a,#1e293b);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+}
+
+.login-container{
+    background:white;
+    padding:40px;
+    border-radius:20px;
+    width:350px;
+    box-shadow:0 20px 50px rgba(0,0,0,.3);
+    text-align:center;
+}
+
+.login-container img{
+    height:60px;
+    margin-bottom:20px;
+}
+
+.login-container h2{
+    margin-bottom:25px;
+}
+
+.form-group{
+    text-align:left;
+    margin-bottom:18px;
+}
+
+.form-group label{
+    font-size:14px;
+    color:#64748b;
+}
+
+.form-group input{
+    width:100%;
+    padding:10px;
+    border-radius:8px;
+    border:1px solid #cbd5e1;
+    margin-top:5px;
+    font-size:14px;
+}
+
+.form-group input:focus{
+    outline:none;
+    border:1px solid #16a34a;
+}
+
+.login-btn{
+    width:100%;
+    padding:12px;
+    border:none;
+    border-radius:10px;
+    background:linear-gradient(135deg,#16a34a,#15803d);
+    color:white;
+    font-weight:600;
+    cursor:pointer;
+    transition:.3s;
+}
+
+.login-btn:hover{
+    transform:scale(1.03);
+}
+</style>
+
+</head>
+<body>
+
+<div class="login-container">
+
+    <img src="/static/logo.png">
+
+    <h2>Acceso Administrador</h2>
+
+    <form 
+    
+    method="post" action="/admin?next={{ request.query_params.get('next') }}">
+
+    </form>
+
+        <div class="form-group">
+            <label>Usuario</label>
+            <input name="user" placeholder="Usuario" required>
+        </div>
+
+        <div class="form-group">
+            <label>Password</label>
+            <input type="password" name="password" placeholder="Contraseña" required>
+        </div>
+
+        <button class="login-btn">Entrar</button>
+
+    </form>
+
+</div>
+
+</body>
+</html>

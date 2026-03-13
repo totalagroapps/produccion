@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Métricas por Operario</title>
+
+<style>
+
+body{
+    font-family: Arial, sans-serif;
+    background:#f4f6f8;
+    margin:0;
+    padding:20px;
+}
+
+/* CONTENEDOR CENTRAL */
+.container{
+    max-width:1200px;
+    margin:auto;
+}
+
+/* TOPBAR */
+.topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    background:#263238;
+    color:white;
+    padding:16px 25px;
+    border-radius:10px;
+    box-shadow:0 4px 10px rgba(0,0,0,.2);
+    margin-bottom:30px;
+}
+
+.titulo{
+    font-size:22px;
+    font-weight:bold;
+}
+
+.btn-home{
+    background:#2e7d32;
+    color:white;
+    padding:10px 16px;
+    border-radius:8px;
+    text-decoration:none;
+    font-weight:bold;
+    transition:.3s;
+}
+
+.btn-home:hover{
+    background:#1b5e20;
+}
+
+/* TABLAS */
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-bottom:25px;
+    background:white;
+    border-radius:8px;
+    overflow:hidden;
+    box-shadow:0 2px 6px rgba(0,0,0,.08);
+}
+
+th{
+    background:#37474f;
+    color:white;
+    padding:10px;
+    text-align:center;
+}
+
+td{
+    padding:8px;
+    text-align:center;
+    border-bottom:1px solid #eee;
+}
+
+tr:hover{
+    background:#f1f1f1;
+}
+
+/* SEPARADOR OPERARIO */
+.operario-titulo{
+    margin-top:40px;
+    margin-bottom:10px;
+    font-size:20px;
+    font-weight:bold;
+    color:#263238;
+}
+
+/* BOTÓN EXPORTAR */
+.btn-export{
+    display:inline-block;
+    background:#1976d2;
+    color:white;
+    padding:12px 22px;
+    border-radius:8px;
+    text-decoration:none;
+    font-weight:bold;
+    transition:.3s;
+    margin-top:20px;
+}
+
+.btn-export:hover{
+    background:#0d47a1;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="topbar">
+        <div class="titulo">
+            📊 Métricas por Operario
+        </div>
+        <a href="/" class="btn-home">🏠 Home</a>
+    </div>
+
+    <!-- RESUMEN GENERAL -->
+    <table>
+        <tr>
+            <th>Operario</th>
+            <th>Unidades</th>
+            <th>Horas</th>
+            <th>Unid/Hora</th>
+            <th>Operaciones</th>
+        </tr>
+
+        {% for o,u,h,p,op in resumen %}
+        <tr>
+            <td><b>{{o}}</b></td>
+            <td>{{u}}</td>
+            <td>{{h}}</td>
+            <td>{{p}}</td>
+            <td>{{op}}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <!-- DETALLE POR OPERARIO -->
+    {% for op in resumen %}
+
+        <div class="operario-titulo">
+            👷 {{op[0]}}
+        </div>
+
+        <table>
+            <tr>
+                <th>Actividad</th>
+                <th>Cantidad</th>
+                <th>Inicio</th>
+                <th>Fin</th>
+            </tr>
+
+            {% for d in detalle %}
+            {% if d[0] == op[0] %}
+            <tr>
+                <td>{{d[1]}}</td>
+                <td>{{d[2]}}</td>
+                <td>{{d[3]}}</td>
+                <td>{{d[4]}}</td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+        </table>
+
+    {% endfor %}
+
+    <a href="/exportar_excel" class="btn-export">⬇ Exportar Excel</a>
+
+</div>
+
+</body>
+</html>

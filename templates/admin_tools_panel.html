@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Herramientas Administrativas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 30px;
+        }
+
+        h1 {
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            transition: 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+        }
+
+        .card h3 {
+            margin-top: 0;
+            color: #222;
+        }
+
+        .card p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .btn {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 10px 15px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .warning {
+            background: #f39c12;
+            color: white;
+        }
+
+        .primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .back {
+            margin-top: 40px;
+            display: inline-block;
+            text-decoration: none;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+
+<h1>⚙ Panel de Herramientas Administrativas</h1>
+
+<div class="grid">
+
+    <div class="card">
+        <h3>🔄 Reset Métricas</h3>
+        <p>Reinicia producción, porcentajes y estado de órdenes.</p>
+        <a class="btn danger" href="/admin_tools/reset_metricas"
+           onclick="return confirm('¿Seguro que deseas resetear métricas?')">
+           Ejecutar
+        </a>
+    </div>
+
+    <div class="card">
+        <h3>🗑 Borrar Registros</h3>
+        <p>Elimina todos los registros de producción.</p>
+        <a class="btn danger" href="/admin_tools/borrar_registros"
+           onclick="return confirm('Esta acción es irreversible. ¿Continuar?')">
+           Ejecutar
+        </a>
+    </div>
+
+    <div class="card">
+        <h3>📊 Cargar Estándares</h3>
+        <p>Importa estándares desde excel/estandares.xlsx.</p>
+        <a class="btn primary" href="/admin_tools/cargar_estandares_excel"
+           onclick="return confirm('¿Cargar estándares desde Excel?')">
+           Ejecutar
+        </a>
+    </div>
+
+</div>
+
+<a class="back" href="/">← Volver al Dashboard</a>
+
+</body>
+</html>

@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<link rel="icon" type="image/png" href="/static/favicon.png">
+<meta charset="utf-8">
+<title>Sistema Producción</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+
+*{
+box-sizing:border-box;
+margin:0;
+padding:0;
+}
+
+body{
+font-family:'Inter', sans-serif;
+background:linear-gradient(135deg,#f8fafc,#e2e8f0);
+}
+
+.layout{
+display:flex;
+min-height:100vh;
+}
+
+.sidebar{
+width:240px;
+background:linear-gradient(180deg,#1e293b,#0f172a);
+color:white;
+padding:25px;
+}
+
+.logo{
+text-align:center;
+margin-bottom:40px;
+background:white;
+padding:15px;
+border-radius:12px;
+}
+
+.logo img{
+height:50px;
+}
+
+.sidebar nav a{
+display:block;
+padding:12px 15px;
+color:#cbd5e1;
+text-decoration:none;
+border-radius:10px;
+margin-bottom:8px;
+}
+
+.sidebar nav a:hover,
+.sidebar nav a.active{
+background:#334155;
+color:white;
+}
+
+.content{
+flex:1;
+padding:50px;
+}
+
+.topbar{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:50px;
+}
+
+.topbar h2{
+font-size:28px;
+font-weight:700;
+}
+
+.kpi-grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+gap:30px;
+}
+
+.kpi-card{
+background:white;
+padding:30px;
+border-radius:20px;
+box-shadow:0 6px 18px rgba(15,23,42,.08);
+}
+
+.kpi-card span{
+color:#64748b;
+font-size:14px;
+}
+
+.kpi-card h1{
+margin-top:12px;
+font-size:36px;
+font-weight:700;
+color:#16a34a;
+}
+
+.admin-section{
+margin-top:50px;
+background:white;
+padding:30px;
+border-radius:20px;
+box-shadow:0 6px 18px rgba(15,23,42,.06);
+}
+
+.admin-buttons{
+display:flex;
+gap:20px;
+flex-wrap:wrap;
+}
+
+.admin-link{
+padding:12px 20px;
+background:#334155;
+color:white;
+border-radius:12px;
+text-decoration:none;
+}
+
+.admin-link:hover{
+background:#1e293b;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="layout">
+
+<aside class="sidebar">
+
+<div class="logo">
+<a href="/">
+<img src="/static/logo.png">
+</a>
+</div>
+
+<nav>
+
+<a href="/" class="active">🏠 Dashboard</a>
+<a href="/panel">🏭 Panel</a>
+<a href="/metricas_operarios">📊 Métricas</a>
+<a href="/kpi">📈 KPI</a>
+<a href="/bonos">💰 Bonos</a>
+<a href="/inventario">📦 Inventario</a>
+<a href="/materiales_maquinas">🔧 Materiales Máquinas</a>
+
+{% if request.session.get("role") == "admin" %}
+
+<hr style="margin:20px 0;border-color:#334155">
+
+<a href="/usuarios">👤 Usuarios</a>
+<a href="/admin_tools">⚙ Herramientas</a>
+<a href="/configuracion">🛠 Configuración</a>
+
+{% endif %}
+
+</nav>
+
+</aside>
+
+<main class="content">
+
+<div class="topbar">
+<div>
+<h2>Dashboard General</h2>
+<small>Resumen operativo en tiempo real</small>
+</div>
+
+<a href="/logout">Cerrar sesión</a>
+
+</div>
+
+<div class="kpi-grid">
+
+<div class="kpi-card">
+<span>Órdenes Activas</span>
+<h1>{{ ordenes_activas }}</h1>
+</div>
+
+<div class="kpi-card">
+<span>Producción Hoy</span>
+<h1>{{ produccion_hoy }}</h1>
+</div>
+
+<div class="kpi-card">
+<span>Avance Promedio</span>
+<h1>{{ avance_promedio }}%</h1>
+</div>
+
+<div class="kpi-card">
+<span>Operarios Activos</span>
+<h1>{{ operarios_activos }}</h1>
+</div>
+
+</div>
+
+<div class="admin-section">
+
+<h3>Materiales de Máquinas</h3>
+
+<div class="admin-buttons">
+
+<a href="/materiales_maquinas" class="admin-link">
+Configurar materiales
+</a>
+
+<a href="/inventario" class="admin-link">
+Ver inventario
+</a>
+
+</div>
+
+</div>
+
+{% if request.session.get("role") == "admin" %}
+
+<div class="admin-section">
+
+<h3>Zona Administrativa</h3>
+
+<div class="admin-buttons">
+
+<a href="/usuarios" class="admin-link">
+Usuarios
+</a>
+
+<a href="/admin_tools" class="admin-link">
+Herramientas
+</a>
+
+<a href="/configuracion" class="admin-link">
+Configuración
+</a>
+
+</div>
+
+</div>
+
+{% endif %}
+
+</main>
+
+</div>
+
+</body>
+</html>

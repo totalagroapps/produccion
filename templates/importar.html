@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Importar Datos</title>
+
+<style>
+body{
+    font-family: Arial, sans-serif;
+    background:#f4f6f9;
+    padding:40px;
+}
+
+.card{
+    background:white;
+    max-width:500px;
+    margin:auto;
+    padding:30px;
+    border-radius:10px;
+    box-shadow:0 4px 10px rgba(0,0,0,.15);
+    text-align:center;
+}
+
+h2{
+    margin-bottom:10px;
+}
+
+p{
+    color:#555;
+    font-size:14px;
+}
+
+input[type="file"]{
+    margin:20px 0;
+}
+
+button{
+    background:#2e7d32;
+    color:white;
+    border:none;
+    padding:12px 22px;
+    border-radius:6px;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#1b5e20;
+}
+
+.home{
+    display:inline-block;
+    margin-top:20px;
+    text-decoration:none;
+    color:#2e7d32;
+    font-weight:bold;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+    <h2>📥 Importar Datos</h2>
+
+    <p>
+        El archivo Excel debe tener las hojas:<br>
+        <b>maquinas → procesos → actividades → operarios</b>
+    </p>
+
+    <form action="/importar_excel" method="post" enctype="multipart/form-data">
+
+Maquinas:<br>
+<input type="file" name="maquinas"><br><br>
+
+Procesos:<br>
+<input type="file" name="procesos"><br><br>
+
+Actividades:<br>
+<input type="file" name="actividades"><br><br>
+
+Operarios:<br>
+<input type="file" name="operarios"><br><br>
+
+<button>Importar todo</button>
+
+</form>
+
+    <a href="/" class="home">🏠 Volver al Home</a>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Materiales por Máquina</h2>
+
+<table>
+
+<tr>
+<th>Máquina</th>
+<th>Administrar</th>
+</tr>
+
+{% for m in maquinas %}
+
+<tr>
+
+<td>{{ m[1] }}</td>
+
+<td>
+
+<a class="btn" href="/materiales_maquina/{{ m[0] }}">
+Ver materiales
+</a>
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+{% endblock %}

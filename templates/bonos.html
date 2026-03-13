@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bonos</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f4f6f9;
+            margin: 0;
+            padding: 40px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: auto;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1f2d3d, #34495e);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .btn {
+            display: inline-block;
+            margin-top: 15px;
+            margin-right: 10px;
+            padding: 10px 18px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: white;
+            font-weight: 500;
+        }
+
+        .btn-home { background: #3498db; }
+        .btn-recalc { background: #2ecc71; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 30px;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+        }
+
+        th {
+            background: #2c3e50;
+            color: white;
+            padding: 14px;
+            font-size: 14px;
+        }
+
+        td {
+            padding: 14px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+        }
+
+        tr:hover {
+            background: #f2f7fb;
+        }
+
+        .badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            color: white;
+            font-weight: bold;
+            font-size: 13px;
+        }
+
+        .green { background: #27ae60; }
+        .yellow { background: #f39c12; }
+        .red { background: #e74c3c; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <div class="header">
+        <h2>💰 Bonos Mes {{mes}}/{{anio}}</h2>
+        <a class="btn btn-recalc" href="/bonos?mes={{mes}}&anio={{anio}}">🔄 Actualizar</a>
+        <a class="btn btn-home" href="/">🏠 Home</a>
+    </div>
+
+    <table>
+        <tr>
+            <th>Operario</th>
+            <th>Eficiencia Productiva</th>
+            <th>Eficiencia Ocupación</th>
+            <th>% Bono</th>
+            <th>Total</th>
+        </tr>
+
+        {% for r in datos %}
+        <tr>
+            <td>
+                <a href="/bonos/detalle?nombre={{ r.nombre }}&mes={{mes}}&anio={{anio}}">
+                    <strong>{{ r.nombre }}</strong>
+                </a>
+            </td>
+
+            <td>{{ r.eficiencia_productiva }}%</td>
+
+            <td>{{ r.eficiencia_ocupacion }}%</td>
+
+            <td>
+                {% if r.porcentaje_bono == 4 %}
+                    <span class="badge green">4%</span>
+                {% elif r.porcentaje_bono == 3 %}
+                    <span class="badge yellow">3%</span>
+                {% elif r.porcentaje_bono == 2 %}
+                    <span class="badge red">2%</span>
+                {% else %}
+                    0%
+                {% endif %}
+            </td>
+
+            <td>
+                <strong>
+                ${{ "{:,.0f}".format(r.bono_total).replace(",", ".") }}
+                </strong>
+            </td>
+        </tr>
+        {% endfor %}
+
+    </table>
+
+</div>
+
+</body>
+</html>

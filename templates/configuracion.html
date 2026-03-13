@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<meta charset="utf-8">
+<title>Configuración</title>
+
+<style>
+
+body{
+font-family:Arial, Helvetica, sans-serif;
+background:#f3f4f6;
+padding:30px;
+}
+
+h1{
+margin-bottom:20px;
+}
+
+#tabs_tablas{
+display:flex;
+flex-wrap:wrap;
+gap:10px;
+margin-bottom:20px;
+}
+
+.tab-btn{
+background:white;
+border:none;
+padding:10px 16px;
+border-radius:10px;
+box-shadow:0 2px 6px rgba(0,0,0,.1);
+cursor:pointer;
+font-weight:600;
+}
+
+.tab-btn:hover{
+background:#e2e8f0;
+}
+
+.panel{
+background:white;
+padding:25px;
+border-radius:12px;
+box-shadow:0 2px 8px rgba(0,0,0,.1);
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:15px;
+}
+
+th,td{
+border:1px solid #ddd;
+padding:8px;
+text-align:left;
+}
+
+th{
+background:#f1f5f9;
+}
+
+td{
+background:white;
+}
+
+.home-btn{
+text-decoration:none;
+background:#2563eb;
+color:white;
+padding:10px 16px;
+border-radius:8px;
+font-weight:600;
+display:inline-block;
+margin-bottom:20px;
+}
+
+button{
+padding:8px 12px;
+margin-right:5px;
+border-radius:6px;
+border:none;
+cursor:pointer;
+}
+
+.add-btn{
+background:#22c55e;
+color:white;
+}
+
+.save-btn{
+background:#2563eb;
+color:white;
+}
+
+.delete-btn{
+background:#ef4444;
+color:white;
+}
+
+</style>
+</head>
+
+<body>
+
+<a href="/" class="home-btn">🏠 Volver al Dashboard</a>
+
+<h1>⚙ Configuración del Sistema</h1>
+
+<div id="tabs_tablas"></div>
+
+<div class="panel">
+
+<h3 id="titulo_tabla"></h3>
+
+<button class="add-btn" onclick="agregarFila()">➕ Nueva fila</button>
+<button class="save-btn" onclick="guardarCambios()">💾 Guardar cambios</button>
+
+<input 
+id="buscador"
+placeholder="🔎 Buscar..."
+onkeyup="filtrarTabla()"
+style="padding:8px;border-radius:6px;border:1px solid #ccc;margin-left:10px;">
+
+<div id="tabla_editor"></div>
+
+</div>
+
+<script>
+
+let tablaActual=""
+let columnasGlobal=[]
+
+async function cargarTabs(){
+
+let r = await fetch("/config/tablas_lista")
+let tablas = await r.json()
+
+let cont = document.getElementById("tabs_tablas")
+
+cont.innerHTML=""
+
+tablas.forEach(nombre => {
+
+let btn = document.createElement("button")
+btn.className="tab-btn"
+btn.innerText = nombre
+
+btn.onclick = () => cargarTabla(nombre)
+
+cont.appendChild(btn)
+
+})
+
+}
+
+async function cargarTabla(tabla){
+
+tablaActual=tabla
+
+document.getElementById("titulo_tabla").innerText="Tabla: "+tabla
+
+let r=await fetch("/config/tabla/"+tabla)
+let data=await r.json()
+
+let columnas=data.columnas
+let filas=data.datos
+
+columnasGlobal=columnas
+
+let div=document.getElementById("tabla_editor")
+div.innerHTML=""
+
+let table=document.createElement("table")
+table.id="tabla_editable"
+
+let tr=document.createElement("tr")
+
+columnas.forEach((c,i)=>{
+
+let th=document.createElement("th")
+th.innerText=c
+
+th.onclick=()=>ordenarColumna(i)
+
+tr.appendChild(th)
+
+})
+
+let th=document.createElement("th")
+th.innerText="Eliminar"
+tr.appendChild(th)
+
+table.appendChild(tr)
+
+filas.forEach(f=>{
+
+let tr=document.createElement("tr")
+
+f.forEach((col,i)=>{
+
+let td=document.createElement("td")
+
+td.innerText=col
+
+if(i!==0){
+td.contentEditable=true
+}
+
+tr.appendChild(td)
+
+})
+
+let td=document.createElement("td")
+td.innerHTML="<button class='delete-btn' onclick='borrarFila(this)'>🗑</button>"
+
+tr.appendChild(td)
+
+table.appendChild(tr)
+
+})
+
+div.appendChild(table)
+
+}
+
+function borrarFila(btn){
+
+let row=btn.parentNode.parentNode
+row.remove()
+
+}
+
+function agregarFila(){
+
+let table=document.getElementById("tabla_editable")
+
+let tr=document.createElement("tr")
+
+for(let i=0;i<columnasGlobal.length;i++){
+
+let td=document.createElement("td")
+
+if(i!==0){
+td.contentEditable=true
+}
+
+tr.appendChild(td)
+
+}
+
+let td=document.createElement("td")
+td.innerHTML="<button class='delete-btn' onclick='borrarFila(this)'>🗑</button>"
+
+tr.appendChild(td)
+
+table.appendChild(tr)
+
+}
+
+async function guardarCambios(){
+
+let table=document.getElementById("tabla_editable")
+
+let filas=[]
+
+for(let i=1;i<table.rows.length;i++){
+
+let row=table.rows[i]
+
+let fila=[]
+
+for(let j=0;j<columnasGlobal.length;j++){
+
+fila.push(row.cells[j].innerText)
+
+}
+
+filas.push(fila)
+
+}
+
+await fetch("/config/tabla/"+tablaActual+"/guardar",{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json"
+},
+
+body:JSON.stringify({
+columnas:columnasGlobal,
+filas:filas
+})
+
+})
+
+alert("Cambios guardados")
+
+}
+
+cargarTabs()
+
+function filtrarTabla(){
+
+let filtro=document.getElementById("buscador").value.toLowerCase()
+
+let table=document.getElementById("tabla_editable")
+
+for(let i=1;i<table.rows.length;i++){
+
+let row=table.rows[i]
+
+let texto=row.innerText.toLowerCase()
+
+row.style.display = texto.includes(filtro) ? "" : "none"
+
+}
+
+}
+
+function ordenarColumna(col){
+
+let table=document.getElementById("tabla_editable")
+
+let rows=Array.from(table.rows).slice(1)
+
+rows.sort((a,b)=>{
+
+let A=a.cells[col].innerText
+let B=b.cells[col].innerText
+
+return A.localeCompare(B,undefined,{numeric:true})
+
+})
+
+rows.forEach(r=>table.appendChild(r))
+
+}
+
+</script>
+
+</body>
+</html>
