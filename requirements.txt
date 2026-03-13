@@ -6,3 +6,6 @@ aiofiles
 itsdangerous
 openpyxl
 python-dotenv
+pandas
+passlib[bcrypt]
+bcrypt
