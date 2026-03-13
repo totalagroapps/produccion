@@ -622,13 +622,10 @@ def admin_post(request: Request, user: str = Form(...), password: str = Form(...
 
         next_page = request.query_params.get("next")
 
-        if next_page:
-            return RedirectResponse(f"/{next_page}", status_code=303)
+    if not next_page or next_page == "None":
+        next_page = "/"
 
-        return RedirectResponse("/", status_code=303)
-
-    return "Credenciales incorrectas"
-
+    return RedirectResponse(next_page, status_code=303)
 
 
 # ================= REGISTRO PRODUCCION ANDROID =================
