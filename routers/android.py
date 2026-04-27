@@ -1,8 +1,20 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from datetime import datetime, timedelta
 from database import db
 
 router = APIRouter()
+
+
+def campo_entero(data: dict, *nombres: str) -> int:
+    for nombre in nombres:
+        valor = data.get(nombre)
+        if valor is not None and valor != "":
+            return int(valor)
+
+    raise HTTPException(
+        status_code=400,
+        detail=f"Campo requerido faltante: {'/'.join(nombres)}"
+    )
 
 
 # ================= REGISTRO ANDROID =================
@@ -10,24 +22,32 @@ router = APIRouter()
 @router.post("/registro_android")
 def registro_android(data: dict):
 
+    try:
+        operario_id = campo_entero(data, "operario_id", "operario")
+        orden_id = campo_entero(data, "orden_id", "orden")
+        actividad_id = campo_entero(data, "actividad_id", "actividad")
+        cantidad = campo_entero(data, "cantidad")
+        tiempo = int(data.get("tiempo") or 0)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Campos numericos invalidos")
+
     conn = db()
     c = conn.cursor()
 
     ahora = datetime.now()
-    tiempo = int(data.get("tiempo", 0))
 
-    inicio = ahora
-    fin = ahora + timedelta(seconds=tiempo)
+    fin = ahora
+    inicio = ahora - timedelta(seconds=tiempo)
 
     c.execute("""
     INSERT INTO registros_produccion
     (operario_id, orden_id, actividad_id, cantidad, inicio, fin, tiempo)
     VALUES (%s,%s,%s,%s,%s,%s,%s)
     """,(
-        data["operario_id"],
-        data["orden_id"],
-        data["actividad_id"],
-        data["cantidad"],
+        operario_id,
+        orden_id,
+        actividad_id,
+        cantidad,
         inicio.strftime("%Y-%m-%d %H:%M:%S"),
         fin.strftime("%Y-%m-%d %H:%M:%S"),
         tiempo
@@ -39,9 +59,9 @@ def registro_android(data: dict):
     SET cantidad_realizada = cantidad_realizada + %s
     WHERE orden_id=%s AND actividad_id=%s
     """,(
-        data["cantidad"],
-        data["orden_id"],
-        data["actividad_id"]
+        cantidad,
+        orden_id,
+        actividad_id
     ))
 
     # recalcular porcentaje general
@@ -50,7 +70,7 @@ def registro_android(data: dict):
                SUM(cantidad_total)
         FROM orden_actividades
         WHERE orden_id=%s
-    """,(data["orden_id"],))
+    """,(orden_id,))
 
     row = c.fetchone()
 
@@ -64,7 +84,7 @@ def registro_android(data: dict):
         SET porcentaje=%s,
             estado=CASE WHEN %s >= 100 THEN 'CERRADA' ELSE estado END
         WHERE id=%s
-    """,(porcentaje, porcentaje, data["orden_id"]))
+    """,(porcentaje, porcentaje, orden_id))
 
     conn.commit()
     conn.close()
