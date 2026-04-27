@@ -78,7 +78,10 @@ def registro_android(data: dict):
 def operarios():
     conn = db()
     c = conn.cursor()
-    rows = c.execute("SELECT id,nombre FROM operarios").fetchall()
+
+    c.execute("SELECT id,nombre FROM operarios")
+    rows = c.fetchall() or []
+
     conn.close()
     return rows
 
@@ -87,7 +90,10 @@ def operarios():
 def maquinas():
     conn = db()
     c = conn.cursor()
-    rows = c.execute("SELECT id,nombre FROM maquinas").fetchall()
+
+    c.execute("SELECT id,nombre FROM maquinas")
+    rows = c.fetchall() or []
+
     conn.close()
     return rows
 
@@ -96,11 +102,14 @@ def maquinas():
 def ordenes_android():
     conn = db()
     c = conn.cursor()
-    rows = c.execute("""
+
+    c.execute("""
     SELECT id,maquina_id,estado,porcentaje
     FROM ordenes
     WHERE estado!='CERRADA'
-    """).fetchall()
+    """)
+    rows = c.fetchall() or []
+
     conn.close()
     return rows
 
@@ -109,13 +118,16 @@ def ordenes_android():
 def procesos_android(orden_id:int):
     conn = db()
     c = conn.cursor()
-    rows = c.execute("""
+
+    c.execute("""
     SELECT DISTINCT p.id,p.nombre
     FROM orden_actividades oa
     JOIN actividades a ON a.id=oa.actividad_id
     JOIN procesos p ON p.id=a.proceso_id
     WHERE oa.orden_id=%s
-    """,(orden_id,)).fetchall()
+    """,(orden_id,))
+    rows = c.fetchall() or []
+
     conn.close()
     return rows
 
@@ -124,11 +136,14 @@ def procesos_android(orden_id:int):
 def actividades_android(orden:int, proceso:int):
     conn = db()
     c = conn.cursor()
-    rows = c.execute("""
+
+    c.execute("""
     SELECT a.id,a.nombre
     FROM orden_actividades oa
     JOIN actividades a ON a.id=oa.actividad_id
     WHERE oa.orden_id=%s AND a.proceso_id=%s
-    """,(orden,proceso)).fetchall()
+    """,(orden,proceso))
+    rows = c.fetchall() or []
+
     conn.close()
     return rows
