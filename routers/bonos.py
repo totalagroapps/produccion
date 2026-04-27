@@ -99,8 +99,7 @@ def bonos(request: Request):
     datos = bonos_mes(mes, anio)
 
     return request.app.state.templates.TemplateResponse(
-        "bonos.html",
-        {
+        request=request, name="bonos.html", context={
             "request": request,
             "datos": datos,
             "mes": mes,
@@ -188,8 +187,7 @@ def detalle_bono(request: Request):
     conn.close()
 
     return request.app.state.templates.TemplateResponse(
-        "bono_detalle.html",
-        {
+        request=request, name="bono_detalle.html", context={
             "request": request,
             "nombre": nombre,
             "mes": mes,

@@ -51,8 +51,7 @@ def home(request: Request):
     conn.close()
 
     return request.app.state.templates.TemplateResponse(
-        "home.html",
-        {
+        request=request, name="home.html", context={
             "request": request,
             "ordenes_activas": ordenes_activas,
             "produccion_hoy": produccion_hoy,

@@ -20,7 +20,8 @@ def ver_usuarios(request: Request):
     usuarios = c.fetchall()
     conn.close()
 
-    return templates.TemplateResponse("usuarios.html", {
+    return templates.TemplateResponse(
+        request=request, name="usuarios.html", context={
         "request": request,
         "usuarios": usuarios
     })

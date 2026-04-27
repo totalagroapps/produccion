@@ -195,7 +195,8 @@ def home(request: Request):
 
     conn.close()
 
-    return templates.TemplateResponse("home.html", {
+    return templates.TemplateResponse(
+        request=request, name="home.html", context={
         "request": request,
         "ordenes_activas": ordenes_activas,
         "produccion_hoy": produccion_hoy,
@@ -285,7 +286,8 @@ def panel(request: Request):
 
     conn.close()
 
-    return templates.TemplateResponse("panel.html", {
+    return templates.TemplateResponse(
+        request=request, name="panel.html", context={
         "request": request,
         "maquinas": maquinas,
         "ordenes": ordenes
@@ -331,7 +333,8 @@ def metricas_operarios(request: Request):
 
     conn.close()
 
-    return templates.TemplateResponse("Metricas.html", {
+    return templates.TemplateResponse(
+        request=request, name="Metricas.html", context={
         "request": request,
         "resumen": resumen_final,
         "detalle": detalle
@@ -376,7 +379,8 @@ def kpi(request: Request):
 
     conn.close()
 
-    return templates.TemplateResponse("kpi.html", {
+    return templates.TemplateResponse(
+        request=request, name="kpi.html", context={
         "request": request,
         "por_operario": por_operario,
         "minutos": minutos,
@@ -556,7 +560,8 @@ def cerrar_orden(orden_id: int):
 
 @app.get("/admin", response_class=HTMLResponse)
 def admin(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse(
+        request=request, name="login.html", context={"request": request})
 
 
 @app.post("/admin")
@@ -635,7 +640,8 @@ def registro_android(data: dict):
 
 @app.get("/importar")
 def importar(request: Request):
-    return templates.TemplateResponse("importar.html", {"request": request})
+    return templates.TemplateResponse(
+        request=request, name="importar.html", context={"request": request})
 
 
 @app.get("/operarios")
@@ -741,7 +747,8 @@ def metricas(request: Request):
 
     conn.close()
 
-    return templates.TemplateResponse("Metricas.html", {
+    return templates.TemplateResponse(
+        request=request, name="Metricas.html", context={
         "request": request,
         "resumen": resumen,
         "detalle": detalle
@@ -939,7 +946,8 @@ def bonos(request: Request):
     from routers.bonos import bonos_mes
     datos = bonos_mes(mes, anio)
 
-    return templates.TemplateResponse("bonos.html", {
+    return templates.TemplateResponse(
+        request=request, name="bonos.html", context={
         "request": request,
         "datos": datos,
         "mes": mes,
@@ -1023,7 +1031,8 @@ def detalle_bono(request: Request):
 
     conn.close()
 
-    return templates.TemplateResponse("bono_detalle.html", {
+    return templates.TemplateResponse(
+        request=request, name="bono_detalle.html", context={
         "request": request,
         "nombre": nombre,
         "mes": mes,
@@ -1045,7 +1054,8 @@ def ver_usuarios(request: Request):
     usuarios = c.fetchall()
     conn.close()
 
-    return templates.TemplateResponse("usuarios.html", {
+    return templates.TemplateResponse(
+        request=request, name="usuarios.html", context={
         "request": request,
         "usuarios": usuarios
     })

@@ -9,6 +9,5 @@ templates = Jinja2Templates(directory="templates")
 @router.get("/configuracion", response_class=HTMLResponse)
 def panel_admin(request: Request):
     return templates.TemplateResponse(
-        "admin.html",
-        {"request": request}
+        request=request, name="admin.html", context={"request": request}
     )

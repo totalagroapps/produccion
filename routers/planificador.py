@@ -110,8 +110,7 @@ async def planificador(request: Request, maquina_id: int | None = None):
     actividades = cursor.fetchall()
 
     return templates.TemplateResponse(
-        "planificador.html",
-        {
+        request=request, name="planificador.html", context={
             "request": request,
             "actividades": actividades,
             "maquinas": maquinas,
@@ -240,8 +239,7 @@ Tiempo: <b>{round(cuello.tiempo,2)} horas</b>
 """
 
     return templates.TemplateResponse(
-        "planificador.html",
-        {
+        request=request, name="planificador.html", context={
             "request": request,
             "resultado": resultado,
             "cronograma": cronograma,

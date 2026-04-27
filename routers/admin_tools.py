@@ -15,8 +15,7 @@ def admin_tools_panel(request: Request):
         return RedirectResponse("/admin", 303)
 
     return request.app.state.templates.TemplateResponse(
-        "admin_tools_panel.html",
-        {"request": request}
+        request=request, name="admin_tools_panel.html", context={"request": request}
     )
 
 

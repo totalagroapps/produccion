@@ -234,6 +234,5 @@ def configuracion(request: Request):
     if request.session.get("role") != "admin":
         return RedirectResponse("/", 303)
     return request.app.state.templates.TemplateResponse(
-        "configuracion.html",
-        {"request": request}
+        request=request, name="configuracion.html", context={"request": request}
     )

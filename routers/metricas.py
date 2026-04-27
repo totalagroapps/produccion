@@ -55,8 +55,7 @@ def metricas_operarios(request: Request):
     conn.close()
 
     return request.app.state.templates.TemplateResponse(
-        "Metricas.html",
-        {
+        request=request, name="Metricas.html", context={
             "request": request,
             "resumen": resumen_final,
             "detalle": detalle
@@ -100,8 +99,7 @@ def metricas(request: Request):
     conn.close()
 
     return request.app.state.templates.TemplateResponse(
-        "Metricas.html",
-        {
+        request=request, name="Metricas.html", context={
             "request": request,
             "resumen": resumen,
             "detalle": detalle
@@ -150,8 +148,7 @@ def kpi(request: Request):
     conn.close()
 
     return request.app.state.templates.TemplateResponse(
-        "kpi.html",
-        {
+        request=request, name="kpi.html", context={
             "request": request,
             "por_operario": por_operario,
             "minutos": minutos,

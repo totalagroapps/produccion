@@ -64,7 +64,8 @@ def panel(request: Request):
 
     conn.close()
 
-    return templates.TemplateResponse("panel.html",{
+    return templates.TemplateResponse(
+        request=request, name="panel.html", context={
         "request":request,
         "maquinas":maquinas,
         "ordenes":ordenes
