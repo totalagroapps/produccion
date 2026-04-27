@@ -13,7 +13,8 @@ def bonos_mes(mes: int, anio: int):
     conn = db()
     c = conn.cursor()
 
-    rows = c.execute("""
+    # 🔥 CORRECCIÓN
+    c.execute("""
         SELECT
             o.id,
             o.nombre,
@@ -25,7 +26,9 @@ def bonos_mes(mes: int, anio: int):
         WHERE TO_CHAR(r.inicio::timestamp, 'MM') = %s
         AND TO_CHAR(r.inicio::timestamp, 'YYYY') = %s
         GROUP BY o.id, o.nombre
-    """, (f"{mes:02d}", str(anio))).fetchall()
+    """, (f"{mes:02d}", str(anio)))
+
+    rows = c.fetchall() or []
 
     resultado = []
 
@@ -41,7 +44,8 @@ def bonos_mes(mes: int, anio: int):
         horas_disponibles = (dias * 530) / 60
         eficiencia_ocupacion = horas / horas_disponibles if horas_disponibles > 0 else 0
 
-        est = c.execute("""
+        # 🔥 CORRECCIÓN
+        c.execute("""
             SELECT AVG(e.unidades_por_hora),
                    AVG(e.costo_mo_unidad)
             FROM registros_produccion r
@@ -49,7 +53,9 @@ def bonos_mes(mes: int, anio: int):
             WHERE r.operario_id = %s
             AND TO_CHAR(r.inicio::timestamp, 'MM') = %s
             AND TO_CHAR(r.inicio::timestamp, 'YYYY') = %s
-        """, (operario_id, f"{mes:02d}", str(anio))).fetchone()
+        """, (operario_id, f"{mes:02d}", str(anio)))
+
+        est = c.fetchone()
 
         if not est or not est[0]:
             continue
@@ -123,7 +129,8 @@ def detalle_bono(request: Request):
     conn = db()
     c = conn.cursor()
 
-    rows = c.execute("""
+    # 🔥 CORRECCIÓN
+    c.execute("""
         SELECT 
             a.id,
             a.nombre,
@@ -136,7 +143,9 @@ def detalle_bono(request: Request):
         AND TO_CHAR(r.inicio::timestamp, 'MM') = %s
         AND TO_CHAR(r.inicio::timestamp, 'YYYY') = %s
         GROUP BY a.id, a.nombre
-    """, (nombre, f"{mes:02d}", str(anio))).fetchall()
+    """, (nombre, f"{mes:02d}", str(anio)))
+
+    rows = c.fetchall() or []
 
     detalle = []
     total_bono = 0
@@ -148,11 +157,14 @@ def detalle_bono(request: Request):
 
         rendimiento_real = (unidades / horas) if horas > 0 else 0
 
-        est = c.execute("""
+        # 🔥 CORRECCIÓN
+        c.execute("""
             SELECT unidades_por_hora, costo_mo_unidad
             FROM estandares_actividad
             WHERE actividad_id = %s
-        """, (actividad_id,)).fetchone()
+        """, (actividad_id,))
+
+        est = c.fetchone()
 
         if not est:
             continue
