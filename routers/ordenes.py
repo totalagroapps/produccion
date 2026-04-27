@@ -20,9 +20,12 @@ def panel(request: Request):
     conn = db()
     c = conn.cursor()
 
-    maquinas = c.execute("SELECT id,nombre FROM maquinas").fetchall()
+    # 🔧 maquinas
+    c.execute("SELECT id,nombre FROM maquinas")
+    maquinas = c.fetchall()
 
-    ordenes_sql = c.execute("""
+    # 🔧 ordenes
+    c.execute("""
         SELECT o.id,
                m.nombre,
                o.cantidad,
@@ -31,7 +34,8 @@ def panel(request: Request):
         FROM ordenes o
         JOIN maquinas m ON m.id=o.maquina_id
         ORDER BY o.id DESC
-    """).fetchall()
+    """)
+    ordenes_sql = c.fetchall()
 
     ordenes = []
 
@@ -70,41 +74,6 @@ def panel(request: Request):
         "maquinas":maquinas,
         "ordenes":ordenes
     })
-
-
-# ================= CREAR ORDEN =================
-
-@router.post("/crear_orden_web")
-def crear_orden_web(cantidad: int = Form(...), maquina: int = Form(...)):
-
-    conn = db()
-    c = conn.cursor()
-
-    c.execute("""
-        INSERT INTO ordenes(maquina_id,cantidad,estado)
-        VALUES(%s,%s, 'ABIERTA') RETURNING id
-    """,(maquina,cantidad))
-
-    orden_id = c.fetchone()[0]
-
-    c.execute("""
-        SELECT a.id
-        FROM actividades a
-        JOIN procesos p ON a.proceso_id = p.id
-        WHERE p.maquina_id = %s
-    """,(maquina,))
-
-    acts = c.fetchall()
-
-    for a in acts:
-        c.execute("""
-            INSERT INTO orden_actividades
-            (orden_id,actividad_id,cantidad_total,cantidad_realizada)
-            VALUES(%s,%s,%s,0)
-        """,(orden_id,a[0],cantidad))
-
-    conn.commit()
-    conn.close()
     
 # ================= CERRAR ORDEN =================
 

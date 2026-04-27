@@ -16,7 +16,7 @@ def metricas_operarios(request: Request):
     c = conn.cursor()
 
     # ===== RESUMEN AGRUPADO =====
-    resumen = c.execute("""
+    c.execute("""
     SELECT 
         op.nombre,
         SUM(r.cantidad) as unidades,
@@ -26,7 +26,9 @@ def metricas_operarios(request: Request):
     JOIN operarios op ON op.id = r.operario_id
     GROUP BY op.nombre
     ORDER BY unidades DESC
-    """).fetchall()
+    """)
+
+    resumen = c.fetchall()
 
     resumen_final = []
 
@@ -40,17 +42,19 @@ def metricas_operarios(request: Request):
         )
 
     # ===== DETALLE =====
-    detalle = c.execute("""
-    SELECT op.nombre,
-           a.nombre,
-           r.cantidad,
-           r.inicio,
-           r.fin
-    FROM registros_produccion r
-    JOIN operarios op ON op.id=r.operario_id
-    JOIN actividades a ON a.id=r.actividad_id
-    ORDER BY r.id DESC
-    """).fetchall()
+    c.execute("""
+        SELECT op.nombre,
+            a.nombre,
+            r.cantidad,
+            r.inicio,
+            r.fin
+        FROM registros_produccion r
+        JOIN operarios op ON op.id=r.operario_id
+        JOIN actividades a ON a.id=r.actividad_id
+        ORDER BY r.id DESC
+    """)
+
+    detalle = c.fetchall()
 
     conn.close()
 
@@ -74,17 +78,20 @@ def metricas(request: Request):
     conn = db()
     c = conn.cursor()
 
-    resumen = c.execute("""
-    SELECT o.nombre,
-           SUM(r.cantidad) as unidades,
-           SUM((EXTRACT(EPOCH FROM r.fin::timestamp)-EXTRACT(EPOCH FROM r.inicio::timestamp))/60.0) as minutos
-    FROM registros_produccion r
-    JOIN operarios o ON o.id=r.operario_id
-    GROUP BY o.nombre
-    ORDER BY unidades DESC
-    """).fetchall()
+    # 🔧 resumen (ya estaba bien)
+    c.execute("""
+        SELECT o.nombre,
+            SUM(r.cantidad) as unidades,
+            SUM((EXTRACT(EPOCH FROM r.fin::timestamp)-EXTRACT(EPOCH FROM r.inicio::timestamp))/60.0) as minutos
+        FROM registros_produccion r
+        JOIN operarios o ON o.id=r.operario_id
+        GROUP BY o.nombre
+        ORDER BY unidades DESC
+    """)
+    resumen = c.fetchall()
 
-    detalle = c.execute("""
+    # 🔧 detalle (corregido)
+    c.execute("""
     SELECT o.nombre,
            a.nombre,
            r.cantidad,
@@ -94,7 +101,8 @@ def metricas(request: Request):
     JOIN operarios o ON o.id=r.operario_id
     JOIN actividades a ON a.id=r.actividad_id
     ORDER BY r.id DESC
-    """).fetchall()
+    """)
+    detalle = c.fetchall()
 
     conn.close()
 
@@ -119,31 +127,34 @@ def kpi(request: Request):
     c = conn.cursor()
 
     # KPI 1: piezas por operario
-    por_operario = c.execute("""
+    c.execute("""
     SELECT o.nombre,
            COALESCE(SUM(r.cantidad),0)
     FROM registros_produccion r
     JOIN operarios o ON o.id=r.operario_id
     GROUP BY o.id
-    """).fetchall()
+    """)
+    por_operario = c.fetchall()
 
     # KPI 2: minutos trabajados
-    minutos = c.execute("""
+    c.execute("""
     SELECT o.nombre,
            COALESCE(SUM(EXTRACT(EPOCH FROM (r.fin::timestamp - r.inicio::timestamp)) / 60.0), 0)
     FROM registros_produccion r
     JOIN operarios o ON o.id=r.operario_id
     GROUP BY o.id
-    """).fetchall()
+    """)
+    minutos = c.fetchall()
 
     # KPI 3: producción diaria
-    diario = c.execute("""
+    c.execute("""
     SELECT substr(inicio,1,10),
            SUM(cantidad)
     FROM registros_produccion
     GROUP BY substr(inicio,1,10)
     ORDER BY substr(inicio,1,10)
-    """).fetchall()
+    """)
+    diario = c.fetchall()
 
     conn.close()
 
