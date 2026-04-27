@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<div style="display:flex;justify-content:space-between;align-items:center;background:#1f2937;padding:18px">
+<h1 style="margin:0;color:white">Planificador de Producción</h1>
+<a href="/" class="boton">⬅ Dashboard</a>
+</div>
+
+<style>
+
+body{
+font-family: Arial, Helvetica, sans-serif;
+background:#f3f4f6;
+margin:0;
+font-size:15px;
+}
+
+form{
+padding:20px;
+}
+
+.proceso{
+background:white;
+margin:25px;
+padding:20px;
+border-radius:8px;
+box-shadow:0 3px 8px rgba(0,0,0,0.1);
+}
+
+.proceso h2{
+margin-top:0;
+color:#1f2937;
+font-size:20px;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:15px;
+font-size:14px;
+}
+
+th{
+background:#374151;
+color:white;
+padding:12px;
+text-align:left;
+}
+
+td{
+padding:10px;
+border-bottom:1px solid #e5e7eb;
+}
+
+tr:hover{
+background:#f9fafb;
+}
+
+.sin{
+color:#dc2626;
+font-weight:bold;
+}
+
+.ok{
+color:#16a34a;
+font-weight:bold;
+}
+
+.operarios{
+display:flex;
+flex-wrap:wrap;
+gap:10px;
+}
+
+.operarios label{
+background:#f3f4f6;
+padding:4px 8px;
+border-radius:4px;
+}
+
+.boton{
+background:#1f2937;
+color:white;
+border:none;
+padding:12px 22px;
+border-radius:6px;
+cursor:pointer;
+}
+
+.boton:hover{
+background:#374151;
+}
+
+.resultado{
+font-size:18px;
+line-height:1.8;
+}
+
+input[type="number"]{
+padding:6px;
+width:120px;
+}
+
+select{
+padding:6px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<form method="post" action="/calcular-produccion">
+
+<label><strong>Máquina:</strong></label>
+
+<select name="maquina_id">
+{% for m in maquinas %}
+<option value="{{m[0]}}" {% if m[0] == maquina_id %}selected{% endif %}>
+{{m[1]}}
+</option>
+{% endfor %}
+</select>
+
+<br><br>
+
+<label><strong>Cantidad a producir:</strong></label>
+<input type="number" name="cantidad" required>
+
+<br><br>
+
+<button class="boton" type="submit">
+Calcular Producción
+</button>
+
+<br><br>
+
+<!-- 🔥 ACTIVIDADES (ANTES PROCESOS) -->
+
+<div class="proceso">
+
+<h2>Actividades del proceso</h2>
+
+<table>
+
+<tr>
+<th>Actividad</th>
+<th>Unidades / hora</th>
+<th>Tiempo / unidad (min)</th>
+<th>Estado</th>
+<th>Operarios</th>
+</tr>
+
+{% for a in actividades %}
+
+<tr>
+
+<td>{{a[1]}}</td>
+
+<td>
+{% if a[2] %}
+{{a[2] | round(2)}}
+{% else %}
+-
+{% endif %}
+</td>
+
+<td>
+{% if a[2] %}
+{{ (60 / a[2]) | round(2) }}
+{% else %}
+-
+{% endif %}
+</td>
+
+<td>
+{% if a[2] %}
+<span class="ok">✓ estándar</span>
+{% else %}
+<span class="sin">⚠ sin estándar</span>
+{% endif %}
+</td>
+
+<td>
+
+<div class="operarios">
+
+{% for op in operarios %}
+<label>
+<input type="checkbox" name="actividad_{{a[0]}}" value="{{op[0]}}">
+{{op[1]}}
+</label>
+{% endfor %}
+
+</div>
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+</div>
+
+</form>
+
+
+<!-- RESULTADO -->
+
+{% if resultado %}
+
+<div class="proceso">
+
+<h2>Resultado de Producción</h2>
+
+<div class="resultado">
+{{resultado|safe}}
+</div>
+
+</div>
+
+{% endif %}
+
+
+<!-- 🔥 CRONOGRAMA CORREGIDO -->
+
+{% if cronograma and cronograma|length > 0 %}
+
+<div class="proceso">
+
+<h2>Cronograma de Producción</h2>
+
+<table>
+
+<tr>
+<th>Actividad</th>
+<th>Inicio (horas)</th>
+<th>Fin (horas)</th>
+</tr>
+
+{% for c in cronograma %}
+
+<tr>
+<td><b>{{c.actividad}}</b></td>
+<td>{{c.inicio}}</td>
+<td>{{c.fin}}</td>
+</tr>
+
+{% endfor %}
+
+</table>
+
+</div>
+
+{% endif %}
+
+</body>
+</html>

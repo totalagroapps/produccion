@@ -18,12 +18,12 @@ def bonos_mes(mes: int, anio: int):
             o.id,
             o.nombre,
             SUM(r.cantidad) as unidades,
-            SUM((strftime('%s', r.fin) - strftime('%s', r.inicio)) / 3600.0) as horas,
+            SUM((EXTRACT(EPOCH FROM r.fin::timestamp) - EXTRACT(EPOCH FROM r.inicio::timestamp)) / 3600.0) as horas,
             COUNT(DISTINCT date(r.inicio)) as dias_trabajados
         FROM registros_produccion r
         JOIN operarios o ON o.id = r.operario_id
-        WHERE strftime('%m', r.inicio) = ?
-        AND strftime('%Y', r.inicio) = ?
+        WHERE TO_CHAR(r.inicio::timestamp, 'MM') = %s
+        AND TO_CHAR(r.inicio::timestamp, 'YYYY') = %s
         GROUP BY o.id, o.nombre
     """, (f"{mes:02d}", str(anio))).fetchall()
 
@@ -46,9 +46,9 @@ def bonos_mes(mes: int, anio: int):
                    AVG(e.costo_mo_unidad)
             FROM registros_produccion r
             JOIN estandares_actividad e ON e.actividad_id = r.actividad_id
-            WHERE r.operario_id = ?
-            AND strftime('%m', r.inicio) = ?
-            AND strftime('%Y', r.inicio) = ?
+            WHERE r.operario_id = %s
+            AND TO_CHAR(r.inicio::timestamp, 'MM') = %s
+            AND TO_CHAR(r.inicio::timestamp, 'YYYY') = %s
         """, (operario_id, f"{mes:02d}", str(anio))).fetchone()
 
         if not est or not est[0]:
@@ -129,13 +129,13 @@ def detalle_bono(request: Request):
             a.id,
             a.nombre,
             SUM(r.cantidad) as unidades,
-            SUM((strftime('%s', r.fin) - strftime('%s', r.inicio)) / 3600.0) as horas
+            SUM((EXTRACT(EPOCH FROM r.fin::timestamp) - EXTRACT(EPOCH FROM r.inicio::timestamp)) / 3600.0) as horas
         FROM registros_produccion r
         JOIN operarios o ON o.id = r.operario_id
         JOIN actividades a ON a.id = r.actividad_id
-        WHERE o.nombre = ?
-        AND strftime('%m', r.inicio) = ?
-        AND strftime('%Y', r.inicio) = ?
+        WHERE o.nombre = %s
+        AND TO_CHAR(r.inicio::timestamp, 'MM') = %s
+        AND TO_CHAR(r.inicio::timestamp, 'YYYY') = %s
         GROUP BY a.id, a.nombre
     """, (nombre, f"{mes:02d}", str(anio))).fetchall()
 
@@ -152,7 +152,7 @@ def detalle_bono(request: Request):
         est = c.execute("""
             SELECT unidades_por_hora, costo_mo_unidad
             FROM estandares_actividad
-            WHERE actividad_id = ?
+            WHERE actividad_id = %s
         """, (actividad_id,)).fetchone()
 
         if not est:

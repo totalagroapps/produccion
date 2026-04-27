@@ -18,7 +18,7 @@ def login_user(request: Request, username: str, password: str):
     conn = db()
     c = conn.cursor()
 
-    c.execute("SELECT password, role FROM users WHERE username = ?", (username,))
+    c.execute("SELECT password, role FROM users WHERE username = %s", (username,))
     resultado = c.fetchone()
     conn.close()
 

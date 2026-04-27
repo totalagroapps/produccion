@@ -6,64 +6,20 @@ from datetime import datetime, timedelta
 from openpyxl import Workbook  # type: ignore
 from fastapi.staticfiles import StaticFiles  # type: ignore
 from dotenv import load_dotenv
-from auth import login_user, require_admin
+from auth import login_user, require_admin, hash_password
 from database import db
-from fastapi.templating import Jinja2Templates
 from routers.ordenes import router as ordenes_router
 from routers.usuarios import router as usuarios_router
 from routers.android import router as android_router
-from routers.inventario import router as inventario_router
 from routers.metricas import router as metricas_router
 from routers.bonos import router as bonos_router
 from routers.admin_tools import router as admin_tools_router
-from fastapi import Form
-from fastapi.responses import RedirectResponse
-from fastapi.staticfiles import StaticFiles
+from routers import planificador
 from routers import configuracion
 from routers import admin_panel
 
-templates = Jinja2Templates(directory="templates")
-
 import os
-import sqlite3
 import pandas as pd  # type: ignore
-import random
-
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
-
-SECRET_KEY = os.getenv("SECRET_KEY")
-
-app = FastAPI()
-
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
-app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
-
-app.include_router(android_router)
-
-app.include_router(inventario_router)
-
-app.include_router(metricas_router)
-
-app.include_router(bonos_router)
-
-app.include_router(admin_tools_router)
-
-app.include_router(configuracion.router)
-
-app.include_router(admin_panel.router)
-
-app.mount("/disenos", StaticFiles(directory="disenos"), name="disenos")
-
-templates = Jinja2Templates(directory="templates")
-app.state.templates = templates
-
-# =========================
-# CARGAR VARIABLES DE ENTORNO
-# =========================
 
 load_dotenv()
 
@@ -71,10 +27,22 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 ADMIN_USER = os.getenv("ADMIN_USER")
 ADMIN_PASS = os.getenv("ADMIN_PASS")
 
-print("SECRET_KEY:", SECRET_KEY)
+app = FastAPI()
 
-# ================= DB =================
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
+app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
+
+templates = Jinja2Templates(directory="templates")
+app.state.templates = templates
+
+app.include_router(android_router)
+app.include_router(metricas_router)
+app.include_router(bonos_router)
+app.include_router(admin_tools_router)
+app.include_router(configuracion.router)
+app.include_router(admin_panel.router)
+app.include_router(planificador.router)
 
 
 # ================= CREAR TABLAS =================
@@ -84,34 +52,54 @@ def crear():
     conn = db()
     c = conn.cursor()
 
-    c.execute("CREATE TABLE IF NOT EXISTS maquinas(id INTEGER PRIMARY KEY,nombre TEXT)")
-    c.execute("CREATE TABLE IF NOT EXISTS procesos(id INTEGER PRIMARY KEY,maquina_id INTEGER,nombre TEXT)")
-    c.execute("CREATE TABLE IF NOT EXISTS actividades(id INTEGER PRIMARY KEY,proceso_id INTEGER,nombre TEXT)")
-    c.execute("CREATE TABLE IF NOT EXISTS operarios(id INTEGER PRIMARY KEY,nombre TEXT)")
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS maquinas(
+        id SERIAL PRIMARY KEY,
+        nombre TEXT
+    )""")
+
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS procesos(
+        id SERIAL PRIMARY KEY,
+        maquina_id INTEGER,
+        nombre TEXT
+    )""")
+
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS actividades(
+        id SERIAL PRIMARY KEY,
+        proceso_id INTEGER,
+        nombre TEXT
+    )""")
+
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS operarios(
+        id SERIAL PRIMARY KEY,
+        nombre TEXT
+    )""")
 
     c.execute("""
     CREATE TABLE IF NOT EXISTS ordenes(
-        id INTEGER PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         maquina_id INTEGER,
         cantidad INTEGER,
         estado TEXT,
-        porcentaje REAL DEFAULT 0
-    )
-    """)
+        porcentaje REAL DEFAULT 0,
+        cerrado_en TEXT
+    )""")
 
     c.execute("""
     CREATE TABLE IF NOT EXISTS orden_actividades(
-        id INTEGER PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         orden_id INTEGER,
         actividad_id INTEGER,
         cantidad_total INTEGER,
         cantidad_realizada INTEGER DEFAULT 0
-    )
-    """)
+    )""")
 
     c.execute("""
     CREATE TABLE IF NOT EXISTS registros_produccion(
-        id INTEGER PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         operario_id INTEGER,
         orden_id INTEGER,
         actividad_id INTEGER,
@@ -119,12 +107,11 @@ def crear():
         inicio TEXT,
         fin TEXT,
         tiempo INTEGER
-    )
-    """)
+    )""")
 
     c.execute("""
     CREATE TABLE IF NOT EXISTS bonos(
-        id INTEGER PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         operario_id INTEGER,
         actividad_id INTEGER,
         unidades INTEGER,
@@ -133,48 +120,39 @@ def crear():
         porcentaje REAL,
         valor REAL,
         fecha TEXT
-    )
-    """)
+    )""")
 
     c.execute("""
     CREATE TABLE IF NOT EXISTS estandares_actividad(
-        id INTEGER PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         actividad_id INTEGER,
         unidades_por_hora REAL,
         costo_mo_unidad REAL,
         costo_mo_hora REAL
-    )
-    """)
-
+    )""")
 
     c.execute("""
     CREATE TABLE IF NOT EXISTS users(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         username TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
         role TEXT NOT NULL
-    )
-    """)
+    )""")
 
-    # Índice para velocidad
-    c.execute("""
-    CREATE INDEX IF NOT EXISTS idx_movimientos_referencia
-    ON movimientos_inventario(referencia)
-    """)
-
-        # Crear admin inicial si no existe
-    c.execute("SELECT * FROM users WHERE username = ?", ("admin",))
+    # Crear admin inicial si no existe
+    c.execute("SELECT * FROM users WHERE username = %s", ("admin",))
     existe = c.fetchone()
 
     if not existe:
-        hashed = hash_password("1234")  # cambia por tu contraseña real
+        hashed = hash_password("1234")
         c.execute(
-            "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
+            "INSERT INTO users (username, password, role) VALUES (%s, %s, %s)",
             ("admin", hashed, "admin")
         )
 
     conn.commit()
     conn.close()
+
 
 # ================= HOME =================
 
@@ -187,32 +165,28 @@ def home(request: Request):
     conn = db()
     c = conn.cursor()
 
-    # Órdenes activas
-    ordenes_activas = c.execute("""
-        SELECT COUNT(*) FROM ordenes
-        WHERE estado='ABIERTA'
-    """).fetchone()[0]
+    c.execute("SELECT COUNT(*) FROM ordenes WHERE estado='ABIERTA'")
+    ordenes_activas = c.fetchone()[0]
 
-    # Producción hoy
-    produccion_hoy = c.execute("""
-        SELECT SUM(cantidad)
+    c.execute("""
+        SELECT COALESCE(SUM(cantidad), 0)
         FROM registros_produccion
-        WHERE date(inicio)=date('now')
-    """).fetchone()[0] or 0
+        WHERE inicio::date = CURRENT_DATE
+    """)
+    produccion_hoy = c.fetchone()[0]
 
-    # Operarios activos hoy
-    operarios_activos = c.execute("""
+    c.execute("""
         SELECT COUNT(DISTINCT operario_id)
         FROM registros_produccion
-        WHERE date(inicio)=date('now')
-    """).fetchone()[0] or 0
+        WHERE inicio::date = CURRENT_DATE
+    """)
+    operarios_activos = c.fetchone()[0] or 0
 
-    # Avance promedio
-    row = c.execute("""
-        SELECT SUM(cantidad_realizada),
-               SUM(cantidad_total)
+    c.execute("""
+        SELECT SUM(cantidad_realizada), SUM(cantidad_total)
         FROM orden_actividades
-    """).fetchone()
+    """)
+    row = c.fetchone()
 
     if row and row[1] and row[1] > 0:
         avance_promedio = round((row[0] / row[1]) * 100, 1)
@@ -228,48 +202,40 @@ def home(request: Request):
         "avance_promedio": avance_promedio,
         "operarios_activos": operarios_activos
     })
+
+
 # ================= PANEL =================
 
 @app.get("/panel", response_class=HTMLResponse)
 def panel(request: Request):
 
-    # 🔐 PROTECCIÓN DE SESIÓN
     if not require_admin(request):
-        return RedirectResponse("/admin",303)
+        return RedirectResponse("/admin", 303)
 
     conn = db()
     c = conn.cursor()
 
-    maquinas = c.execute("SELECT id,nombre FROM maquinas").fetchall()
+    c.execute("SELECT id, nombre FROM maquinas")
+    maquinas = c.fetchall()
 
-    ordenes_sql = c.execute("""
-        SELECT o.id,
-               m.nombre,
-               o.cantidad,
-               o.estado,
-               o.cerrado_en
+    c.execute("""
+        SELECT o.id, m.nombre, o.cantidad, o.estado, o.cerrado_en
         FROM ordenes o
-        JOIN maquinas m ON m.id=o.maquina_id
+        JOIN maquinas m ON m.id = o.maquina_id
         ORDER BY o.id DESC
-    """).fetchall()
+    """)
+    ordenes_sql = c.fetchall()
 
     ordenes = []
 
     for o in ordenes_sql:
-
         oid = o[0]
-        producto = o[1]
-        cantidad = o[2]
-        estado = o[3]
-        cerrado = o[4]
 
-        # ---- PORCENTAJE DINÁMICO ----
         c.execute("""
-            SELECT SUM(cantidad_realizada),
-                   SUM(cantidad_total)
+            SELECT SUM(cantidad_realizada), SUM(cantidad_total)
             FROM orden_actividades
-            WHERE orden_id=?
-        """,(oid,))
+            WHERE orden_id = %s
+        """, (oid,))
 
         row_pct = c.fetchone()
 
@@ -278,9 +244,8 @@ def panel(request: Request):
         else:
             porcentaje_general = 0
 
-        # ---- ACTIVIDADES ----
-        acts = c.execute("""
-            SELECT 
+        c.execute("""
+            SELECT
                 p.nombre,
                 a.nombre,
                 oa.cantidad_realizada,
@@ -288,19 +253,16 @@ def panel(request: Request):
             FROM orden_actividades oa
             JOIN actividades a ON a.id = oa.actividad_id
             JOIN procesos p ON p.id = a.proceso_id
-            WHERE oa.orden_id = ?
+            WHERE oa.orden_id = %s
             ORDER BY p.id
-        """,(oid,)).fetchall()
+        """, (oid,))
+        acts = c.fetchall()
 
         procesos = {}
-
         for pr, act, real, total in acts:
-
             if pr not in procesos:
                 procesos[pr] = []
-
             pct = int((real/total)*100) if total else 0
-
             procesos[pr].append({
                 "nombre": act,
                 "realizada": real,
@@ -310,28 +272,27 @@ def panel(request: Request):
 
         ordenes.append({
             "id": oid,
-            "producto": producto,
-            "cantidad": cantidad,
-            "estado": estado,
+            "producto": o[1],
+            "cantidad": o[2],
+            "estado": o[3],
             "porcentaje": porcentaje_general,
-            "cerrado_en": cerrado,
-            "procesos":[
-                {"nombre":k,"actividades":v}
-                for k,v in procesos.items()
+            "cerrado_en": o[4],
+            "procesos": [
+                {"nombre": k, "actividades": v}
+                for k, v in procesos.items()
             ]
         })
 
     conn.close()
 
-    return templates.TemplateResponse("panel.html",{
-        "request":request,
-        "maquinas":maquinas,
-        "ordenes":ordenes
+    return templates.TemplateResponse("panel.html", {
+        "request": request,
+        "maquinas": maquinas,
+        "ordenes": ordenes
     })
 
-# ================= METRICAS OPERARIOS =================
 
-from fastapi.responses import HTMLResponse # type: ignore
+# ================= METRICAS OPERARIOS =================
 
 @app.get("/metricas_operarios", response_class=HTMLResponse)
 def metricas_operarios(request: Request):
@@ -339,48 +300,43 @@ def metricas_operarios(request: Request):
     conn = db()
     c = conn.cursor()
 
-    # ===== RESUMEN AGRUPADO POR OPERARIO =====
-    resumen = c.execute("""
-    SELECT 
+    c.execute("""
+    SELECT
         op.nombre,
         SUM(r.cantidad) as unidades,
-        SUM(strftime('%s',r.fin)-strftime('%s',r.inicio)) as segundos,
+        SUM(EXTRACT(EPOCH FROM (r.fin::timestamp - r.inicio::timestamp))) as segundos,
         COUNT(r.id) as operaciones
     FROM registros_produccion r
     JOIN operarios op ON op.id = r.operario_id
     GROUP BY op.nombre
     ORDER BY unidades DESC
-    """).fetchall()
+    """)
+    resumen = c.fetchall()
 
     resumen_final = []
-
     for nombre, unidades, segundos, operaciones in resumen:
         segundos = segundos or 0
-        horas = round(segundos / 3600,2) if segundos else 0
-        productividad = round(unidades / horas,2) if horas else 0
-
+        horas = round(segundos / 3600, 2) if segundos else 0
+        productividad = round(unidades / horas, 2) if horas else 0
         resumen_final.append((nombre, unidades, horas, productividad, operaciones))
 
-    # ===== DETALLE =====
-    detalle = c.execute("""
-    SELECT op.nombre,
-           a.nombre,
-           r.cantidad,
-           r.inicio,
-           r.fin
+    c.execute("""
+    SELECT op.nombre, a.nombre, r.cantidad, r.inicio, r.fin
     FROM registros_produccion r
-    JOIN operarios op ON op.id=r.operario_id
-    JOIN actividades a ON a.id=r.actividad_id
+    JOIN operarios op ON op.id = r.operario_id
+    JOIN actividades a ON a.id = r.actividad_id
     ORDER BY r.id DESC
-    """).fetchall()
+    """)
+    detalle = c.fetchall()
 
     conn.close()
 
-    return templates.TemplateResponse("Metricas.html",{
-        "request":request,
-        "resumen":resumen_final,
-        "detalle":detalle
+    return templates.TemplateResponse("Metricas.html", {
+        "request": request,
+        "resumen": resumen_final,
+        "detalle": detalle
     })
+
 
 # ================= KPI DASHBOARD =================
 
@@ -388,46 +344,45 @@ def metricas_operarios(request: Request):
 def kpi(request: Request):
 
     if not require_admin(request):
-        return RedirectResponse("/admin",303)
+        return RedirectResponse("/admin", 303)
 
     conn = db()
     c = conn.cursor()
 
-    # KPI 1: piezas por operario
-    por_operario = c.execute("""
-    SELECT o.nombre,
-           IFNULL(SUM(r.cantidad),0)
+    c.execute("""
+    SELECT o.nombre, COALESCE(SUM(r.cantidad), 0)
     FROM registros_produccion r
-    JOIN operarios o ON o.id=r.operario_id
-    GROUP BY o.id
-    """).fetchall()
+    JOIN operarios o ON o.id = r.operario_id
+    GROUP BY o.id, o.nombre
+    """)
+    por_operario = c.fetchall()
 
-    # KPI 2: minutos trabajados por operario
-    minutos = c.execute("""
+    c.execute("""
     SELECT o.nombre,
-           IFNULL(SUM((julianday(r.fin)-julianday(r.inicio))*24*60),0)
+           COALESCE(SUM(EXTRACT(EPOCH FROM (r.fin::timestamp - r.inicio::timestamp)) / 60.0), 0)
     FROM registros_produccion r
-    JOIN operarios o ON o.id=r.operario_id
-    GROUP BY o.id
-    """).fetchall()
+    JOIN operarios o ON o.id = r.operario_id
+    GROUP BY o.id, o.nombre
+    """)
+    minutos = c.fetchall()
 
-    # KPI 3: producción diaria
-    diario = c.execute("""
-    SELECT substr(inicio,1,10),
-           SUM(cantidad)
+    c.execute("""
+    SELECT LEFT(inicio, 10), SUM(cantidad)
     FROM registros_produccion
-    GROUP BY substr(inicio,1,10)
-    ORDER BY substr(inicio,1,10)
-    """).fetchall()
+    GROUP BY LEFT(inicio, 10)
+    ORDER BY LEFT(inicio, 10)
+    """)
+    diario = c.fetchall()
 
     conn.close()
 
-    return templates.TemplateResponse("kpi.html",{
-        "request":request,
-        "por_operario":por_operario,
-        "minutos":minutos,
-        "diario":diario
+    return templates.TemplateResponse("kpi.html", {
+        "request": request,
+        "por_operario": por_operario,
+        "minutos": minutos,
+        "diario": diario
     })
+
 
 # ================= CREAR ORDEN DESDE PANEL =================
 
@@ -437,35 +392,32 @@ def crear_orden_web(cantidad: int = Form(...), maquina: int = Form(...)):
     conn = db()
     c = conn.cursor()
 
-    # crear orden principal
     c.execute("""
-        INSERT INTO ordenes(maquina_id,cantidad,estado)
-        VALUES(?,?, 'ABIERTA')
-    """,(maquina,cantidad))
+        INSERT INTO ordenes(maquina_id, cantidad, estado)
+        VALUES (%s, %s, 'ABIERTA') RETURNING id
+    """, (maquina, cantidad))
 
-    orden_id = c.lastrowid
+    orden_id = c.fetchone()[0]
 
-    # tomar actividades asociadas a esa maquina
     c.execute("""
         SELECT a.id
         FROM actividades a
         JOIN procesos p ON a.proceso_id = p.id
-        WHERE p.maquina_id = ?
-    """,(maquina,))
-
+        WHERE p.maquina_id = %s
+    """, (maquina,))
     acts = c.fetchall()
 
     for a in acts:
         c.execute("""
             INSERT INTO orden_actividades
-            (orden_id,actividad_id,cantidad_total,cantidad_realizada)
-            VALUES(?,?,?,0)
-        """,(orden_id,a[0],cantidad))
+            (orden_id, actividad_id, cantidad_total, cantidad_realizada)
+            VALUES (%s, %s, %s, 0)
+        """, (orden_id, a[0], cantidad))
 
     conn.commit()
     conn.close()
 
-    return RedirectResponse("/panel",303)
+    return RedirectResponse("/panel", 303)
 
 
 # ================= REGISTRO =================
@@ -482,7 +434,8 @@ def registro(data: dict):
 
     c.execute("""
         INSERT INTO registros_produccion
-        VALUES(NULL,?,?,?,?,?,?,?)
+        (operario_id, orden_id, actividad_id, cantidad, inicio, fin, tiempo)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
     """, (
         data["operario_id"],
         data["orden_id"],
@@ -495,23 +448,18 @@ def registro(data: dict):
 
     c.execute("""
         UPDATE orden_actividades
-        SET cantidad_realizada = cantidad_realizada + ?
-        WHERE orden_id=? AND actividad_id=?
-    """, (
-        data["cantidad"],
-        data["orden_id"],
-        data["actividad_id"]
-    ))
+        SET cantidad_realizada = cantidad_realizada + %s
+        WHERE orden_id = %s AND actividad_id = %s
+    """, (data["cantidad"], data["orden_id"], data["actividad_id"]))
 
-    # ---- CALCULAR PORCENTAJE BASADO EN EMPAQUE ----
     c.execute("""
-        SELECT 
+        SELECT
             SUM(oa.cantidad_realizada),
             SUM(oa.cantidad_total)
         FROM orden_actividades oa
         JOIN actividades a ON a.id = oa.actividad_id
-        WHERE oa.orden_id=? 
-        AND a.nombre LIKE '%Empaque%'
+        WHERE oa.orden_id = %s
+        AND a.nombre ILIKE '%Empaque%'
     """, (data["orden_id"],))
 
     row = c.fetchone()
@@ -523,15 +471,16 @@ def registro(data: dict):
 
     c.execute("""
         UPDATE ordenes
-        SET porcentaje=?,
-            estado=CASE WHEN ? >= 100 THEN 'CERRADA' ELSE estado END
-        WHERE id=?
+        SET porcentaje = %s,
+            estado = CASE WHEN %s >= 100 THEN 'CERRADA' ELSE estado END
+        WHERE id = %s
     """, (porcentaje, porcentaje, data["orden_id"]))
 
     conn.commit()
     conn.close()
 
     return {"ok": True, "porcentaje": porcentaje}
+
 
 # ================= EXPORTAR =================
 
@@ -541,27 +490,26 @@ def exportar_excel():
     conn = db()
     c = conn.cursor()
 
-    rows = c.execute("""
-    SELECT o.nombre,a.nombre,r.cantidad,r.inicio,r.fin
+    c.execute("""
+    SELECT o.nombre, a.nombre, r.cantidad, r.inicio, r.fin
     FROM registros_produccion r
-    JOIN operarios o ON o.id=r.operario_id
-    JOIN actividades a ON a.id=r.actividad_id
-    """).fetchall()
+    JOIN operarios o ON o.id = r.operario_id
+    JOIN actividades a ON a.id = r.actividad_id
+    """)
+    rows = c.fetchall()
 
     wb = Workbook()
     ws = wb.active
-
-    ws.append(["Operario","Actividad","Cantidad","Inicio","Fin"])
-
+    ws.append(["Operario", "Actividad", "Cantidad", "Inicio", "Fin"])
     for r in rows:
-        ws.append(r)
+        ws.append(list(r))
 
-    path="reporte_produccion.xlsx"
+    path = "/tmp/reporte_produccion.xlsx"
     wb.save(path)
-
     conn.close()
 
-    return FileResponse(path,filename="reporte_produccion.xlsx")
+    return FileResponse(path, filename="reporte_produccion.xlsx")
+
 
 # ================= ELIMINAR ORDEN =================
 
@@ -571,16 +519,13 @@ def eliminar(id: int):
     conn = db()
     c = conn.cursor()
 
-    # borrar actividades de la orden
-    c.execute("DELETE FROM orden_actividades WHERE orden_id=?", (id,))
-
-    # borrar orden principal
-    c.execute("DELETE FROM ordenes WHERE id=?", (id,))
+    c.execute("DELETE FROM orden_actividades WHERE orden_id = %s", (id,))
+    c.execute("DELETE FROM ordenes WHERE id = %s", (id,))
 
     conn.commit()
     conn.close()
 
-    return RedirectResponse("/panel",303)
+    return RedirectResponse("/panel", 303)
 
 
 # ================= CERRAR ORDEN =================
@@ -591,19 +536,16 @@ def cerrar_orden(orden_id: int):
     conn = db()
     c = conn.cursor()
 
-    # 1️⃣ Marcar todas las actividades como completadas
     c.execute("""
         UPDATE orden_actividades
         SET cantidad_realizada = cantidad_total
-        WHERE orden_id=?
+        WHERE orden_id = %s
     """, (orden_id,))
 
-    # 2️⃣ Marcar orden como cerrada
     c.execute("""
         UPDATE ordenes
-        SET estado='CERRADA',
-            cerrado_en=?
-        WHERE id=?
+        SET estado = 'CERRADA', cerrado_en = %s
+        WHERE id = %s
     """, (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), orden_id))
 
     conn.commit()
@@ -611,16 +553,19 @@ def cerrar_orden(orden_id: int):
 
     return RedirectResponse("/panel", status_code=303)
 
+
 @app.get("/admin", response_class=HTMLResponse)
 def admin(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
+
 
 @app.post("/admin")
 def admin_post(request: Request, user: str = Form(...), password: str = Form(...)):
 
     if login_user(request, user, password):
-
         next_page = request.query_params.get("next")
+    else:
+        next_page = "/admin"
 
     if not next_page or next_page == "None":
         next_page = "/"
@@ -637,15 +582,14 @@ def registro_android(data: dict):
     c = conn.cursor()
 
     tiempo = int(data.get("tiempo", 0))
-
     fin = datetime.now()
     inicio = fin - timedelta(seconds=tiempo)
 
     c.execute("""
     INSERT INTO registros_produccion
     (operario_id, orden_id, actividad_id, cantidad, inicio, fin, tiempo)
-    VALUES (?,?,?,?,?,?,?)
-    """,(
+    VALUES (%s, %s, %s, %s, %s, %s, %s)
+    """, (
         data["operario_id"],
         data["orden_id"],
         data["actividad_id"],
@@ -655,24 +599,17 @@ def registro_android(data: dict):
         tiempo
     ))
 
-    # actualizar actividad
     c.execute("""
     UPDATE orden_actividades
-    SET cantidad_realizada = cantidad_realizada + ?
-    WHERE orden_id=? AND actividad_id=?
-    """,(
-        data["cantidad"],
-        data["orden_id"],
-        data["actividad_id"]
-    ))
+    SET cantidad_realizada = cantidad_realizada + %s
+    WHERE orden_id = %s AND actividad_id = %s
+    """, (data["cantidad"], data["orden_id"], data["actividad_id"]))
 
-    # ---- RECALCULAR PORCENTAJE GENERAL DE LA ORDEN ----
     c.execute("""
-        SELECT SUM(cantidad_realizada),
-               SUM(cantidad_total)
+        SELECT SUM(cantidad_realizada), SUM(cantidad_total)
         FROM orden_actividades
-        WHERE orden_id=?
-    """,(data["orden_id"],))
+        WHERE orden_id = %s
+    """, (data["orden_id"],))
 
     row = c.fetchone()
 
@@ -683,121 +620,135 @@ def registro_android(data: dict):
 
     c.execute("""
         UPDATE ordenes
-        SET porcentaje=?,
-            estado=CASE WHEN ? >= 100 THEN 'CERRADA' ELSE estado END
-        WHERE id=?
-    """,(porcentaje, porcentaje, data["orden_id"]))
+        SET porcentaje = %s,
+            estado = CASE WHEN %s >= 100 THEN 'CERRADA' ELSE estado END
+        WHERE id = %s
+    """, (porcentaje, porcentaje, data["orden_id"]))
 
     conn.commit()
     conn.close()
 
-    return {"status":"ok"}
+    return {"status": "ok"}
 
-# ================= ANDROID REST =================
+
+# ================= IMPORTAR =================
 
 @app.get("/importar")
 def importar(request: Request):
-    return templates.TemplateResponse("importar.html", {
-        "request": request
-    })
+    return templates.TemplateResponse("importar.html", {"request": request})
+
 
 @app.get("/operarios")
 def operarios():
-    c=db().cursor()
-    return c.execute("SELECT id,nombre FROM operarios").fetchall()
+    conn = db()
+    c = conn.cursor()
+    c.execute("SELECT id, nombre FROM operarios")
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
 
 @app.get("/maquinas")
 def maquinas():
-    c=db().cursor()
-    return c.execute("SELECT id,nombre FROM maquinas").fetchall()
+    conn = db()
+    c = conn.cursor()
+    c.execute("SELECT id, nombre FROM maquinas")
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
 
 @app.get("/ordenes")
 def ordenes_android():
-    c=db().cursor()
-    return c.execute("""
-    SELECT id,maquina_id,estado,porcentaje
+    conn = db()
+    c = conn.cursor()
+    c.execute("""
+    SELECT id, maquina_id, estado, porcentaje
     FROM ordenes
-    WHERE estado!='CERRADA'
-    """).fetchall()
+    WHERE estado != 'CERRADA'
+    """)
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
 
 @app.get("/procesos/{orden_id}")
-def procesos_android(orden_id:int):
-    c=db().cursor()
-    return c.execute("""
-    SELECT DISTINCT p.id,p.nombre
+def procesos_android(orden_id: int):
+    conn = db()
+    c = conn.cursor()
+    c.execute("""
+    SELECT DISTINCT p.id, p.nombre
     FROM orden_actividades oa
-    JOIN actividades a ON a.id=oa.actividad_id
-    JOIN procesos p ON p.id=a.proceso_id
-    WHERE oa.orden_id=?
-    """,(orden_id,)).fetchall()
-
+    JOIN actividades a ON a.id = oa.actividad_id
+    JOIN procesos p ON p.id = a.proceso_id
+    WHERE oa.orden_id = %s
+    """, (orden_id,))
+    rows = c.fetchall()
     conn.close()
     return rows
+
 
 @app.get("/actividades/{orden}/{proceso}")
-def actividades_android(orden:int, proceso:int):
-    c=db().cursor()
-    return c.execute("""
-    SELECT a.id,a.nombre
+def actividades_android(orden: int, proceso: int):
+    conn = db()
+    c = conn.cursor()
+    c.execute("""
+    SELECT a.id, a.nombre
     FROM orden_actividades oa
-    JOIN actividades a ON a.id=oa.actividad_id
-    WHERE oa.orden_id=? AND a.proceso_id=?
-    """,(orden,proceso)).fetchall()
-
+    JOIN actividades a ON a.id = oa.actividad_id
+    WHERE oa.orden_id = %s AND a.proceso_id = %s
+    """, (orden, proceso))
+    rows = c.fetchall()
     conn.close()
     return rows
+
 
 @app.get("/limpiar_registros")
 def limpiar_registros():
     conn = db()
     c = conn.cursor()
-
     c.execute("DELETE FROM registros_produccion")
     conn.commit()
     conn.close()
-
     return {"ok": True}
 
+
 @app.get("/metricas", response_class=HTMLResponse)
-def metricas(request:Request):
+def metricas(request: Request):
 
     conn = db()
     c = conn.cursor()
 
-    # -------- RESUMEN POR OPERARIO --------
-    resumen = c.execute("""
+    c.execute("""
     SELECT o.nombre,
            SUM(r.cantidad) as unidades,
-           SUM((strftime('%s',r.fin)-strftime('%s',r.inicio))/60.0) as minutos
+           SUM(EXTRACT(EPOCH FROM (r.fin::timestamp - r.inicio::timestamp)) / 60.0) as minutos
     FROM registros_produccion r
-    JOIN operarios o ON o.id=r.operario_id
+    JOIN operarios o ON o.id = r.operario_id
     GROUP BY o.nombre
     ORDER BY unidades DESC
-    """).fetchall()
+    """)
+    resumen = c.fetchall()
 
-
-    # -------- DETALLE COMPLETO --------
-    detalle = c.execute("""
-    SELECT o.nombre,
-           a.nombre,
-           r.cantidad,
-           r.inicio,
-           r.fin
+    c.execute("""
+    SELECT o.nombre, a.nombre, r.cantidad, r.inicio, r.fin
     FROM registros_produccion r
-    JOIN operarios o ON o.id=r.operario_id
-    JOIN actividades a ON a.id=r.actividad_id
+    JOIN operarios o ON o.id = r.operario_id
+    JOIN actividades a ON a.id = r.actividad_id
     ORDER BY r.id DESC
-    """).fetchall()
+    """)
+    detalle = c.fetchall()
 
     conn.close()
 
-    return templates.TemplateResponse("Metricas.html",{
-        "request":request,
-        "resumen":resumen,
-        "detalle":detalle
+    return templates.TemplateResponse("Metricas.html", {
+        "request": request,
+        "resumen": resumen,
+        "detalle": detalle
     })
 
-#IMPORTAR EXCEL NUEVO#
+
+# ================= IMPORTAR EXCEL =================
 
 @app.post("/importar_excel")
 async def importar_excel(
@@ -806,7 +757,6 @@ async def importar_excel(
     actividades: UploadFile = File(...),
     operarios: UploadFile = File(...)
 ):
-
     conn = db()
     c = conn.cursor()
 
@@ -815,48 +765,31 @@ async def importar_excel(
     df_actividades = pd.read_excel(actividades.file)
     df_operarios = pd.read_excel(operarios.file)
 
-    # ---------- MAQUINAS ----------
     for _, row in df_maquinas.iterrows():
-        c.execute("INSERT INTO maquinas(nombre) VALUES(?)",(row["nombre"],))
+        c.execute("INSERT INTO maquinas(nombre) VALUES(%s)", (row["nombre"],))
 
-    # ---------- PROCESOS ----------
     for _, row in df_procesos.iterrows():
-
-        mid = c.execute(
-            "SELECT id FROM maquinas WHERE nombre=?",
-            (row["maquina"],)
-        ).fetchone()
-
+        c.execute("SELECT id FROM maquinas WHERE nombre = %s", (row["maquina"],))
+        mid = c.fetchone()
         if mid:
-            c.execute(
-                "INSERT INTO procesos(maquina_id,nombre) VALUES(?,?)",
-                (mid[0], row["nombre"])
-            )
+            c.execute("INSERT INTO procesos(maquina_id, nombre) VALUES(%s, %s)", (mid[0], row["nombre"]))
 
-    # ---------- ACTIVIDADES ----------
     for _, row in df_actividades.iterrows():
-
-        pid = c.execute(
-            "SELECT id FROM procesos WHERE nombre=?",
-            (row["proceso"],)
-        ).fetchone()
-
+        c.execute("SELECT id FROM procesos WHERE nombre = %s", (row["proceso"],))
+        pid = c.fetchone()
         if pid:
-            c.execute(
-                "INSERT INTO actividades(proceso_id,nombre) VALUES(?,?)",
-                (pid[0], row["nombre"])
-            )
+            c.execute("INSERT INTO actividades(proceso_id, nombre) VALUES(%s, %s)", (pid[0], row["nombre"]))
 
-    # ---------- OPERARIOS ----------
     for _, row in df_operarios.iterrows():
-        c.execute("INSERT INTO operarios(nombre) VALUES(?)",(row["nombre"],))
+        c.execute("INSERT INTO operarios(nombre) VALUES(%s)", (row["nombre"],))
 
     conn.commit()
     conn.close()
 
-    return RedirectResponse("/",303)
+    return RedirectResponse("/", 303)
 
-#RESETEAR BASE#
+
+# ================= RESETEAR BASE =================
 
 @app.get("/resetear_base")
 def resetear_base():
@@ -864,20 +797,17 @@ def resetear_base():
     conn = db()
     c = conn.cursor()
 
-    # Orden correcto (hijos → padres)
     c.execute("DELETE FROM registros_produccion")
     c.execute("DELETE FROM actividades")
     c.execute("DELETE FROM procesos")
     c.execute("DELETE FROM maquinas")
     c.execute("DELETE FROM operarios")
 
-    # Resetear autoincrement (opcional pero recomendado)
-    c.execute("DELETE FROM sqlite_sequence")
-
     conn.commit()
     conn.close()
 
     return RedirectResponse("/", status_code=303)
+
 
 @app.get("/reset_metricas")
 def reset_metricas():
@@ -893,37 +823,32 @@ def reset_metricas():
     conn.commit()
     conn.close()
 
-    return RedirectResponse("/",303)
+    return RedirectResponse("/", 303)
+
 
 @app.get("/borrar_registros")
 def borrar_registros():
 
     conn = db()
     c = conn.cursor()
-
     c.execute("DELETE FROM registros_produccion")
-
     conn.commit()
     conn.close()
+    return {"ok": True}
 
-    return {"ok":True}
 
 @app.get("/limpiar_excel")
 def limpiar_excel(request: Request):
 
-    # proteger solo admin
     if not require_admin(request):
-        return RedirectResponse("/admin",303)
+        return RedirectResponse("/admin", 303)
 
     conn = db()
     c = conn.cursor()
 
-    # borrar producción
     c.execute("DELETE FROM registros_produccion")
     c.execute("DELETE FROM orden_actividades")
     c.execute("DELETE FROM ordenes")
-
-    # borrar datos importados
     c.execute("DELETE FROM actividades")
     c.execute("DELETE FROM procesos")
     c.execute("DELETE FROM maquinas")
@@ -932,146 +857,47 @@ def limpiar_excel(request: Request):
     conn.commit()
     conn.close()
 
-    return RedirectResponse("/",303)
+    return RedirectResponse("/", 303)
+
 
 @app.get("/ver_actividades")
 def ver_actividades():
     conn = db()
     c = conn.cursor()
-    rows = c.execute("SELECT id, nombre FROM actividades").fetchall()
+    c.execute("SELECT id, nombre FROM actividades")
+    rows = c.fetchall()
     conn.close()
     return rows
 
-@app.get("/insertar_estandares_demo")
-def insertar_estandares_demo():
-    conn = db()
-    c = conn.cursor()
-
-    # ejemplo
-    c.execute("INSERT INTO estandares_actividad (actividad_id, unidades_por_hora) VALUES (1, 12)")
-    c.execute("INSERT INTO estandares_actividad (actividad_id, unidades_por_hora) VALUES (2, 8)")
-    c.execute("INSERT INTO estandares_actividad (actividad_id, unidades_por_hora) VALUES (3, 15)")
-
-    conn.commit()
-    conn.close()
-
-    return {"ok": True}
-
-META_MENSUAL = 5000
-TARIFA_HH = 10000   # ajustable
 
 @app.get("/ver_bonos")
 def ver_bonos():
     conn = db()
     c = conn.cursor()
-    rows = c.execute("""
-    SELECT o.nombre,a.nombre,b.unidades,b.horas,b.rendimiento,b.porcentaje,b.valor
+    c.execute("""
+    SELECT o.nombre, a.nombre, b.unidades, b.horas, b.rendimiento, b.porcentaje, b.valor
     FROM bonos b
-    JOIN operarios o ON o.id=b.operario_id
-    JOIN actividades a ON a.id=b.actividad_id
-    """).fetchall()
+    JOIN operarios o ON o.id = b.operario_id
+    JOIN actividades a ON a.id = b.actividad_id
+    """)
+    rows = c.fetchall()
     conn.close()
     return rows
+
 
 @app.get("/ver_registros")
 def ver_registros():
     conn = db()
     c = conn.cursor()
-    rows = c.execute("SELECT * FROM registros_produccion").fetchall()
+    c.execute("SELECT * FROM registros_produccion")
+    rows = c.fetchall()
     conn.close()
     return rows
 
-@app.get("/insertar_estandar_3")
-def insertar_estandar_3():
-    conn = db()
-    c = conn.cursor()
 
-    # actividad 3 = Pintura Despulpadora 2.5
-    # cambia 20 por el valor real de tu Excel (unidades por hora)
-    c.execute("""
-    INSERT INTO estandares_actividad (actividad_id, unidades_por_hora)
-    VALUES (3, 20)
-    """)
+META_MENSUAL = 5000
+TARIFA_HH = 10000
 
-    conn.commit()
-    conn.close()
-    return {"ok": True}
-
-def bonos_mes(mes, anio):
-
-    conn = db()
-    c = conn.cursor()
-
-    rows = c.execute("""
-        SELECT
-            o.id,
-            o.nombre,
-            SUM(r.cantidad) as unidades,
-            SUM((strftime('%s', r.fin) - strftime('%s', r.inicio)) / 3600.0) as horas,
-            COUNT(DISTINCT date(r.inicio)) as dias_trabajados
-        FROM registros_produccion r
-        JOIN operarios o ON o.id = r.operario_id
-        WHERE strftime('%m', r.inicio) = ?
-        AND strftime('%Y', r.inicio) = ?
-        GROUP BY o.id, o.nombre
-    """, (f"{mes:02d}", str(anio))).fetchall()
-
-    resultado = []
-
-    for operario_id, nombre, unidades, horas, dias in rows:
-
-        if not horas or horas == 0:
-            continue
-
-        # 🔹 Horas disponibles (530 minutos por día)
-        horas_disponibles = (dias * 530) / 60
-        eficiencia_ocupacion = horas / horas_disponibles if horas_disponibles > 0 else 0
-
-        # 🔹 Obtener estándar promedio del operario en el mes
-        est = c.execute("""
-            SELECT AVG(e.unidades_por_hora),
-                   AVG(e.costo_mo_unidad)
-            FROM registros_produccion r
-            JOIN estandares_actividad e ON e.actividad_id = r.actividad_id
-            WHERE r.operario_id = ?
-            AND strftime('%m', r.inicio) = ?
-            AND strftime('%Y', r.inicio) = ?
-        """, (operario_id, f"{mes:02d}", str(anio))).fetchone()
-
-        if not est or not est[0]:
-            continue
-
-        unidades_estandar = est[0]
-        costo_base = est[1] or 0
-
-        # 🔹 Eficiencia productiva
-        rendimiento_real = unidades / horas
-        eficiencia_productiva = rendimiento_real / unidades_estandar
-
-        # 🔹 Determinar porcentaje bono
-        if eficiencia_productiva >= 1.10:
-            porcentaje = 0.04
-        elif eficiencia_productiva >= 1.00:
-            porcentaje = 0.03
-        elif eficiencia_productiva >= 0.90:
-            porcentaje = 0.02
-        else:
-            porcentaje = 0
-
-        bono_total = unidades * costo_base * porcentaje
-
-        resultado.append({
-            "nombre": nombre,
-            "eficiencia_productiva": round(eficiencia_productiva * 100, 2),
-            "eficiencia_ocupacion": round(eficiencia_ocupacion * 100, 2),
-            "porcentaje_bono": porcentaje * 100,
-            "bono_total": round(bono_total, 2)
-        })
-
-    conn.close()
-    return resultado
-
-import pandas as pd # type: ignore
 
 @app.get("/cargar_estandares_excel")
 def cargar_estandares_excel():
@@ -1085,15 +911,13 @@ def cargar_estandares_excel():
     c.execute("DELETE FROM estandares_actividad")
 
     for _, row in df.iterrows():
-
         actividad_id = int(row["actividad_id"])
         unidades = float(row["unidades_por_hora"])
         costo = float(row["costo_mo_unidad"])
-
         c.execute("""
             INSERT INTO estandares_actividad
             (actividad_id, unidades_por_hora, costo_mo_unidad, costo_mo_hora)
-            VALUES (?, ?, ?, 0)
+            VALUES (%s, %s, %s, 0)
         """, (actividad_id, unidades, costo))
 
     conn.commit()
@@ -1101,8 +925,6 @@ def cargar_estandares_excel():
 
     return {"estandares_cargados": len(df)}
 
-from fastapi.responses import HTMLResponse # type: ignore
-from datetime import datetime
 
 @app.get("/bonos", response_class=HTMLResponse)
 def bonos(request: Request):
@@ -1111,13 +933,11 @@ def bonos(request: Request):
         return RedirectResponse("/admin", 303)
 
     hoy = datetime.now()
-
     mes = int(request.query_params.get("mes", hoy.month))
     anio = int(request.query_params.get("anio", hoy.year))
 
+    from routers.bonos import bonos_mes
     datos = bonos_mes(mes, anio)
-
-    print("RESULTADO BONOS:", datos)
 
     return templates.TemplateResponse("bonos.html", {
         "request": request,
@@ -1126,196 +946,6 @@ def bonos(request: Request):
         "anio": anio
     })
 
-#INVENTARIO#
-
-def formato_cop(valor):
-    return "${:,.0f}".format(valor).replace(",", ".")
-
-@app.get("/inventario", response_class=HTMLResponse)
-def inventario(request: Request):
-
-    if not require_admin(request):
-        return RedirectResponse("/admin", 303)
-
-    conn = db()
-    c = conn.cursor()
-
-    productos = c.execute("""
-        SELECT referencia,
-               cantidad_total,
-               entregadas,
-               total_disponibles,
-               peso_unitario_gr,
-               precio_unitario
-        FROM inventario
-    """).fetchall()
-
-    inventario_final = []
-
-    total_refs = 0
-    valor_total_general = 0
-    peso_total_general = 0
-    bajo_stock_count = 0
-
-    for p in productos:
-        ref = p[0]
-        cantidad_total = p[1] or 0
-        entregadas = p[2] or 0
-        disponibles = p[3] or 0
-        peso_unitario = p[4] or 0
-        precio_unitario = p[5] or 0
-
-        peso_total = (disponibles * peso_unitario) / 1000
-        valor_total = disponibles * precio_unitario
-
-        bajo_stock = disponibles <= STOCK_MINIMO
-
-        if bajo_stock:
-            bajo_stock_count += 1
-
-        total_refs += 1
-        valor_total_general += valor_total
-        peso_total_general += peso_total
-
-        inventario_final.append({
-            "referencia": ref,
-             "cantidad_total": cantidad_total,
-            "entregadas": entregadas,
-            "disponibles": disponibles,
-            "peso_total": peso_total,
-            "precio": precio_unitario,
-            "valor_total": valor_total,
-            "bajo_stock": bajo_stock
-        })
-
-    conn.close()
-
-    return templates.TemplateResponse("inventario.html",{
-        "request":request,
-        "inventario":inventario_final,
-        "total_refs": total_refs,
-        "valor_total": valor_total_general,
-        "peso_total": peso_total_general,
-        "bajo_stock_count": bajo_stock_count
-    })
-
-@app.post("/inventario/movimiento")
-def registrar_movimiento(
-    referencia: str = Form(...),
-    tipo: str = Form(...),
-    cantidad: int = Form(...),
-    request: Request = None
-):
-
-    if not require_admin(request):
-        return RedirectResponse("/admin", 303)
-
-    conn = db()
-    c = conn.cursor()
-
-    # 🔎 Calcular stock actual
-    c.execute("""
-        SELECT 
-            SUM(CASE WHEN tipo='INGRESO' THEN cantidad ELSE 0 END),
-            SUM(CASE WHEN tipo='SALIDA' THEN cantidad ELSE 0 END)
-        FROM movimientos_inventario
-        WHERE referencia=?
-    """, (referencia,))
-
-    row = c.fetchone()
-
-    ingresos = row[0] or 0
-    salidas = row[1] or 0
-    stock_actual = ingresos - salidas
-
-    # 🚨 Validar salida
-    if tipo == "SALIDA" and cantidad > stock_actual:
-        conn.close()
-        return "Error: Stock insuficiente"
-
-    # 🚫 Validar negativos
-    if cantidad <= 0:
-        conn.close()
-        return "Error: Cantidad inválida"
-
-    # ✅ Registrar movimiento
-    c.execute("""
-        INSERT INTO movimientos_inventario
-        (referencia, tipo, cantidad, usuario)
-        VALUES (?,?,?,?)
-    """, (referencia, tipo, cantidad, "ADMIN"))
-
-    conn.commit()
-    conn.close()
-
-    return RedirectResponse("/inventario", 303)
-
-from fastapi import UploadFile, File
-import pandas as pd # type: ignore
-
-@app.post("/inventario/importar")
-async def importar_inventario(
-    file: UploadFile = File(...),
-    request: Request = None
-):
-
-    if not require_admin(request):
-        return RedirectResponse("/admin", 303)
-
-    df = pd.read_excel(file.file)
-    df.columns = df.columns.str.strip()
-
-    conn = db()
-    c = conn.cursor()
-
-    # 🔥 Limpia inventario y movimientos
-    c.execute("DELETE FROM movimientos_inventario")
-    c.execute("DELETE FROM inventario")
-
-    usuario = request.session.get("username")
-
-    for _, row in df.iterrows():
-
-        referencia = str(row["Referencia"]).strip()
-        peso = float(row["Peso unitario (gr)"] or 0)
-        disponibles = int(row["Disponibles"] or 0)
-        precio = float(row["Precio unitario"] or 0)
-
-        cantidad_total = disponibles
-        entregadas = 0
-        total_disponibles = disponibles
-
-        # Insertar producto
-        c.execute("""
-            INSERT INTO inventario
-            (referencia, peso_unitario_gr, cantidad_total,
-             entregadas, total_disponibles, precio_unitario)
-            VALUES (?,?,?,?,?,?)
-        """, (
-            referencia,
-            peso,
-            cantidad_total,
-            entregadas,
-            total_disponibles,
-            precio
-        ))
-
-        # 🔥 Crear movimiento inicial automático
-        c.execute("""
-            INSERT INTO movimientos_inventario
-            (referencia, tipo, cantidad, usuario)
-            VALUES (?,?,?,?)
-        """, (
-            referencia,
-            "INGRESO",
-            disponibles,
-            f"{usuario} (IMPORTACION INICIAL)"
-        ))
-
-    conn.commit()
-    conn.close()
-
-    return RedirectResponse("/inventario", 303)
 
 @app.get("/bonos/detalle", response_class=HTMLResponse)
 def detalle_bono(request: Request):
@@ -1330,20 +960,21 @@ def detalle_bono(request: Request):
     conn = db()
     c = conn.cursor()
 
-    rows = c.execute("""
-        SELECT 
+    c.execute("""
+        SELECT
             a.id,
             a.nombre,
             SUM(r.cantidad) as unidades,
-            SUM((strftime('%s', r.fin) - strftime('%s', r.inicio)) / 3600.0) as horas
+            SUM(EXTRACT(EPOCH FROM (r.fin::timestamp - r.inicio::timestamp)) / 3600.0) as horas
         FROM registros_produccion r
         JOIN operarios o ON o.id = r.operario_id
         JOIN actividades a ON a.id = r.actividad_id
-        WHERE o.nombre = ?
-        AND strftime('%m', r.inicio) = ?
-        AND strftime('%Y', r.inicio) = ?
+        WHERE o.nombre = %s
+        AND TO_CHAR(r.inicio::timestamp, 'MM') = %s
+        AND TO_CHAR(r.inicio::timestamp, 'YYYY') = %s
         GROUP BY a.id, a.nombre
-    """, (nombre, f"{mes:02d}", str(anio))).fetchall()
+    """, (nombre, f"{mes:02d}", str(anio)))
+    rows = c.fetchall()
 
     detalle = []
     total_bono = 0
@@ -1352,20 +983,19 @@ def detalle_bono(request: Request):
 
         horas = horas or 0
         unidades = unidades or 0
-
         rendimiento_real = (unidades / horas) if horas > 0 else 0
 
-        est = c.execute("""
+        c.execute("""
             SELECT unidades_por_hora, costo_mo_unidad
             FROM estandares_actividad
-            WHERE actividad_id = ?
-        """, (actividad_id,)).fetchone()
+            WHERE actividad_id = %s
+        """, (actividad_id,))
+        est = c.fetchone()
 
         if not est:
             continue
 
         unidades_estandar, costo_base = est
-
         eficiencia = rendimiento_real / unidades_estandar if unidades_estandar else 0
 
         if eficiencia >= 1.10:
@@ -1383,33 +1013,25 @@ def detalle_bono(request: Request):
         detalle.append({
             "actividad": actividad,
             "unidades": unidades,
-            "horas": round(horas,2),
-            "rendimiento": round(rendimiento_real,2),
+            "horas": round(horas, 2),
+            "rendimiento": round(rendimiento_real, 2),
             "estandar": unidades_estandar,
-            "eficiencia": round(eficiencia*100,2),
-            "porcentaje": porcentaje*100,
-            "bono": round(bono,2)
+            "eficiencia": round(eficiencia * 100, 2),
+            "porcentaje": porcentaje * 100,
+            "bono": round(bono, 2)
         })
 
     conn.close()
 
-    return templates.TemplateResponse("bono_detalle.html",{
-        "request":request,
-        "nombre":nombre,
-        "mes":mes,
-        "anio":anio,
-        "detalle":detalle,
-        "total_bono": round(total_bono,2)
+    return templates.TemplateResponse("bono_detalle.html", {
+        "request": request,
+        "nombre": nombre,
+        "mes": mes,
+        "anio": anio,
+        "detalle": detalle,
+        "total_bono": round(total_bono, 2)
     })
 
-from dotenv import load_dotenv
-import os
-
-load_dotenv()  # automáticamente busca .env
-
-SECRET_KEY = os.getenv("SECRET_KEY")
-
-#USUARIOS#
 
 @app.get("/usuarios", response_class=HTMLResponse)
 def ver_usuarios(request: Request):
@@ -1428,6 +1050,7 @@ def ver_usuarios(request: Request):
         "usuarios": usuarios
     })
 
+
 @app.post("/usuarios/crear")
 def crear_usuario(request: Request, username: str = Form(...), password: str = Form(...), role: str = Form(...)):
 
@@ -1435,22 +1058,22 @@ def crear_usuario(request: Request, username: str = Form(...), password: str = F
         return RedirectResponse("/admin", status_code=303)
 
     hashed = hash_password(password)
-
     conn = db()
     c = conn.cursor()
 
     try:
         c.execute(
-            "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
+            "INSERT INTO users (username, password, role) VALUES (%s, %s, %s)",
             (username, hashed, role)
         )
         conn.commit()
-    except:
-        pass
-
-    conn.close()
+    except Exception:
+        conn.rollback()
+    finally:
+        conn.close()
 
     return RedirectResponse("/usuarios", status_code=303)
+
 
 @app.get("/usuarios/eliminar/{user_id}")
 def eliminar_usuario(request: Request, user_id: int):
@@ -1460,237 +1083,29 @@ def eliminar_usuario(request: Request, user_id: int):
 
     conn = db()
     c = conn.cursor()
-    c.execute("DELETE FROM users WHERE id = ?", (user_id,))
+    c.execute("DELETE FROM users WHERE id = %s", (user_id,))
     conn.commit()
     conn.close()
 
     return RedirectResponse("/usuarios", status_code=303)
 
-@app.get("/api/inventario")
-def api_inventario():
-
-    conn = sqlite3.connect("produccion.db")
-    c = conn.cursor()
-
-    data = c.execute("""
-        SELECT 
-            i.referencia,
-
-            IFNULL(SUM(
-                CASE 
-                    WHEN m.tipo='INGRESO' THEN m.cantidad
-                    WHEN m.tipo='SALIDA' THEN -m.cantidad
-                END
-            ),0) as stock
-
-        FROM inventario i
-
-        LEFT JOIN movimientos_inventario m
-        ON i.referencia = m.referencia
-
-        GROUP BY i.referencia
-
-        ORDER BY i.referencia
-
-    """).fetchall()
-
-    conn.close()
-
-    return [
-        {"referencia": r, "stock": s}
-        for r,s in data
-    ]
 
 @app.get("/api/kardex/{referencia}")
 def api_kardex(referencia: str):
-
-    conn = sqlite3.connect("produccion.db")
-    c = conn.cursor()
-
-    data = c.execute("""
-        SELECT fecha, tipo, cantidad, saldo
-        FROM kardex
-        WHERE referencia = ?
-        ORDER BY fecha DESC
-    """, (referencia,)).fetchall()
-
-    conn.close()
-
-    return [
-        {
-            "fecha": r[0],
-            "tipo": r[1],
-            "cantidad": r[2],
-            "saldo": r[3]
-        }
-        for r in data
-    ]
-
-@app.get("/materiales_maquinas", response_class=HTMLResponse)
-def materiales_maquinas(request: Request):
-
-    conn = db()
-    c = conn.cursor()
-
-    maquinas = c.execute("""
-        SELECT id, nombre
-        FROM maquinas
-        ORDER BY nombre
-    """).fetchall()
-
-    conn.close()
-
-    return templates.TemplateResponse(
-        "materiales_maquinas.html",
-        {
-            "request": request,
-            "maquinas": maquinas
-        }
-    )
-
-@app.get("/materiales_maquina/{maquina_id}", response_class=HTMLResponse)
-def materiales_maquina(maquina_id: int, request: Request):
-
-    conn = db()
-    c = conn.cursor()
-
-    maquina = c.execute("""
-        SELECT nombre
-        FROM maquinas
-        WHERE id = ?
-    """,(maquina_id,)).fetchone()
-
-    materiales = c.execute("""
-        SELECT referencia, cantidad
-        FROM maquina_materiales
-        WHERE maquina = ?
-    """,(maquina_id,)).fetchall()
-
-    inventario = c.execute("""
-        SELECT referencia
-        FROM inventario
-        ORDER BY referencia
-    """).fetchall()
-
-    conn.close()
-
-    return templates.TemplateResponse(
-        "materiales_maquina.html",
-        {
-            "request": request,
-            "maquina": maquina,
-            "maquina_id": maquina_id,
-            "materiales": materiales,
-            "inventario": inventario
-        }
-    )
-
-@app.post("/materiales_maquina/{maquina_id}/agregar")
-def agregar_material(maquina_id: int,
-                     referencia: str = Form(...),
-                     cantidad: float = Form(...)):
 
     conn = db()
     c = conn.cursor()
 
     c.execute("""
-        INSERT INTO maquina_materiales
-        (maquina, referencia, cantidad)
-        VALUES (?,?,?)
-    """,(maquina_id, referencia, cantidad))
-
-    conn.commit()
+        SELECT fecha, tipo, cantidad, saldo
+        FROM kardex
+        WHERE referencia = %s
+        ORDER BY fecha DESC
+    """, (referencia,))
+    data = c.fetchall()
     conn.close()
 
-    return RedirectResponse(
-        f"/materiales_maquina/{maquina_id}",
-        status_code=303
-    )
-
-import os
-
-@app.get("/api/disenos")
-def obtener_disenos():
-
-    carpeta = "disenos"
-
-    archivos = os.listdir(carpeta)
-
-    pdfs = [f for f in archivos if f.endswith(".pdf")]
-
-    return pdfs
-
-
-BASE_PATH = "disenos"
-
-@app.get("/explorar")
-def explorar(ruta: str = ""):
-
-    path = os.path.join(BASE_PATH, ruta)
-
-    carpetas = []
-    archivos = []
-
-    for item in os.listdir(path):
-
-        full = os.path.join(path, item)
-
-        if os.path.isdir(full):
-            carpetas.append(item)
-
-        elif item.endswith(".pdf"):
-            archivos.append(item)
-
-    return {
-        "carpetas": carpetas,
-        "archivos": archivos
-    }
-
-@app.get("/buscar")
-def buscar(q: str):
-
-    resultados = []
-
-    for root, dirs, files in os.walk(BASE_PATH):
-
-        for file in files:
-
-            if file.lower().endswith(".pdf"):
-
-                if q.lower() in file.lower():
-
-                    ruta = os.path.join(root, file)
-
-                    ruta_relativa = ruta.replace(BASE_PATH + "\\", "").replace("\\", "/")
-
-                    resultados.append(ruta_relativa)
-
-    return resultados
-
-import os
-
-def buscar_archivos(base):
-    archivos = []
-
-    for root, dirs, files in os.walk(base):
-        for f in files:
-            if f.endswith(".pdf"):
-                ruta = os.path.join(root, f)
-                archivos.append(ruta.replace(base + "/", ""))
-
-    return archivos
-
-@app.get("/buscar")
-def buscar(q: str = ""):
-
-    base = "disenos"
-    resultados = []
-
-    for root, dirs, files in os.walk(base):
-        for file in files:
-            if file.endswith(".pdf") and q.lower() in file.lower():
-
-                ruta = os.path.join(root, file)
-                resultados.append(ruta.replace(base + "/", ""))
-
-    return resultados
+    return [
+        {"fecha": r[0], "tipo": r[1], "cantidad": r[2], "saldo": r[3]}
+        for r in data
+    ]

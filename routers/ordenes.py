@@ -43,7 +43,7 @@ def panel(request: Request):
             SELECT SUM(cantidad_realizada),
                    SUM(cantidad_total)
             FROM orden_actividades
-            WHERE orden_id=?
+            WHERE orden_id=%s
         """,(oid,))
 
         row_pct = c.fetchone()
@@ -81,16 +81,16 @@ def crear_orden_web(cantidad: int = Form(...), maquina: int = Form(...)):
 
     c.execute("""
         INSERT INTO ordenes(maquina_id,cantidad,estado)
-        VALUES(?,?, 'ABIERTA')
+        VALUES(%s,%s, 'ABIERTA') RETURNING id
     """,(maquina,cantidad))
 
-    orden_id = c.lastrowid
+    orden_id = c.fetchone()[0]
 
     c.execute("""
         SELECT a.id
         FROM actividades a
         JOIN procesos p ON a.proceso_id = p.id
-        WHERE p.maquina_id = ?
+        WHERE p.maquina_id = %s
     """,(maquina,))
 
     acts = c.fetchall()
@@ -99,42 +99,12 @@ def crear_orden_web(cantidad: int = Form(...), maquina: int = Form(...)):
         c.execute("""
             INSERT INTO orden_actividades
             (orden_id,actividad_id,cantidad_total,cantidad_realizada)
-            VALUES(?,?,?,0)
+            VALUES(%s,%s,%s,0)
         """,(orden_id,a[0],cantidad))
 
     conn.commit()
     conn.close()
-
-    # descontar inventario automáticamente
-    descontar_materiales(maquina, cantidad)
-
-    return RedirectResponse("/panel",303)
-
-
-def descontar_materiales(maquina, cantidad_orden):
-
-    conn = sqlite3.connect("produccion.db")
-    c = conn.cursor()
-
-    materiales = c.execute("""
-        SELECT referencia, cantidad
-        FROM maquina_materiales
-        WHERE maquina_id=?
-    """,(maquina,)).fetchall()
-
-    for ref, cant in materiales:
-
-        cantidad_total = cant * cantidad_orden
-
-        c.execute("""
-            INSERT INTO movimientos_inventario
-            (referencia, tipo, cantidad, usuario)
-            VALUES (?,?,?,?)
-        """,(ref,"SALIDA",cantidad_total,"PRODUCCION"))
-
-    conn.commit()
-    conn.close()
-
+    
 # ================= CERRAR ORDEN =================
 
 @router.get("/cerrar/{orden_id}")
@@ -149,21 +119,21 @@ def cerrar_orden(orden_id: int, request: Request):
     c.execute("""
         UPDATE orden_actividades
         SET cantidad_realizada = cantidad_total
-        WHERE orden_id=?
+        WHERE orden_id=%s
     """, (orden_id,))
 
     c.execute("""
         UPDATE ordenes
         SET estado='CERRADA',
-            cerrado_en=?
-        WHERE id=?
+            cerrado_en=%s
+        WHERE id=%s
     """, (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), orden_id))
 
     # obtener maquina y cantidad de la orden
     c.execute("""
     SELECT maquina_id, cantidad
     FROM ordenes
-    WHERE id=?
+    WHERE id=%s
     """,(orden_id,))
 
     orden = c.fetchone()
@@ -175,90 +145,7 @@ def cerrar_orden(orden_id: int, request: Request):
     c.execute("""
     SELECT nombre
     FROM maquinas
-    WHERE id=?
+    WHERE id=%s
     """,(maquina_id,))
 
     producto = c.fetchone()[0]
-
-    # registrar ingreso en inventario
-    c.execute("""
-    INSERT INTO movimientos_inventario
-    (referencia, tipo, cantidad, usuario)
-    VALUES (?,?,?,?)
-    """,(producto,"INGRESO",cantidad,"PRODUCCION"))
-
-    conn.commit()
-    conn.close()
-
-    return RedirectResponse("/panel",303)
-
-@router.get("/materiales_maquina/{maquina_id}", response_class=HTMLResponse)
-def materiales_maquina(maquina_id: int, request: Request):
-
-    conn = db()
-    c = conn.cursor()
-
-    maquina = c.execute("""
-        SELECT nombre
-        FROM maquinas
-        WHERE id=?
-    """,(maquina_id,)).fetchone()
-
-    materiales = c.execute("""
-        SELECT referencia, cantidad
-        FROM maquina_materiales
-        WHERE maquina_id=?
-    """,(maquina_id,)).fetchall()
-
-    inventario = c.execute("""
-        SELECT referencia
-        FROM inventario
-        ORDER BY referencia
-    """).fetchall()
-
-    conn.close()
-
-    return templates.TemplateResponse("materiales_maquina.html",{
-        "request":request,
-        "maquina_id":maquina_id,
-        "maquina":maquina[0],
-        "materiales":materiales,
-        "inventario":inventario
-    })
-
-@router.post("/materiales_maquina/agregar")
-def agregar_material(
-    maquina_id: int = Form(...),
-    referencia: str = Form(...),
-    cantidad: int = Form(...)
-):
-
-    conn = db()
-    c = conn.cursor()
-
-    c.execute("""
-        INSERT INTO maquina_materiales
-        (maquina_id, referencia, cantidad)
-        VALUES (?,?,?)
-    """,(maquina_id, referencia, cantidad))
-
-    conn.commit()
-    conn.close()
-
-    return RedirectResponse(f"/materiales_maquina/{maquina_id}",303)
-
-@router.get("/materiales_maquina/eliminar")
-def eliminar_material(maquina_id:int, referencia:str):
-
-    conn = db()
-    c = conn.cursor()
-
-    c.execute("""
-        DELETE FROM maquina_materiales
-        WHERE maquina_id=? AND referencia=?
-    """,(maquina_id, referencia))
-
-    conn.commit()
-    conn.close()
-
-    return RedirectResponse(f"/materiales_maquina/{maquina_id}",303)

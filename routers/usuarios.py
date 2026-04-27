@@ -39,7 +39,7 @@ def crear_usuario(request: Request, username: str = Form(...), password: str = F
 
     try:
         c.execute(
-            "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
+            "INSERT INTO users (username, password, role) VALUES (%s, %s, %s)",
             (username, hashed, role)
         )
         conn.commit()
@@ -59,7 +59,7 @@ def eliminar_usuario(request: Request, user_id: int):
 
     conn = db()
     c = conn.cursor()
-    c.execute("DELETE FROM users WHERE id = ?", (user_id,))
+    c.execute("DELETE FROM users WHERE id = %s", (user_id,))
     conn.commit()
     conn.close()
 

@@ -20,7 +20,7 @@ def metricas_operarios(request: Request):
     SELECT 
         op.nombre,
         SUM(r.cantidad) as unidades,
-        SUM(strftime('%s',r.fin)-strftime('%s',r.inicio)) as segundos,
+        SUM(EXTRACT(EPOCH FROM r.fin::timestamp)-EXTRACT(EPOCH FROM r.inicio::timestamp)) as segundos,
         COUNT(r.id) as operaciones
     FROM registros_produccion r
     JOIN operarios op ON op.id = r.operario_id
@@ -78,7 +78,7 @@ def metricas(request: Request):
     resumen = c.execute("""
     SELECT o.nombre,
            SUM(r.cantidad) as unidades,
-           SUM((strftime('%s',r.fin)-strftime('%s',r.inicio))/60.0) as minutos
+           SUM((EXTRACT(EPOCH FROM r.fin::timestamp)-EXTRACT(EPOCH FROM r.inicio::timestamp))/60.0) as minutos
     FROM registros_produccion r
     JOIN operarios o ON o.id=r.operario_id
     GROUP BY o.nombre
@@ -123,7 +123,7 @@ def kpi(request: Request):
     # KPI 1: piezas por operario
     por_operario = c.execute("""
     SELECT o.nombre,
-           IFNULL(SUM(r.cantidad),0)
+           COALESCE(SUM(r.cantidad),0)
     FROM registros_produccion r
     JOIN operarios o ON o.id=r.operario_id
     GROUP BY o.id
@@ -132,7 +132,7 @@ def kpi(request: Request):
     # KPI 2: minutos trabajados
     minutos = c.execute("""
     SELECT o.nombre,
-           IFNULL(SUM((julianday(r.fin)-julianday(r.inicio))*24*60),0)
+           COALESCE(SUM(EXTRACT(EPOCH FROM (r.fin::timestamp - r.inicio::timestamp)) / 60.0), 0)
     FROM registros_produccion r
     JOIN operarios o ON o.id=r.operario_id
     GROUP BY o.id

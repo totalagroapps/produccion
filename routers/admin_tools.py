@@ -86,7 +86,7 @@ def cargar_estandares_excel(request: Request):
         c.execute("""
             INSERT INTO estandares_actividad
             (actividad_id, unidades_por_hora, costo_mo_unidad, costo_mo_hora)
-            VALUES (?, ?, ?, 0)
+            VALUES (%s, %s, %s, 0)
         """, (actividad_id, unidades, costo))
 
     conn.commit()
@@ -100,7 +100,7 @@ def crear_maquina(nombre: str):
     c = conn.cursor()
 
     c.execute(
-        "INSERT INTO maquinas (nombre) VALUES (?)",
+        "INSERT INTO maquinas (nombre) VALUES (%s)",
         (nombre,)
     )
 
@@ -115,7 +115,7 @@ def editar_maquina(id: int, nombre: str):
     c = conn.cursor()
 
     c.execute(
-        "UPDATE maquinas SET nombre=? WHERE id=?",
+        "UPDATE maquinas SET nombre=%s WHERE id=%s",
         (nombre, id)
     )
 
@@ -130,7 +130,7 @@ def eliminar_maquina(id: int):
     c = conn.cursor()
 
     c.execute(
-        "DELETE FROM maquinas WHERE id=?",
+        "DELETE FROM maquinas WHERE id=%s",
         (id,)
     )
 

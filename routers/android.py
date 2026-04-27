@@ -22,7 +22,7 @@ def registro_android(data: dict):
     c.execute("""
     INSERT INTO registros_produccion
     (operario_id, orden_id, actividad_id, cantidad, inicio, fin, tiempo)
-    VALUES (?,?,?,?,?,?,?)
+    VALUES (%s,%s,%s,%s,%s,%s,%s)
     """,(
         data["operario_id"],
         data["orden_id"],
@@ -36,8 +36,8 @@ def registro_android(data: dict):
     # actualizar actividad
     c.execute("""
     UPDATE orden_actividades
-    SET cantidad_realizada = cantidad_realizada + ?
-    WHERE orden_id=? AND actividad_id=?
+    SET cantidad_realizada = cantidad_realizada + %s
+    WHERE orden_id=%s AND actividad_id=%s
     """,(
         data["cantidad"],
         data["orden_id"],
@@ -49,7 +49,7 @@ def registro_android(data: dict):
         SELECT SUM(cantidad_realizada),
                SUM(cantidad_total)
         FROM orden_actividades
-        WHERE orden_id=?
+        WHERE orden_id=%s
     """,(data["orden_id"],))
 
     row = c.fetchone()
@@ -61,9 +61,9 @@ def registro_android(data: dict):
 
     c.execute("""
         UPDATE ordenes
-        SET porcentaje=?,
-            estado=CASE WHEN ? >= 100 THEN 'CERRADA' ELSE estado END
-        WHERE id=?
+        SET porcentaje=%s,
+            estado=CASE WHEN %s >= 100 THEN 'CERRADA' ELSE estado END
+        WHERE id=%s
     """,(porcentaje, porcentaje, data["orden_id"]))
 
     conn.commit()
@@ -114,7 +114,7 @@ def procesos_android(orden_id:int):
     FROM orden_actividades oa
     JOIN actividades a ON a.id=oa.actividad_id
     JOIN procesos p ON p.id=a.proceso_id
-    WHERE oa.orden_id=?
+    WHERE oa.orden_id=%s
     """,(orden_id,)).fetchall()
     conn.close()
     return rows
@@ -128,7 +128,7 @@ def actividades_android(orden:int, proceso:int):
     SELECT a.id,a.nombre
     FROM orden_actividades oa
     JOIN actividades a ON a.id=oa.actividad_id
-    WHERE oa.orden_id=? AND a.proceso_id=?
+    WHERE oa.orden_id=%s AND a.proceso_id=%s
     """,(orden,proceso)).fetchall()
     conn.close()
     return rows
