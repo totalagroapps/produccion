@@ -83,7 +83,8 @@ def operarios():
     rows = c.fetchall() or []
 
     conn.close()
-    return rows
+
+    return [{"id": r[0], "nombre": r[1]} for r in rows]
 
 
 @router.get("/maquinas")
@@ -95,7 +96,8 @@ def maquinas():
     rows = c.fetchall() or []
 
     conn.close()
-    return rows
+
+    return [{"id": r[0], "nombre": r[1]} for r in rows]
 
 
 @router.get("/ordenes")
@@ -111,7 +113,16 @@ def ordenes_android():
     rows = c.fetchall() or []
 
     conn.close()
-    return rows
+
+    return [
+        {
+            "id": r[0],
+            "maquina_id": r[1],
+            "estado": r[2],
+            "porcentaje": r[3]
+        }
+        for r in rows
+    ]
 
 
 @router.get("/procesos/{orden_id}")
@@ -129,7 +140,8 @@ def procesos_android(orden_id:int):
     rows = c.fetchall() or []
 
     conn.close()
-    return rows
+
+    return [{"id": r[0], "nombre": r[1]} for r in rows]
 
 
 @router.get("/actividades/{orden}/{proceso}")
@@ -146,4 +158,5 @@ def actividades_android(orden:int, proceso:int):
     rows = c.fetchall() or []
 
     conn.close()
-    return rows
+
+    return [{"id": r[0], "nombre": r[1]} for r in rows]
