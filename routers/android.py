@@ -17,6 +17,18 @@ def campo_entero(data: dict, *nombres: str) -> int:
     )
 
 
+def fecha_android(valor):
+    if not valor:
+        return None
+
+    texto = str(valor).replace("Z", "+00:00")
+
+    try:
+        return datetime.fromisoformat(texto)
+    except ValueError:
+        return datetime.strptime(str(valor), "%Y-%m-%d %H:%M:%S")
+
+
 # ================= REGISTRO ANDROID =================
 
 @router.post("/registro_android")
@@ -34,10 +46,14 @@ def registro_android(data: dict):
     conn = db()
     c = conn.cursor()
 
-    ahora = datetime.now()
+    inicio = fecha_android(data.get("inicio"))
+    fin = fecha_android(data.get("fin"))
 
-    fin = ahora
-    inicio = ahora - timedelta(seconds=tiempo)
+    if inicio and fin:
+        tiempo = max(0, int((fin - inicio).total_seconds()))
+    else:
+        fin = datetime.now()
+        inicio = fin - timedelta(seconds=tiempo)
 
     c.execute("""
     INSERT INTO registros_produccion

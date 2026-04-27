@@ -587,8 +587,23 @@ def registro_android(data: dict):
     c = conn.cursor()
 
     tiempo = int(data.get("tiempo", 0))
-    fin = datetime.now()
-    inicio = fin - timedelta(seconds=tiempo)
+
+    inicio = None
+    fin = None
+
+    if data.get("inicio") and data.get("fin"):
+        try:
+            inicio = datetime.fromisoformat(str(data["inicio"]).replace("Z", "+00:00"))
+            fin = datetime.fromisoformat(str(data["fin"]).replace("Z", "+00:00"))
+            tiempo = max(0, int((fin - inicio).total_seconds()))
+        except ValueError:
+            inicio = datetime.strptime(str(data["inicio"]), "%Y-%m-%d %H:%M:%S")
+            fin = datetime.strptime(str(data["fin"]), "%Y-%m-%d %H:%M:%S")
+            tiempo = max(0, int((fin - inicio).total_seconds()))
+
+    if not inicio or not fin:
+        fin = datetime.now()
+        inicio = fin - timedelta(seconds=tiempo)
 
     c.execute("""
     INSERT INTO registros_produccion
