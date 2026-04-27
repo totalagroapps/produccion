@@ -34,9 +34,9 @@ def bonos_mes(mes: int, anio: int):
 
     for operario_id, nombre, unidades, horas, dias in rows:
 
-        horas = horas or 0
-        unidades = unidades or 0
-        dias = dias or 0
+        horas = float(horas or 0)
+        unidades = float(unidades or 0)
+        dias = float(dias or 0)
 
         if horas <= 0:
             continue
@@ -60,8 +60,8 @@ def bonos_mes(mes: int, anio: int):
         if not est or not est[0]:
             continue
 
-        unidades_estandar = est[0]
-        costo_base = est[1] or 0
+        unidades_estandar = float(est[0] or 0)
+        costo_base = float(est[1] or 0)
 
         rendimiento_real = unidades / horas
         eficiencia_productiva = rendimiento_real / unidades_estandar if unidades_estandar else 0
@@ -152,8 +152,8 @@ def detalle_bono(request: Request):
 
     for actividad_id, actividad, unidades, horas in rows:
 
-        horas = horas or 0
-        unidades = unidades or 0
+        horas = float(horas or 0)
+        unidades = float(unidades or 0)
 
         rendimiento_real = (unidades / horas) if horas > 0 else 0
 
@@ -169,7 +169,8 @@ def detalle_bono(request: Request):
         if not est:
             continue
 
-        unidades_estandar, costo_base = est
+        unidades_estandar = float(est[0] or 0)
+        costo_base = float(est[1] or 0)
 
         eficiencia = rendimiento_real / unidades_estandar if unidades_estandar else 0
 
