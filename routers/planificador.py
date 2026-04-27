@@ -103,7 +103,7 @@ async def planificador(request: Request, maquina_id: int | None = None):
         FROM actividades a
         LEFT JOIN estandares_actividad ea ON ea.actividad_id = a.id
         JOIN procesos p ON a.proceso_id = p.id
-        WHERE p.maquina_id = ?
+        WHERE p.maquina_id = %s
         GROUP BY a.id, a.nombre
     """, (maquina_id,))
 
@@ -154,7 +154,7 @@ async def calcular_produccion(
         FROM actividades a
         LEFT JOIN estandares_actividad ea ON ea.actividad_id = a.id
         JOIN procesos p ON a.proceso_id = p.id
-        WHERE p.maquina_id = ?
+        WHERE p.maquina_id = %s
         GROUP BY a.id, a.nombre
     """, (maquina_id,))
 
