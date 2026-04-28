@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 <head>
     <title>Bonos</title>
@@ -78,20 +78,21 @@
     </style>
 </head>
 <body>
+{% include '_navbar.html' %}
 
 <div class="container">
 
     <div class="header">
-        <h2>💰 Bonos Mes {{mes}}/{{anio}}</h2>
-        <a class="btn btn-recalc" href="/bonos?mes={{mes}}&anio={{anio}}">🔄 Actualizar</a>
-        <a class="btn btn-home" href="/">🏠 Home</a>
+        <h2>ðŸ’° Bonos Mes {{mes}}/{{anio}}</h2>
+        <a class="btn btn-recalc" href="/bonos?mes={{mes}}&anio={{anio}}">ðŸ”„ Actualizar</a>
+        <a class="btn btn-home" href="/">ðŸ  Home</a>
     </div>
 
     <table>
         <tr>
             <th>Operario</th>
             <th>Eficiencia Productiva</th>
-            <th>Eficiencia Ocupación</th>
+            <th>Eficiencia OcupaciÃ³n</th>
             <th>% Bono</th>
             <th>Total</th>
         </tr>

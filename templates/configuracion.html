@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 
 <head>
 <meta charset="utf-8">
-<title>Configuración</title>
+<title>ConfiguraciÃ³n</title>
 
 <style>
 
@@ -103,10 +103,11 @@ color:white;
 </head>
 
 <body>
+{% include '_navbar.html' %}
 
-<a href="/" class="home-btn">🏠 Volver al Dashboard</a>
+<a href="/" class="home-btn">ðŸ  Volver al Dashboard</a>
 
-<h1>⚙ Configuración del Sistema</h1>
+<h1>âš™ ConfiguraciÃ³n del Sistema</h1>
 
 <div id="tabs_tablas"></div>
 
@@ -114,12 +115,12 @@ color:white;
 
 <h3 id="titulo_tabla"></h3>
 
-<button class="add-btn" onclick="agregarFila()">➕ Nueva fila</button>
-<button class="save-btn" onclick="guardarCambios()">💾 Guardar cambios</button>
+<button class="add-btn" onclick="agregarFila()">âž• Nueva fila</button>
+<button class="save-btn" onclick="guardarCambios()">ðŸ’¾ Guardar cambios</button>
 
 <input 
 id="buscador"
-placeholder="🔎 Buscar..."
+placeholder="ðŸ”Ž Buscar..."
 onkeyup="filtrarTabla()"
 style="padding:8px;border-radius:6px;border:1px solid #ccc;margin-left:10px;">
 
@@ -213,7 +214,7 @@ tr.appendChild(td)
 })
 
 let td=document.createElement("td")
-td.innerHTML="<button class='delete-btn' onclick='borrarFila(this)'>🗑</button>"
+td.innerHTML="<button class='delete-btn' onclick='borrarFila(this)'>ðŸ—‘</button>"
 
 tr.appendChild(td)
 
@@ -251,7 +252,7 @@ tr.appendChild(td)
 }
 
 let td=document.createElement("td")
-td.innerHTML="<button class='delete-btn' onclick='borrarFila(this)'>🗑</button>"
+td.innerHTML="<button class='delete-btn' onclick='borrarFila(this)'>ðŸ—‘</button>"
 
 tr.appendChild(td)
 

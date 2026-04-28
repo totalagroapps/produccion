@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 <head>
 <title>Detalle Bono</title>
@@ -21,12 +21,13 @@ input {padding:8px;width:80px;}
 </head>
 
 <body>
+{% include '_navbar.html' %}
 
 <div class="card">
 
-<h2>📊 {{nombre}} — {{mes}}/{{anio}}</h2>
+<h2>ðŸ“Š {{nombre}} â€” {{mes}}/{{anio}}</h2>
 
-<h3>Total Bono Actual: 💰 ${{total_bono}}</h3>
+<h3>Total Bono Actual: ðŸ’° ${{total_bono}}</h3>
 
 <table>
 <tr>
@@ -65,7 +66,7 @@ input {padding:8px;width:80px;}
 <canvas id="grafico" style="margin-top:40px;"></canvas>
 
 <div class="simulador">
-<h3>🧮 Simulador de Mejora</h3>
+<h3>ðŸ§® Simulador de Mejora</h3>
 <p>Si mejora su eficiencia en: 
 <input type="number" id="mejora" value="5"> %
 <button onclick="simular()">Calcular</button>
@@ -102,7 +103,7 @@ let totalActual = {{total_bono}};
 let proyeccion = totalActual * (1 + mejora/100);
 
 document.getElementById("resultado_simulacion").innerHTML =
-"💰 Nuevo bono estimado: <strong>$" + proyeccion.toFixed(2) + "</strong>";
+"ðŸ’° Nuevo bono estimado: <strong>$" + proyeccion.toFixed(2) + "</strong>";
 }
 </script>
 

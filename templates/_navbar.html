@@ -1,0 +1,105 @@
+<style>
+.global-nav-shell{
+    background:#0f172a;
+    border-bottom:4px solid #22c55e;
+    color:white;
+    font-family:Arial, Helvetica, sans-serif;
+}
+.global-nav{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:18px;
+    max-width:1400px;
+    margin:0 auto;
+    padding:12px 22px;
+}
+.global-brand{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    color:white;
+    text-decoration:none;
+    min-width:220px;
+}
+.global-brand img{
+    height:42px;
+    width:auto;
+    background:white;
+    border-radius:8px;
+    padding:5px;
+}
+.global-brand strong{
+    display:block;
+    font-size:16px;
+    line-height:1.1;
+}
+.global-brand span{
+    display:block;
+    color:#cbd5e1;
+    font-size:12px;
+    margin-top:2px;
+}
+.global-menu{
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    flex-wrap:wrap;
+    gap:6px;
+}
+.global-menu a{
+    color:#e5e7eb;
+    text-decoration:none;
+    padding:8px 10px;
+    border-radius:6px;
+    font-size:13px;
+    font-weight:700;
+}
+.global-menu a:hover{
+    background:#1f2937;
+    color:white;
+}
+.global-menu .admin-link{
+    background:#334155;
+}
+.global-menu .logout-link{
+    background:#b91c1c;
+    color:white;
+}
+@media(max-width:900px){
+    .global-nav{
+        align-items:flex-start;
+        flex-direction:column;
+    }
+    .global-menu{
+        justify-content:flex-start;
+    }
+}
+</style>
+
+<header class="global-nav-shell">
+    <div class="global-nav">
+        <a class="global-brand" href="/">
+            <img src="/static/logo.png" alt="Inicio">
+            <div>
+                <strong>Sistema Produccion</strong>
+                <span>Control y trazabilidad</span>
+            </div>
+        </a>
+
+        <nav class="global-menu">
+            <a href="/">Inicio</a>
+            <a href="/panel">Produccion</a>
+            <a href="/metricas_operarios">Metricas</a>
+            <a href="/kpi">KPI</a>
+            <a href="/bonos">Bonos</a>
+            <a href="/planificador">Planificador</a>
+            {% if request and request.session.get("role") == "admin" %}
+            <a class="admin-link" href="/usuarios">Usuarios</a>
+            <a class="admin-link" href="/admin_tools">Herramientas</a>
+            <a class="admin-link" href="/configuracion">Configuracion</a>
+            {% endif %}
+            <a class="logout-link" href="/logout">Salir</a>
+        </nav>
+    </div>
+</header>

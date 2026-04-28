@@ -1,263 +1,338 @@
-<!DOCTYPE html>
-<html>
-
+﻿<!DOCTYPE html>
+<html lang="es">
 <head>
-
-<div style="display:flex;justify-content:space-between;align-items:center;background:#1f2937;padding:18px">
-<h1 style="margin:0;color:white">Planificador de Producción</h1>
-<a href="/" class="boton">⬅ Dashboard</a>
-</div>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Planificador de Produccion</title>
 
 <style>
-
-body{
-font-family: Arial, Helvetica, sans-serif;
-background:#f3f4f6;
-margin:0;
-font-size:15px;
+*{box-sizing:border-box}
+body{font-family:Arial,Helvetica,sans-serif;background:#f3f4f6;margin:0;color:#111827}
+.wrap{padding:20px;max-width:1400px;margin:0 auto}
+.controls{background:white;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:16px;display:grid;grid-template-columns:repeat(4,minmax(180px,1fr));gap:14px;align-items:end}
+.field label{display:block;font-size:12px;text-transform:uppercase;color:#6b7280;font-weight:700;margin-bottom:6px}
+select,input[type=number]{width:100%;height:42px;border:1px solid #d1d5db;border-radius:6px;padding:8px 10px;font-size:15px;background:white}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(160px,1fr));gap:12px;margin-bottom:16px}
+.metric{background:white;border:1px solid #e5e7eb;border-radius:8px;padding:14px}
+.metric span{display:block;font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;margin-bottom:6px}
+.metric strong{font-size:26px;color:#111827}
+.metric small{display:block;color:#6b7280;margin-top:4px}
+.grid{display:grid;grid-template-columns:minmax(520px,1.1fr) minmax(420px,.9fr);gap:16px}
+.panel{background:white;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden}
+.panel h2{font-size:17px;margin:0;padding:14px 16px;background:#1f2937;color:white}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:#374151;color:white;text-align:left;padding:10px;position:sticky;top:0}
+td{padding:9px 10px;border-bottom:1px solid #e5e7eb;vertical-align:middle}
+tr:hover{background:#f9fafb}
+.num{width:88px}
+.pill{display:inline-block;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:700}
+.ok{background:#dcfce7;color:#166534}
+.warn{background:#fef3c7;color:#92400e}
+.bad{background:#fee2e2;color:#991b1b}
+.muted{color:#6b7280}
+.gantt{padding:14px 16px}
+.gantt-scale{height:24px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:12px;display:flex;justify-content:space-between;margin-bottom:10px}
+.gantt-row{display:grid;grid-template-columns:170px 1fr;gap:10px;align-items:center;margin-bottom:10px}
+.gantt-name{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gantt-track{height:26px;background:#f3f4f6;border-radius:5px;position:relative;overflow:hidden}
+.gantt-bar{height:100%;background:#2563eb;border-radius:5px;position:absolute;min-width:3px}
+.gantt-bar.bottleneck{background:#dc2626}
+.alertas{padding:14px 16px;border-top:1px solid #e5e7eb}
+.alerta{padding:10px 12px;border-radius:6px;margin-bottom:8px;font-size:13px}
+.empty{padding:18px;color:#6b7280}
+.pre{font-size:12px;color:#4b5563}
+.small-btn{background:#111827;color:white;border:none;border-radius:6px;padding:10px 12px;cursor:pointer;font-weight:700}
+.small-btn:hover{background:#374151}
+@media(max-width:1000px){
+  .controls,.metrics,.grid{grid-template-columns:1fr}
 }
-
-form{
-padding:20px;
-}
-
-.proceso{
-background:white;
-margin:25px;
-padding:20px;
-border-radius:8px;
-box-shadow:0 3px 8px rgba(0,0,0,0.1);
-}
-
-.proceso h2{
-margin-top:0;
-color:#1f2937;
-font-size:20px;
-}
-
-table{
-width:100%;
-border-collapse:collapse;
-margin-top:15px;
-font-size:14px;
-}
-
-th{
-background:#374151;
-color:white;
-padding:12px;
-text-align:left;
-}
-
-td{
-padding:10px;
-border-bottom:1px solid #e5e7eb;
-}
-
-tr:hover{
-background:#f9fafb;
-}
-
-.sin{
-color:#dc2626;
-font-weight:bold;
-}
-
-.ok{
-color:#16a34a;
-font-weight:bold;
-}
-
-.operarios{
-display:flex;
-flex-wrap:wrap;
-gap:10px;
-}
-
-.operarios label{
-background:#f3f4f6;
-padding:4px 8px;
-border-radius:4px;
-}
-
-.boton{
-background:#1f2937;
-color:white;
-border:none;
-padding:12px 22px;
-border-radius:6px;
-cursor:pointer;
-}
-
-.boton:hover{
-background:#374151;
-}
-
-.resultado{
-font-size:18px;
-line-height:1.8;
-}
-
-input[type="number"]{
-padding:6px;
-width:120px;
-}
-
-select{
-padding:6px;
-}
-
 </style>
-
 </head>
 
 <body>
+{% include '_navbar.html' %}
 
-<form method="post" action="/calcular-produccion">
+<div class="wrap">
 
-<label><strong>Máquina:</strong></label>
+  <div class="controls">
+    <div class="field">
+      <label>Maquina</label>
+      <select id="maquinaSelect">
+        {% for m in maquinas %}
+        <option value="{{m[0]}}" {% if m[0] == maquina_id %}selected{% endif %}>{{m[1]}}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label>Cantidad objetivo</label>
+      <input id="cantidadObjetivo" type="number" min="1" step="1" value="10">
+    </div>
+    <div class="field">
+      <label>Jornada horas/dia</label>
+      <input id="jornadaHoras" type="number" min="1" step="0.25" value="8.83">
+    </div>
+    <div class="field">
+      <label>Accion</label>
+      <button class="small-btn" type="button" id="btnReset">Limpiar avances</button>
+    </div>
+  </div>
 
-<select name="maquina_id">
-{% for m in maquinas %}
-<option value="{{m[0]}}" {% if m[0] == maquina_id %}selected{% endif %}>
-{{m[1]}}
-</option>
-{% endfor %}
-</select>
+  <div class="metrics">
+    <div class="metric"><span>Tiempo de flujo</span><strong id="metFlujo">0 h</strong><small>respetando precedencias</small></div>
+    <div class="metric"><span>Dias estimados</span><strong id="metDias">0</strong><small>segun jornada</small></div>
+    <div class="metric"><span>Capacidad dia</span><strong id="metCapacidad">0</strong><small>unidades por dia</small></div>
+    <div class="metric"><span>Cuello de botella</span><strong id="metCuello">-</strong><small id="metCuelloSub">sin datos</small></div>
+  </div>
 
-<br><br>
+  <div class="grid">
+    <div class="panel">
+      <h2>Actividades, avance y recursos</h2>
+      {% if actividades and actividades|length > 0 %}
+      <table>
+        <thead>
+          <tr>
+            <th>Actividad</th>
+            <th>Precedencia</th>
+            <th>Std/h</th>
+            <th>Ops</th>
+            <th>Hechas</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in actividades %}
+          <tr>
+            <td>
+              <strong>{{a.nombre}}</strong><br>
+              <span class="muted">{{a.proceso}}</span>
+            </td>
+            <td class="pre">
+              {% if a.predecesoras_nombres and a.predecesoras_nombres|length > 0 %}
+                Despues de {{a.predecesoras_nombres|join(", ")}}
+              {% else %}
+                Puede iniciar primero
+              {% endif %}
+            </td>
+            <td>{{"%.2f"|format(a.unidades_hora) if a.unidades_hora else "-"}}</td>
+            <td><input class="num js-sim" id="ops_{{a.id}}" type="number" min="0" step="1" value="{{1 if a.unidades_hora else 0}}"></td>
+            <td><input class="num js-sim" id="done_{{a.id}}" type="number" min="0" step="1" value="0"></td>
+            <td id="estado_{{a.id}}"><span class="pill warn">pendiente</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty">No hay actividades para esta maquina.</div>
+      {% endif %}
+    </div>
 
-<label><strong>Cantidad a producir:</strong></label>
-<input type="number" name="cantidad" required>
-
-<br><br>
-
-<button class="boton" type="submit">
-Calcular Producción
-</button>
-
-<br><br>
-
-<!-- 🔥 ACTIVIDADES (ANTES PROCESOS) -->
-
-<div class="proceso">
-
-<h2>Actividades del proceso</h2>
-
-<table>
-
-<tr>
-<th>Actividad</th>
-<th>Unidades / hora</th>
-<th>Tiempo / unidad (min)</th>
-<th>Estado</th>
-<th>Operarios</th>
-</tr>
-
-{% for a in actividades %}
-
-<tr>
-
-<td>{{a[1]}}</td>
-
-<td>
-{% if a[2] %}
-{{a[2] | round(2)}}
-{% else %}
--
-{% endif %}
-</td>
-
-<td>
-{% if a[2] %}
-{{ (60 / a[2]) | round(2) }}
-{% else %}
--
-{% endif %}
-</td>
-
-<td>
-{% if a[2] %}
-<span class="ok">✓ estándar</span>
-{% else %}
-<span class="sin">⚠ sin estándar</span>
-{% endif %}
-</td>
-
-<td>
-
-<div class="operarios">
-
-{% for op in operarios %}
-<label>
-<input type="checkbox" name="actividad_{{a[0]}}" value="{{op[0]}}">
-{{op[1]}}
-</label>
-{% endfor %}
-
-</div>
-
-</td>
-
-</tr>
-
-{% endfor %}
-
-</table>
+    <div class="panel">
+      <h2>Cronograma simulado</h2>
+      <div class="gantt">
+        <div class="gantt-scale"><span>0 h</span><span id="escalaMax">0 h</span></div>
+        <div id="ganttRows"></div>
+      </div>
+      <div class="alertas" id="alertas"></div>
+    </div>
+  </div>
 
 </div>
 
-</form>
+<script>
+const actividades = {{ actividades_json | tojson }};
+const byId = new Map(actividades.map(a => [a.id, a]));
 
+function num(id, fallback){
+  const el = document.getElementById(id);
+  if(!el) return fallback;
+  const val = Number(el.value);
+  return Number.isFinite(val) ? val : fallback;
+}
 
-<!-- RESULTADO -->
+function fmtHoras(horas){
+  if(!Number.isFinite(horas)) return "bloqueado";
+  if(horas < 10) return horas.toFixed(2) + " h";
+  return horas.toFixed(1) + " h";
+}
 
-{% if resultado %}
+function setEstado(id, clase, texto){
+  const el = document.getElementById("estado_" + id);
+  if(el) el.innerHTML = `<span class="pill ${clase}">${texto}</span>`;
+}
 
-<div class="proceso">
+function calcular(){
+  const cantidad = Math.max(1, num("cantidadObjetivo", 1));
+  const jornada = Math.max(1, num("jornadaHoras", 8.83));
+  const pendientes = new Map(actividades.map(a => [a.id, a]));
+  const resultados = new Map();
+  const alertas = [];
 
-<h2>Resultado de Producción</h2>
+  actividades.forEach(a => {
+    const hechas = Math.max(0, num("done_" + a.id, 0));
+    const ops = Math.max(0, num("ops_" + a.id, 0));
+    const faltantes = Math.max(cantidad - hechas, 0);
 
-<div class="resultado">
-{{resultado|safe}}
-</div>
+    if(a.unidades_hora <= 0 && faltantes > 0){
+      alertas.push(`${a.nombre}: falta estandar de unidades por hora.`);
+    }
+    if(ops <= 0 && faltantes > 0){
+      alertas.push(`${a.nombre}: falta asignar operarios.`);
+    }
+  });
 
-</div>
+  while(pendientes.size > 0){
+    let avanzo = false;
 
-{% endif %}
+    for(const [id, act] of Array.from(pendientes.entries())){
+      const deps = (act.predecesoras || []).filter(depId => byId.has(depId));
+      const depsListas = deps.every(depId => resultados.has(depId));
 
+      if(!depsListas) continue;
 
-<!-- 🔥 CRONOGRAMA CORREGIDO -->
+      const ops = Math.max(0, num("ops_" + id, 0));
+      const hechas = Math.max(0, num("done_" + id, 0));
+      const faltantes = Math.max(cantidad - hechas, 0);
+      const capacidadHora = act.unidades_hora * ops;
+      const inicio = deps.length ? Math.max(...deps.map(depId => resultados.get(depId).fin)) : 0;
+      const bloqueado = faltantes > 0 && capacidadHora <= 0;
+      const duracion = bloqueado ? Infinity : (faltantes > 0 ? faltantes / capacidadHora : 0);
+      const fin = bloqueado || !Number.isFinite(inicio) ? Infinity : inicio + duracion;
 
-{% if cronograma and cronograma|length > 0 %}
+      resultados.set(id, {
+        ...act,
+        ops,
+        hechas,
+        faltantes,
+        capacidadHora,
+        inicio,
+        duracion,
+        fin,
+        bloqueado
+      });
 
-<div class="proceso">
+      pendientes.delete(id);
+      avanzo = true;
+    }
 
-<h2>Cronograma de Producción</h2>
+    if(!avanzo){
+      pendientes.forEach((act, id) => {
+        resultados.set(id, {
+          ...act,
+          ops: Math.max(0, num("ops_" + id, 0)),
+          hechas: Math.max(0, num("done_" + id, 0)),
+          faltantes: cantidad,
+          capacidadHora: 0,
+          inicio: Infinity,
+          duracion: Infinity,
+          fin: Infinity,
+          bloqueado: true
+        });
+        alertas.push(`${act.nombre}: no se pudo resolver su precedencia.`);
+      });
+      pendientes.clear();
+    }
+  }
 
-<table>
+  const lista = actividades.map(a => resultados.get(a.id)).filter(Boolean);
+  render(lista, alertas, cantidad, jornada);
+}
 
-<tr>
-<th>Actividad</th>
-<th>Inicio (horas)</th>
-<th>Fin (horas)</th>
-</tr>
+function render(lista, alertas, cantidad, jornada){
+  const finitos = lista.filter(r => Number.isFinite(r.fin));
+  const bloqueados = lista.filter(r => !Number.isFinite(r.fin));
+  const tiempoFlujo = finitos.length ? Math.max(...finitos.map(r => r.fin)) : 0;
+  const dias = tiempoFlujo > 0 ? tiempoFlujo / jornada : 0;
+  const capacidadDia = dias > 0 && bloqueados.length === 0 ? cantidad / dias : 0;
+  const cuello = finitos.length ? finitos.reduce((max, r) => r.duracion > max.duracion ? r : max, finitos[0]) : null;
 
-{% for c in cronograma %}
+  document.getElementById("metFlujo").textContent = bloqueados.length ? "bloqueado" : fmtHoras(tiempoFlujo);
+  document.getElementById("metDias").textContent = bloqueados.length ? "-" : Math.ceil(dias || 0);
+  document.getElementById("metCapacidad").textContent = bloqueados.length ? "-" : capacidadDia.toFixed(1);
+  document.getElementById("metCuello").textContent = cuello ? cuello.nombre : "-";
+  document.getElementById("metCuelloSub").textContent = cuello ? fmtHoras(cuello.duracion) : "sin datos";
 
-<tr>
-<td><b>{{c.actividad}}</b></td>
-<td>{{c.inicio}}</td>
-<td>{{c.fin}}</td>
-</tr>
+  lista.forEach(r => {
+    if(r.bloqueado) setEstado(r.id, "bad", "bloqueado");
+    else if(r.faltantes <= 0) setEstado(r.id, "ok", "completo");
+    else if(r.inicio > 0) setEstado(r.id, "warn", "espera precedencia");
+    else setEstado(r.id, "ok", "puede iniciar");
+  });
 
-{% endfor %}
+  renderGantt(lista, tiempoFlujo, cuello);
+  renderAlertas(alertas, bloqueados.length);
+}
 
-</table>
+function renderGantt(lista, tiempoFlujo, cuello){
+  const cont = document.getElementById("ganttRows");
+  const escala = Math.max(tiempoFlujo, 1);
+  document.getElementById("escalaMax").textContent = fmtHoras(tiempoFlujo);
+  cont.innerHTML = "";
 
-</div>
+  lista
+    .slice()
+    .sort((a,b) => {
+      const ai = Number.isFinite(a.inicio) ? a.inicio : 999999;
+      const bi = Number.isFinite(b.inicio) ? b.inicio : 999999;
+      return ai - bi;
+    })
+    .forEach(r => {
+      const row = document.createElement("div");
+      row.className = "gantt-row";
 
-{% endif %}
+      if(!Number.isFinite(r.fin)){
+        row.innerHTML = `
+          <div class="gantt-name">${r.nombre}</div>
+          <div class="gantt-track"><span class="muted" style="line-height:26px;margin-left:8px;">bloqueado</span></div>
+        `;
+      } else {
+        const left = (r.inicio / escala) * 100;
+        const width = Math.max((r.duracion / escala) * 100, r.duracion > 0 ? 2 : 0);
+        const clase = cuello && cuello.id === r.id ? "gantt-bar bottleneck" : "gantt-bar";
+        row.innerHTML = `
+          <div class="gantt-name" title="${r.nombre}">${r.nombre}</div>
+          <div class="gantt-track" title="${fmtHoras(r.inicio)} a ${fmtHoras(r.fin)}">
+            <div class="${clase}" style="left:${left}%;width:${width}%"></div>
+          </div>
+        `;
+      }
 
+      cont.appendChild(row);
+    });
+}
+
+function renderAlertas(alertas, bloqueados){
+  const cont = document.getElementById("alertas");
+
+  if(alertas.length === 0 && bloqueados === 0){
+    cont.innerHTML = '<div class="alerta ok">Simulacion lista. Las precedencias se respetan y no hay bloqueos.</div>';
+    return;
+  }
+
+  cont.innerHTML = alertas.map(a => `<div class="alerta warn">${a}</div>`).join("");
+  if(bloqueados > 0){
+    cont.innerHTML += `<div class="alerta bad">${bloqueados} actividad(es) bloqueada(s). Revise estandar u operarios.</div>`;
+  }
+}
+
+document.getElementById("maquinaSelect").addEventListener("change", function(){
+  window.location.href = "/planificador?maquina_id=" + this.value;
+});
+
+document.getElementById("btnReset").addEventListener("click", function(){
+  actividades.forEach(a => {
+    const done = document.getElementById("done_" + a.id);
+    if(done) done.value = 0;
+  });
+  calcular();
+});
+
+document.querySelectorAll(".js-sim, #cantidadObjetivo, #jornadaHoras").forEach(el => {
+  el.addEventListener("input", calcular);
+  el.addEventListener("change", calcular);
+});
+
+calcular();
+</script>
 </body>
 </html>
+

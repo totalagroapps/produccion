@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 
 <head>
 
 <link rel="icon" type="image/png" href="/static/favicon.png">
 <meta charset="utf-8">
-<title>Sistema Producción</title>
+<title>Sistema ProducciÃ³n</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
@@ -134,6 +134,7 @@ background:#1e293b;
 </head>
 
 <body>
+{% include '_navbar.html' %}
 
 <div class="layout">
 
@@ -147,20 +148,20 @@ background:#1e293b;
 
 <nav>
 
-<a href="/" class="active">🏠 Dashboard</a>
-<a href="/panel">🏭 Panel</a>
-<a href="/metricas_operarios">📊 Métricas</a>
-<a href="/kpi">📈 KPI</a>
-<a href="/bonos">💰 Bonos</a>
-<a href="/planificador">📅 Planificador de Producción</a>
+<a href="/" class="active">ðŸ  Dashboard</a>
+<a href="/panel">ðŸ­ Panel</a>
+<a href="/metricas_operarios">ðŸ“Š MÃ©tricas</a>
+<a href="/kpi">ðŸ“ˆ KPI</a>
+<a href="/bonos">ðŸ’° Bonos</a>
+<a href="/planificador">ðŸ“… Planificador de ProducciÃ³n</a>
 
 {% if request.session.get("role") == "admin" %}
 
 <hr style="margin:20px 0;border-color:#334155">
 
-<a href="/usuarios">👤 Usuarios</a>
-<a href="/admin_tools">⚙ Herramientas</a>
-<a href="/configuracion">🛠 Configuración</a>
+<a href="/usuarios">ðŸ‘¤ Usuarios</a>
+<a href="/admin_tools">âš™ Herramientas</a>
+<a href="/configuracion">ðŸ›  ConfiguraciÃ³n</a>
 
 {% endif %}
 
@@ -176,19 +177,19 @@ background:#1e293b;
 <small>Resumen operativo en tiempo real</small>
 </div>
 
-<a href="/logout">Cerrar sesión</a>
+<a href="/logout">Cerrar sesiÃ³n</a>
 
 </div>
 
 <div class="kpi-grid">
 
 <div class="kpi-card">
-<span>Órdenes Activas</span>
+<span>Ã“rdenes Activas</span>
 <h1>{{ ordenes_activas }}</h1>
 </div>
 
 <div class="kpi-card">
-<span>Producción Hoy</span>
+<span>ProducciÃ³n Hoy</span>
 <h1>{{ produccion_hoy }}</h1>
 </div>
 
@@ -229,7 +230,7 @@ Herramientas
 </a>
 
 <a href="/configuracion" class="admin-link">
-Configuración
+ConfiguraciÃ³n
 </a>
 
 </div>

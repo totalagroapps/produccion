@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Métricas por Operario</title>
+<title>MÃ©tricas por Operario</title>
 
 <style>
 
@@ -88,7 +88,7 @@ tr:hover{
     color:#263238;
 }
 
-/* BOTÓN EXPORTAR */
+/* BOTÃ“N EXPORTAR */
 .btn-export{
     display:inline-block;
     background:#1976d2;
@@ -109,14 +109,15 @@ tr:hover{
 </head>
 
 <body>
+{% include '_navbar.html' %}
 
 <div class="container">
 
     <div class="topbar">
         <div class="titulo">
-            📊 Métricas por Operario
+            ðŸ“Š MÃ©tricas por Operario
         </div>
-        <a href="/" class="btn-home">🏠 Home</a>
+        <a href="/" class="btn-home">ðŸ  Home</a>
     </div>
 
     <!-- RESUMEN GENERAL -->
@@ -144,7 +145,7 @@ tr:hover{
     {% for op in resumen %}
 
         <div class="operario-titulo">
-            👷 {{op[0]}}
+            ðŸ‘· {{op[0]}}
         </div>
 
         <table>
@@ -169,7 +170,7 @@ tr:hover{
 
     {% endfor %}
 
-    <a href="/exportar_excel" class="btn-export">⬇ Exportar Excel</a>
+    <a href="/exportar_excel" class="btn-export">â¬‡ Exportar Excel</a>
 
 </div>
 
