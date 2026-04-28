@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>KPI ProducciÃ³n</title>
+<title>KPI Producción</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -20,9 +20,9 @@ a{text-decoration:none}
 
 <div class="container">
 
-<h2>ðŸ“Š Dashboard KPI</h2>
+<h2>📊 Dashboard KPI</h2>
 
-<a href="/">â¬… Volver al menÃº</a>
+<a href="/">⬅ Volver al menú</a>
 
 <div class="card">
 <h3>Piezas por Operario</h3>
@@ -35,7 +35,7 @@ a{text-decoration:none}
 </div>
 
 <div class="card">
-<h3>ProducciÃ³n diaria</h3>
+<h3>Producción diaria</h3>
 <canvas id="dia"></canvas>
 </div>
 
@@ -64,7 +64,7 @@ const d_data   = {{ diario | map(attribute=1) | list | safe }};
 
 new Chart(document.getElementById("dia"),{
     type:"line",
-    data:{labels:d_labels,datasets:[{label:"ProducciÃ³n",data:d_data}]}
+    data:{labels:d_labels,datasets:[{label:"Producción",data:d_data}]}
 });
 
 </script>

@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>MÃ©tricas por Operario</title>
+<title>Métricas por Operario</title>
 
 <style>
 
@@ -88,7 +88,7 @@ tr:hover{
     color:#263238;
 }
 
-/* BOTÃ“N EXPORTAR */
+/* BOTÁ“N EXPORTAR */
 .btn-export{
     display:inline-block;
     background:#1976d2;
@@ -115,9 +115,9 @@ tr:hover{
 
     <div class="topbar">
         <div class="titulo">
-            ðŸ“Š MÃ©tricas por Operario
+            📊 Métricas por Operario
         </div>
-        <a href="/" class="btn-home">ðŸ  Home</a>
+        <a href="/" class="btn-home">🏠 Home</a>
     </div>
 
     <!-- RESUMEN GENERAL -->
@@ -145,7 +145,7 @@ tr:hover{
     {% for op in resumen %}
 
         <div class="operario-titulo">
-            ðŸ‘· {{op[0]}}
+            👷 {{op[0]}}
         </div>
 
         <table>
@@ -170,7 +170,7 @@ tr:hover{
 
     {% endfor %}
 
-    <a href="/exportar_excel" class="btn-export">â¬‡ Exportar Excel</a>
+    <a href="/exportar_excel" class="btn-export">⬇ Exportar Excel</a>
 
 </div>
 

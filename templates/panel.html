@@ -93,7 +93,7 @@ Producto:
 <div class="card">
 
 <h3>
-Orden {{o.id}} â€” {{o.producto}} ({{o.cantidad}} uds)
+Orden {{o.id}} — {{o.producto}} ({{o.cantidad}} uds)
 
 {% if o.estado == "CERRADA" %}
 <span class="badge cerrada">CERRADA</span>
@@ -105,8 +105,8 @@ Orden {{o.id}} â€” {{o.producto}} ({{o.cantidad}} uds)
 
 {% if o.estado == "CERRADA" %}
 <small>
-ðŸ•’ Cerrada: {{o.cerrado_en}} |
-â± DuraciÃ³n: {{o.duracion}}
+🕒 Cerrada: {{o.cerrado_en}} |
+⏱ Duración: {{o.duracion}}
 </small>
 {% endif %}
 </h3>
@@ -120,11 +120,11 @@ Orden {{o.id}} â€” {{o.producto}} ({{o.cantidad}} uds)
 <br><br>
 
 {% if o.estado != "CERRADA" %}
-<a href="/cerrar/{{o.id}}">âœ… Cerrar</a>
+<a href="/cerrar/{{o.id}}">✅ Cerrar</a>
 {% endif %}
 
 {% if o.estado == "CERRADA" %}
-<a href="/eliminar/{{o.id}}" onclick="return confirm('Eliminar orden?')">âŒ Eliminar</a>
+<a href="/eliminar/{{o.id}}" onclick="return confirm('Eliminar orden?')">❌ Eliminar</a>
 {% endif %}
 
 <hr>
@@ -135,7 +135,7 @@ Orden {{o.id}} â€” {{o.producto}} ({{o.cantidad}} uds)
 
 {% for a in p.actividades %}
 <div class="act">
-{{a.nombre}} â€” {{a.realizada}} / {{a.total}} ({{a.porcentaje}}%)
+{{a.nombre}} — {{a.realizada}} / {{a.total}} ({{a.porcentaje}}%)
 </div>
 {% endfor %}
 
