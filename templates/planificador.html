@@ -9,6 +9,9 @@
 *{box-sizing:border-box}
 body{font-family:Arial,Helvetica,sans-serif;background:#f3f4f6;margin:0;color:#111827}
 .wrap{padding:20px;max-width:1400px;margin:0 auto}
+.intro{background:white;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:16px}
+.intro h1{font-size:24px;margin:0 0 6px}
+.intro p{color:#4b5563;margin:0;line-height:1.5}
 .controls{background:white;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:16px;display:grid;grid-template-columns:repeat(4,minmax(180px,1fr));gap:14px;align-items:end}
 .field label{display:block;font-size:12px;text-transform:uppercase;color:#6b7280;font-weight:700;margin-bottom:6px}
 select,input[type=number]{width:100%;height:42px;border:1px solid #d1d5db;border-radius:6px;padding:8px 10px;font-size:15px;background:white}
@@ -54,6 +57,11 @@ tr:hover{background:#f9fafb}
 
 <div class="wrap">
 
+  <section class="intro">
+    <h1>Simulador de capacidad</h1>
+    <p>Use esta pantalla para responder cuanto tarda producir una cantidad con X operarios por actividad. El cronograma respeta precedencias: una actividad solo inicia cuando las actividades anteriores ya terminaron.</p>
+  </section>
+
   <div class="controls">
     <div class="field">
       <label>Maquina</label>
@@ -73,12 +81,12 @@ tr:hover{background:#f9fafb}
     </div>
     <div class="field">
       <label>Accion</label>
-      <button class="small-btn" type="button" id="btnReset">Limpiar avances</button>
+      <button class="small-btn" type="button" id="btnReset">Reiniciar operarios</button>
     </div>
   </div>
 
   <div class="metrics">
-    <div class="metric"><span>Tiempo de flujo</span><strong id="metFlujo">0 h</strong><small>respetando precedencias</small></div>
+    <div class="metric"><span>Tiempo total</span><strong id="metFlujo">0 h</strong><small>respetando precedencias</small></div>
     <div class="metric"><span>Dias estimados</span><strong id="metDias">0</strong><small>segun jornada</small></div>
     <div class="metric"><span>Capacidad dia</span><strong id="metCapacidad">0</strong><small>unidades por dia</small></div>
     <div class="metric"><span>Cuello de botella</span><strong id="metCuello">-</strong><small id="metCuelloSub">sin datos</small></div>
@@ -86,16 +94,16 @@ tr:hover{background:#f9fafb}
 
   <div class="grid">
     <div class="panel">
-      <h2>Actividades, avance y recursos</h2>
+      <h2>Actividades y operarios por etapa</h2>
       {% if actividades and actividades|length > 0 %}
       <table>
         <thead>
           <tr>
             <th>Actividad</th>
-            <th>Precedencia</th>
+            <th>Inicia despues de</th>
             <th>Std/h</th>
-            <th>Ops</th>
-            <th>Hechas</th>
+            <th>Operarios asignados</th>
+            <th>Tiempo estimado</th>
             <th>Estado</th>
           </tr>
         </thead>
@@ -108,14 +116,14 @@ tr:hover{background:#f9fafb}
             </td>
             <td class="pre">
               {% if a.predecesoras_nombres and a.predecesoras_nombres|length > 0 %}
-                Despues de {{a.predecesoras_nombres|join(", ")}}
+                {{a.predecesoras_nombres|join(", ")}}
               {% else %}
                 Puede iniciar primero
               {% endif %}
             </td>
             <td>{{"%.2f"|format(a.unidades_hora) if a.unidades_hora else "-"}}</td>
             <td><input class="num js-sim" id="ops_{{a.id}}" type="number" min="0" step="1" value="{{1 if a.unidades_hora else 0}}"></td>
-            <td><input class="num js-sim" id="done_{{a.id}}" type="number" min="0" step="1" value="0"></td>
+            <td id="duracion_{{a.id}}">-</td>
             <td id="estado_{{a.id}}"><span class="pill warn">pendiente</span></td>
           </tr>
           {% endfor %}
@@ -127,9 +135,9 @@ tr:hover{background:#f9fafb}
     </div>
 
     <div class="panel">
-      <h2>Cronograma simulado</h2>
+      <h2>Cronograma simulado con precedencias</h2>
       <div class="gantt">
-        <div class="gantt-scale"><span>0 h</span><span id="escalaMax">0 h</span></div>
+        <div class="gantt-scale"><span>Inicio</span><span id="escalaMax">0 h</span></div>
         <div id="ganttRows"></div>
       </div>
       <div class="alertas" id="alertas"></div>
@@ -168,9 +176,8 @@ function calcular(){
   const alertas = [];
 
   actividades.forEach(a => {
-    const hechas = Math.max(0, num("done_" + a.id, 0));
     const ops = Math.max(0, num("ops_" + a.id, 0));
-    const faltantes = Math.max(cantidad - hechas, 0);
+    const faltantes = cantidad;
 
     if(a.unidades_hora <= 0 && faltantes > 0){
       alertas.push(`${a.nombre}: falta estandar de unidades por hora.`);
@@ -190,8 +197,7 @@ function calcular(){
       if(!depsListas) continue;
 
       const ops = Math.max(0, num("ops_" + id, 0));
-      const hechas = Math.max(0, num("done_" + id, 0));
-      const faltantes = Math.max(cantidad - hechas, 0);
+      const faltantes = cantidad;
       const capacidadHora = act.unidades_hora * ops;
       const inicio = deps.length ? Math.max(...deps.map(depId => resultados.get(depId).fin)) : 0;
       const bloqueado = faltantes > 0 && capacidadHora <= 0;
@@ -201,7 +207,6 @@ function calcular(){
       resultados.set(id, {
         ...act,
         ops,
-        hechas,
         faltantes,
         capacidadHora,
         inicio,
@@ -219,7 +224,6 @@ function calcular(){
         resultados.set(id, {
           ...act,
           ops: Math.max(0, num("ops_" + id, 0)),
-          hechas: Math.max(0, num("done_" + id, 0)),
           faltantes: cantidad,
           capacidadHora: 0,
           inicio: Infinity,
@@ -252,10 +256,12 @@ function render(lista, alertas, cantidad, jornada){
   document.getElementById("metCuelloSub").textContent = cuello ? fmtHoras(cuello.duracion) : "sin datos";
 
   lista.forEach(r => {
+    const duracion = document.getElementById("duracion_" + r.id);
+    if(duracion) duracion.textContent = r.bloqueado ? "-" : fmtHoras(r.duracion);
+
     if(r.bloqueado) setEstado(r.id, "bad", "bloqueado");
-    else if(r.faltantes <= 0) setEstado(r.id, "ok", "completo");
-    else if(r.inicio > 0) setEstado(r.id, "warn", "espera precedencia");
-    else setEstado(r.id, "ok", "puede iniciar");
+    else if(r.inicio > 0) setEstado(r.id, "warn", "despues de precedencia");
+    else setEstado(r.id, "ok", "inicia primero");
   });
 
   renderGantt(lista, tiempoFlujo, cuello);
@@ -304,7 +310,7 @@ function renderAlertas(alertas, bloqueados){
   const cont = document.getElementById("alertas");
 
   if(alertas.length === 0 && bloqueados === 0){
-    cont.innerHTML = '<div class="alerta ok">Simulacion lista. Las precedencias se respetan y no hay bloqueos.</div>';
+    cont.innerHTML = '<div class="alerta ok">Simulacion lista. Cada actividad inicia despues de terminar sus predecesoras.</div>';
     return;
   }
 
@@ -320,8 +326,8 @@ document.getElementById("maquinaSelect").addEventListener("change", function(){
 
 document.getElementById("btnReset").addEventListener("click", function(){
   actividades.forEach(a => {
-    const done = document.getElementById("done_" + a.id);
-    if(done) done.value = 0;
+    const ops = document.getElementById("ops_" + a.id);
+    if(ops) ops.value = a.unidades_hora > 0 ? 1 : 0;
   });
   calcular();
 });
