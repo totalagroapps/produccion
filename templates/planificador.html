@@ -59,7 +59,7 @@ tr:hover{background:#f9fafb}
 
   <section class="intro">
     <h1>Simulador de capacidad</h1>
-    <p>Use esta pantalla para responder cuanto tarda producir una cantidad con X operarios por actividad. El cronograma respeta precedencias: una actividad solo inicia cuando las actividades anteriores ya terminaron.</p>
+    <p>Use esta pantalla para responder cuanto tarda producir una cantidad con X operarios por actividad. La jornada se ingresa en minutos por dia y el cronograma respeta precedencias: una actividad solo inicia cuando las actividades anteriores ya terminaron.</p>
   </section>
 
   <div class="controls">
@@ -76,8 +76,8 @@ tr:hover{background:#f9fafb}
       <input id="cantidadObjetivo" type="number" min="1" step="1" value="10">
     </div>
     <div class="field">
-      <label>Jornada horas/dia</label>
-      <input id="jornadaHoras" type="number" min="1" step="0.25" value="8.83">
+      <label>Jornada minutos/dia</label>
+      <input id="jornadaMinutos" type="number" min="1" step="5" value="530">
     </div>
     <div class="field">
       <label>Accion</label>
@@ -87,7 +87,7 @@ tr:hover{background:#f9fafb}
 
   <div class="metrics">
     <div class="metric"><span>Tiempo total</span><strong id="metFlujo">0 h</strong><small>respetando precedencias</small></div>
-    <div class="metric"><span>Dias estimados</span><strong id="metDias">0</strong><small>segun jornada</small></div>
+    <div class="metric"><span>Dias estimados</span><strong id="metDias">0</strong><small id="metJornada">jornada 530 min/dia</small></div>
     <div class="metric"><span>Capacidad dia</span><strong id="metCapacidad">0</strong><small>unidades por dia</small></div>
     <div class="metric"><span>Cuello de botella</span><strong id="metCuello">-</strong><small id="metCuelloSub">sin datos</small></div>
   </div>
@@ -170,7 +170,8 @@ function setEstado(id, clase, texto){
 
 function calcular(){
   const cantidad = Math.max(1, num("cantidadObjetivo", 1));
-  const jornada = Math.max(1, num("jornadaHoras", 8.83));
+  const minutosPorDia = Math.max(1, num("jornadaMinutos", 530));
+  const horasDisponiblesDia = minutosPorDia / 60;
   const pendientes = new Map(actividades.map(a => [a.id, a]));
   const resultados = new Map();
   const alertas = [];
@@ -238,19 +239,20 @@ function calcular(){
   }
 
   const lista = actividades.map(a => resultados.get(a.id)).filter(Boolean);
-  render(lista, alertas, cantidad, jornada);
+  render(lista, alertas, cantidad, horasDisponiblesDia, minutosPorDia);
 }
 
-function render(lista, alertas, cantidad, jornada){
+function render(lista, alertas, cantidad, horasDisponiblesDia, minutosPorDia){
   const finitos = lista.filter(r => Number.isFinite(r.fin));
   const bloqueados = lista.filter(r => !Number.isFinite(r.fin));
   const tiempoFlujo = finitos.length ? Math.max(...finitos.map(r => r.fin)) : 0;
-  const dias = tiempoFlujo > 0 ? tiempoFlujo / jornada : 0;
+  const dias = tiempoFlujo > 0 ? tiempoFlujo / horasDisponiblesDia : 0;
   const capacidadDia = dias > 0 && bloqueados.length === 0 ? cantidad / dias : 0;
   const cuello = finitos.length ? finitos.reduce((max, r) => r.duracion > max.duracion ? r : max, finitos[0]) : null;
 
   document.getElementById("metFlujo").textContent = bloqueados.length ? "bloqueado" : fmtHoras(tiempoFlujo);
   document.getElementById("metDias").textContent = bloqueados.length ? "-" : Math.ceil(dias || 0);
+  document.getElementById("metJornada").textContent = `jornada ${minutosPorDia} min/dia`;
   document.getElementById("metCapacidad").textContent = bloqueados.length ? "-" : capacidadDia.toFixed(1);
   document.getElementById("metCuello").textContent = cuello ? cuello.nombre : "-";
   document.getElementById("metCuelloSub").textContent = cuello ? fmtHoras(cuello.duracion) : "sin datos";
@@ -332,7 +334,7 @@ document.getElementById("btnReset").addEventListener("click", function(){
   calcular();
 });
 
-document.querySelectorAll(".js-sim, #cantidadObjetivo, #jornadaHoras").forEach(el => {
+document.querySelectorAll(".js-sim, #cantidadObjetivo, #jornadaMinutos").forEach(el => {
   el.addEventListener("input", calcular);
   el.addEventListener("change", calcular);
 });
