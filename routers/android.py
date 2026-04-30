@@ -142,10 +142,20 @@ def ordenes_android():
     c = conn.cursor()
 
     c.execute("""
-    SELECT id,maquina_id,estado,porcentaje
-    FROM ordenes
-    WHERE estado!='CERRADA'
+    SELECT 
+        o.id,
+        o.maquina_id,
+        m.nombre AS producto,
+        COALESCE(o.cantidad, 0) AS cantidad,
+        o.estado,
+        o.porcentaje,
+        o.cerrado_en
+    FROM ordenes o
+    JOIN maquinas m ON m.id = o.maquina_id
+    WHERE o.estado != 'CERRADA'
+    ORDER BY o.id DESC
     """)
+
     rows = c.fetchall() or []
 
     conn.close()
@@ -154,8 +164,11 @@ def ordenes_android():
         {
             "id": r[0],
             "maquina_id": r[1],
-            "estado": r[2],
-            "porcentaje": r[3]
+            "producto": r[2],
+            "cantidad": r[3],
+            "estado": r[4],
+            "porcentaje": r[5],
+            "cerrado_en": r[6]
         }
         for r in rows
     ]
