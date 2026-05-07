@@ -154,6 +154,35 @@ def crear():
     conn.close()
 
 
+def sincronizar_actividades_ordenes_abiertas(cursor, orden_id=None):
+    """Agrega a orden_actividades las actividades nuevas de la maquina sin duplicar IDs."""
+    filtro_orden = "AND o.id = %s" if orden_id is not None else ""
+    params = (orden_id,) if orden_id is not None else ()
+
+    cursor.execute(f"""
+        INSERT INTO orden_actividades
+            (orden_id, actividad_id, cantidad_total, cantidad_realizada)
+        SELECT
+            o.id,
+            a.id,
+            o.cantidad,
+            0
+        FROM ordenes o
+        JOIN procesos p ON p.maquina_id = o.maquina_id
+        JOIN actividades a ON a.proceso_id = p.id
+        WHERE o.estado != 'CERRADA'
+        {filtro_orden}
+        AND NOT EXISTS (
+            SELECT 1
+            FROM orden_actividades oa
+            WHERE oa.orden_id = o.id
+            AND oa.actividad_id = a.id
+        )
+    """, params)
+
+    return cursor.rowcount or 0
+
+
 # ================= HOME =================
 
 @app.get("/", response_class=HTMLResponse)
@@ -215,6 +244,8 @@ def panel(request: Request):
 
     conn = db()
     c = conn.cursor()
+    sincronizar_actividades_ordenes_abiertas(c)
+    conn.commit()
 
     c.execute("SELECT id, nombre FROM maquinas")
     maquinas = c.fetchall()
@@ -422,6 +453,21 @@ def crear_orden_web(cantidad: int = Form(...), maquina: int = Form(...)):
     conn.close()
 
     return RedirectResponse("/panel", 303)
+
+
+@app.get("/sincronizar_ordenes_abiertas")
+def sincronizar_ordenes_abiertas_web(request: Request):
+
+    if not require_admin(request):
+        return RedirectResponse("/admin", 303)
+
+    conn = db()
+    c = conn.cursor()
+    insertadas = sincronizar_actividades_ordenes_abiertas(c)
+    conn.commit()
+    conn.close()
+
+    return RedirectResponse(f"/panel?sync={insertadas}", 303)
 
 
 # ================= REGISTRO =================
@@ -683,6 +729,8 @@ def maquinas():
 def ordenes_android():
     conn = db()
     c = conn.cursor()
+    sincronizar_actividades_ordenes_abiertas(c)
+    conn.commit()
     c.execute("""
     SELECT id, maquina_id, estado, porcentaje
     FROM ordenes
@@ -697,6 +745,8 @@ def ordenes_android():
 def procesos_android(orden_id: int):
     conn = db()
     c = conn.cursor()
+    sincronizar_actividades_ordenes_abiertas(c, orden_id)
+    conn.commit()
     c.execute("""
     SELECT DISTINCT p.id, p.nombre
     FROM orden_actividades oa
@@ -713,6 +763,8 @@ def procesos_android(orden_id: int):
 def actividades_android(orden: int, proceso: int):
     conn = db()
     c = conn.cursor()
+    sincronizar_actividades_ordenes_abiertas(c, orden)
+    conn.commit()
     c.execute("""
     SELECT a.id, a.nombre
     FROM orden_actividades oa

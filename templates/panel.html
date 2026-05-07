@@ -61,6 +61,22 @@ button{
 
 a{text-decoration:none;margin-right:10px}
 
+.sync-btn{
+    display:inline-block;
+    padding:8px 12px;
+    border-radius:4px;
+    background:#2563eb;
+    color:white;
+    font-weight:600;
+}
+
+.sync-msg{
+    display:inline-block;
+    margin-left:10px;
+    color:#15803d;
+    font-weight:600;
+}
+
 small{color:#555}
 </style>
 
@@ -86,6 +102,15 @@ Producto:
 
 <button>Crear</button>
 </form>
+</div>
+
+<div class="card">
+<h3>Sincronizar ordenes abiertas</h3>
+<p>Agrega a las ordenes abiertas las actividades nuevas que fueron creadas despues de abrir la orden. No duplica actividades ni cambia los avances ya registrados.</p>
+<a class="sync-btn" href="/sincronizar_ordenes_abiertas">Sincronizar actividades nuevas</a>
+{% if request.query_params.get("sync") is not none %}
+<span class="sync-msg">{{ request.query_params.get("sync") }} actividad(es) agregada(s)</span>
+{% endif %}
 </div>
 
 {% for o in ordenes %}

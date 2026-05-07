@@ -1,12 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
-
 <head>
 <meta charset="utf-8">
-<title>Configuración</title>
+<title>Configuracion</title>
 
 <style>
-
 body{
 font-family:Arial, Helvetica, sans-serif;
 background:#f3f4f6;
@@ -14,35 +12,122 @@ padding:30px;
 }
 
 h1{
-margin-bottom:20px;
+margin-bottom:8px;
 }
 
 #tabs_tablas{
 display:flex;
 flex-wrap:wrap;
 gap:10px;
-margin-bottom:20px;
+margin:18px 0 20px;
 }
 
 .tab-btn{
 background:white;
 border:none;
 padding:10px 16px;
-border-radius:10px;
+border-radius:8px;
 box-shadow:0 2px 6px rgba(0,0,0,.1);
 cursor:pointer;
 font-weight:600;
 }
 
-.tab-btn:hover{
+.tab-btn:hover,
+.tab-btn.activa{
 background:#e2e8f0;
+}
+
+
+.quick-grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+gap:18px;
+margin-bottom:20px;
+}
+
+.quick-card{
+background:white;
+padding:20px;
+border-radius:8px;
+box-shadow:0 2px 8px rgba(0,0,0,.1);
+}
+
+.quick-card h3{
+margin-top:0;
+margin-bottom:8px;
+}
+
+.quick-card p{
+color:#475569;
+font-size:14px;
+margin-top:0;
+}
+
+.form-grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+gap:12px;
+}
+
+.field{
+display:flex;
+flex-direction:column;
+gap:5px;
+font-size:13px;
+font-weight:700;
+color:#334155;
+}
+
+.field input,
+.field select{
+padding:9px;
+border:1px solid #cbd5e1;
+border-radius:6px;
+font-size:14px;
+}
+
+.field-wide{
+grid-column:1 / -1;
+}
+
+.quick-actions{
+margin-top:14px;
+}
+
+.quick-status{
+margin:0 0 16px;
+font-weight:700;
+}
+
+.quick-status.ok{
+color:#15803d;
+}
+
+.quick-status.error{
+color:#b91c1c;
 }
 
 .panel{
 background:white;
 padding:25px;
-border-radius:12px;
+border-radius:8px;
 box-shadow:0 2px 8px rgba(0,0,0,.1);
+overflow-x:auto;
+}
+
+.notice{
+background:#ecfdf5;
+border:1px solid #86efac;
+color:#14532d;
+padding:12px 14px;
+border-radius:8px;
+margin:12px 0 18px;
+font-size:14px;
+}
+
+.notice strong{
+display:block;
+margin-bottom:4px;
 }
 
 table{
@@ -55,25 +140,33 @@ th,td{
 border:1px solid #ddd;
 padding:8px;
 text-align:left;
+vertical-align:top;
 }
 
 th{
 background:#f1f5f9;
+white-space:nowrap;
 }
 
 td{
 background:white;
+min-width:110px;
 }
 
-.home-btn{
-text-decoration:none;
-background:#2563eb;
-color:white;
-padding:10px 16px;
-border-radius:8px;
-font-weight:600;
-display:inline-block;
-margin-bottom:20px;
+td[contenteditable="true"]{
+outline:2px solid transparent;
+}
+
+td[contenteditable="true"]:focus{
+outline:2px solid #2563eb;
+background:#eff6ff;
+}
+
+.id-cell{
+background:#f8fafc;
+color:#64748b;
+font-family:Consolas, monospace;
+white-space:nowrap;
 }
 
 button{
@@ -82,6 +175,7 @@ margin-right:5px;
 border-radius:6px;
 border:none;
 cursor:pointer;
+font-weight:600;
 }
 
 .add-btn{
@@ -99,248 +193,423 @@ background:#ef4444;
 color:white;
 }
 
+#buscador{
+padding:8px;
+border-radius:6px;
+border:1px solid #ccc;
+margin-left:10px;
+}
+
+.estado{
+margin-top:12px;
+font-weight:600;
+}
+
+.estado.ok{
+color:#15803d;
+}
+
+.estado.error{
+color:#b91c1c;
+}
 </style>
 </head>
 
 <body>
 {% include '_navbar.html' %}
 
-<a href="/" class="home-btn">🏠 Volver al Dashboard</a>
+<h1>Configuracion del sistema</h1>
+<p>Edicion segura de maquinas, procesos, actividades, operarios y estandares.</p>
 
-<h1>⚙ Configuración del Sistema</h1>
+<div class="notice">
+<strong>Modo seguro</strong>
+El ID es solo lectura. Guardar actualiza cada fila por su ID y las filas nuevas reciben un ID automatico de PostgreSQL. El boton eliminar se bloquea si la fila ya esta usada por ordenes, registros o bonos.
+</div>
+
+<div id="quickStatus" class="quick-status"></div>
+
+<div class="quick-grid">
+  <div class="quick-card">
+    <h3>Crear proceso</h3>
+    <p>Crea un proceso asociado a una maquina. Si ya conoces la primera actividad, puedes crearla con su estandar al mismo tiempo.</p>
+
+    <div class="form-grid">
+      <label class="field field-wide">Maquina
+        <select id="procesoMaquina"></select>
+      </label>
+      <label class="field field-wide">Nombre del proceso
+        <input id="procesoNombre" placeholder="Ej: Alistamiento">
+      </label>
+      <label class="field field-wide">Primera actividad opcional
+        <input id="procesoActividad" placeholder="Ej: Revisar componentes">
+      </label>
+      <label class="field">Unidades por hora
+        <input id="procesoUnidades" type="number" min="0" step="0.01" placeholder="Std/h">
+      </label>
+      <label class="field">Costo MO unidad
+        <input id="procesoCostoUnidad" type="number" min="0" step="0.01" placeholder="0">
+      </label>
+      <label class="field">Costo MO hora
+        <input id="procesoCostoHora" type="number" min="0" step="0.01" placeholder="0">
+      </label>
+    </div>
+
+    <div class="quick-actions">
+      <button class="add-btn" onclick="crearProcesoRapido()">Crear proceso</button>
+    </div>
+  </div>
+
+  <div class="quick-card">
+    <h3>Crear actividad con estandar</h3>
+    <p>Asocia la actividad al proceso correcto y guarda el estandar en el mismo paso. Tambien se sincroniza con ordenes abiertas.</p>
+
+    <div class="form-grid">
+      <label class="field field-wide">Proceso
+        <select id="actividadProceso"></select>
+      </label>
+      <label class="field field-wide">Nombre de la actividad
+        <input id="actividadNombre" placeholder="Ej: Pulido final">
+      </label>
+      <label class="field">Unidades por hora
+        <input id="actividadUnidades" type="number" min="0" step="0.01" placeholder="Std/h">
+      </label>
+      <label class="field">Costo MO unidad
+        <input id="actividadCostoUnidad" type="number" min="0" step="0.01" placeholder="0">
+      </label>
+      <label class="field">Costo MO hora
+        <input id="actividadCostoHora" type="number" min="0" step="0.01" placeholder="0">
+      </label>
+    </div>
+
+    <div class="quick-actions">
+      <button class="add-btn" onclick="crearActividadRapida()">Crear actividad</button>
+    </div>
+  </div>
+</div>
 
 <div id="tabs_tablas"></div>
 
 <div class="panel">
+<h3 id="titulo_tabla">Seleccione una tabla</h3>
 
-<h3 id="titulo_tabla"></h3>
+<button class="add-btn" onclick="agregarFila()">Nueva fila</button>
+<button class="save-btn" onclick="guardarCambios()">Guardar cambios</button>
 
-<button class="add-btn" onclick="agregarFila()">➕ Nueva fila</button>
-<button class="save-btn" onclick="guardarCambios()">💾 Guardar cambios</button>
+<input id="buscador" placeholder="Buscar..." onkeyup="filtrarTabla()">
 
-<input 
-id="buscador"
-placeholder="🔎 Buscar..."
-onkeyup="filtrarTabla()"
-style="padding:8px;border-radius:6px;border:1px solid #ccc;margin-left:10px;">
-
+<div id="estado" class="estado"></div>
 <div id="tabla_editor"></div>
-
 </div>
 
 <script>
+let tablaActual = "";
+let columnasGlobal = [];
 
-let tablaActual=""
-let columnasGlobal=[]
+function setEstado(texto, tipo){
+  const estado = document.getElementById("estado");
+  estado.innerText = texto || "";
+  estado.className = "estado " + (tipo || "");
+}
+
+async function leerJsonSeguro(response){
+  const text = await response.text();
+  try{
+    return text ? JSON.parse(text) : {};
+  }catch(_){
+    return {detail:text};
+  }
+}
+
+
+let catalogosRapidos = {maquinas:[], procesos:[]};
+
+function setQuickStatus(texto, tipo){
+  const estado = document.getElementById("quickStatus");
+  estado.innerText = texto || "";
+  estado.className = "quick-status " + (tipo || "");
+}
+
+function llenarSelect(select, opciones, textoVacio){
+  select.innerHTML = "";
+  if(textoVacio){
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.innerText = textoVacio;
+    select.appendChild(opt);
+  }
+
+  opciones.forEach(item => {
+    const opt = document.createElement("option");
+    opt.value = item.id;
+    opt.innerText = item.label;
+    select.appendChild(opt);
+  });
+}
+
+async function cargarCatalogosRapidos(){
+  const r = await fetch("/config/catalogos");
+  catalogosRapidos = await r.json();
+
+  llenarSelect(
+    document.getElementById("procesoMaquina"),
+    catalogosRapidos.maquinas.map(m => ({id:m.id, label:m.nombre})),
+    "Seleccione maquina"
+  );
+
+  llenarSelect(
+    document.getElementById("actividadProceso"),
+    catalogosRapidos.procesos.map(p => ({id:p.id, label:p.maquina + " / " + p.nombre})),
+    "Seleccione proceso"
+  );
+}
+
+async function postJson(url, payload){
+  const r = await fetch(url, {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(payload)
+  });
+  const data = await leerJsonSeguro(r);
+  if(!r.ok){
+    throw new Error(data.detail || "No se pudo guardar");
+  }
+  return data;
+}
+
+async function refrescarConfiguracion(tablas){
+  await cargarCatalogosRapidos();
+  if(tablas.includes(tablaActual)){
+    await cargarTabla(tablaActual, document.querySelector(".tab-btn.activa"));
+  }
+}
+
+async function crearProcesoRapido(){
+  try{
+    setQuickStatus("Guardando proceso...", "");
+    const payload = {
+      maquina_id: document.getElementById("procesoMaquina").value,
+      nombre: document.getElementById("procesoNombre").value,
+      actividad_nombre: document.getElementById("procesoActividad").value,
+      unidades_por_hora: document.getElementById("procesoUnidades").value,
+      costo_mo_unidad: document.getElementById("procesoCostoUnidad").value,
+      costo_mo_hora: document.getElementById("procesoCostoHora").value
+    };
+
+    const data = await postJson("/config/asistente/proceso", payload);
+    document.getElementById("procesoNombre").value = "";
+    document.getElementById("procesoActividad").value = "";
+    document.getElementById("procesoUnidades").value = "";
+    document.getElementById("procesoCostoUnidad").value = "";
+    document.getElementById("procesoCostoHora").value = "";
+    await refrescarConfiguracion(["procesos", "actividades", "estandares_actividad"]);
+    setQuickStatus("Proceso creado. Actividades agregadas a ordenes abiertas: " + data.ordenes_actualizadas, "ok");
+  }catch(error){
+    setQuickStatus(error.message, "error");
+  }
+}
+
+async function crearActividadRapida(){
+  try{
+    setQuickStatus("Guardando actividad...", "");
+    const payload = {
+      proceso_id: document.getElementById("actividadProceso").value,
+      nombre: document.getElementById("actividadNombre").value,
+      unidades_por_hora: document.getElementById("actividadUnidades").value,
+      costo_mo_unidad: document.getElementById("actividadCostoUnidad").value,
+      costo_mo_hora: document.getElementById("actividadCostoHora").value
+    };
+
+    const data = await postJson("/config/asistente/actividad", payload);
+    document.getElementById("actividadNombre").value = "";
+    document.getElementById("actividadUnidades").value = "";
+    document.getElementById("actividadCostoUnidad").value = "";
+    document.getElementById("actividadCostoHora").value = "";
+    await refrescarConfiguracion(["actividades", "estandares_actividad"]);
+    setQuickStatus("Actividad creada. Ordenes abiertas actualizadas: " + data.ordenes_actualizadas, "ok");
+  }catch(error){
+    setQuickStatus(error.message, "error");
+  }
+}
 
 async function cargarTabs(){
+  const r = await fetch("/config/tablas_lista");
+  const tablas = await r.json();
+  const cont = document.getElementById("tabs_tablas");
+  cont.innerHTML = "";
 
-let r = await fetch("/config/tablas_lista")
-let tablas = await r.json()
-
-let cont = document.getElementById("tabs_tablas")
-
-cont.innerHTML=""
-
-tablas.forEach(nombre => {
-
-let btn = document.createElement("button")
-btn.className="tab-btn"
-btn.innerText = nombre
-
-btn.onclick = () => cargarTabla(nombre)
-
-cont.appendChild(btn)
-
-})
-
+  tablas.forEach(nombre => {
+    const btn = document.createElement("button");
+    btn.className = "tab-btn";
+    btn.innerText = nombre;
+    btn.onclick = () => cargarTabla(nombre, btn);
+    cont.appendChild(btn);
+  });
 }
 
-async function cargarTabla(tabla){
+async function cargarTabla(tabla, boton){
+  tablaActual = tabla;
+  setEstado("", "");
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("activa"));
+  if(boton) boton.classList.add("activa");
 
-tablaActual=tabla
+  document.getElementById("titulo_tabla").innerText = "Tabla: " + tabla;
 
-document.getElementById("titulo_tabla").innerText="Tabla: "+tabla
+  const r = await fetch("/config/tabla/" + tabla);
+  const data = await r.json();
 
-let r=await fetch("/config/tabla/"+tabla)
-let data=await r.json()
+  columnasGlobal = data.columnas;
+  const div = document.getElementById("tabla_editor");
+  div.innerHTML = "";
 
-let columnas=data.columnas
-let filas=data.datos
+  const table = document.createElement("table");
+  table.id = "tabla_editable";
 
-columnasGlobal=columnas
+  const header = document.createElement("tr");
+  columnasGlobal.forEach((columna, i) => {
+    const th = document.createElement("th");
+    th.innerText = columna;
+    th.onclick = () => ordenarColumna(i);
+    header.appendChild(th);
+  });
 
-let div=document.getElementById("tabla_editor")
-div.innerHTML=""
+  const th = document.createElement("th");
+  th.innerText = "Accion";
+  header.appendChild(th);
+  table.appendChild(header);
 
-let table=document.createElement("table")
-table.id="tabla_editable"
-
-let tr=document.createElement("tr")
-
-columnas.forEach((c,i)=>{
-
-let th=document.createElement("th")
-th.innerText=c
-
-th.onclick=()=>ordenarColumna(i)
-
-tr.appendChild(th)
-
-})
-
-let th=document.createElement("th")
-th.innerText="Eliminar"
-tr.appendChild(th)
-
-table.appendChild(tr)
-
-filas.forEach(f=>{
-
-let tr=document.createElement("tr")
-
-f.forEach((col,i)=>{
-
-let td=document.createElement("td")
-
-td.innerText=col
-
-if(i!==0){
-td.contentEditable=true
+  data.datos.forEach(fila => agregarFilaTabla(table, fila));
+  div.appendChild(table);
 }
 
-tr.appendChild(td)
+function agregarFilaTabla(table, fila){
+  const tr = document.createElement("tr");
+  const nueva = !fila;
+  const datos = fila || columnasGlobal.map(() => "");
 
-})
+  columnasGlobal.forEach((columna, i) => {
+    const td = document.createElement("td");
+    const valor = datos[i] ?? "";
 
-let td=document.createElement("td")
-td.innerHTML="<button class='delete-btn' onclick='borrarFila(this)'>🗑</button>"
+    if(i === 0){
+      td.className = "id-cell";
+      td.innerText = nueva ? "nuevo" : valor;
+      td.dataset.id = nueva ? "" : valor;
+    }else{
+      td.innerText = valor;
+      td.contentEditable = true;
+    }
 
-tr.appendChild(td)
+    tr.appendChild(td);
+  });
 
-table.appendChild(tr)
-
-})
-
-div.appendChild(table)
-
-}
-
-function borrarFila(btn){
-
-let row=btn.parentNode.parentNode
-row.remove()
-
+  const tdAccion = document.createElement("td");
+  tdAccion.innerHTML = "<button class='delete-btn' onclick='borrarFila(this)'>Eliminar</button>";
+  tr.appendChild(tdAccion);
+  table.appendChild(tr);
 }
 
 function agregarFila(){
+  if(!tablaActual){
+    setEstado("Seleccione una tabla primero.", "error");
+    return;
+  }
 
-let table=document.getElementById("tabla_editable")
-
-let tr=document.createElement("tr")
-
-for(let i=0;i<columnasGlobal.length;i++){
-
-let td=document.createElement("td")
-
-if(i!==0){
-td.contentEditable=true
+  const table = document.getElementById("tabla_editable");
+  agregarFilaTabla(table, null);
 }
 
-tr.appendChild(td)
+async function borrarFila(btn){
+  const row = btn.parentNode.parentNode;
+  const id = row.cells[0].dataset.id || "";
 
-}
+  if(!id){
+    row.remove();
+    return;
+  }
 
-let td=document.createElement("td")
-td.innerHTML="<button class='delete-btn' onclick='borrarFila(this)'>🗑</button>"
+  if(!confirm("Eliminar esta fila puede afectar datos historicos. Desea continuar?")){
+    return;
+  }
 
-tr.appendChild(td)
+  const r = await fetch(`/config/tabla/${tablaActual}/${id}`, {method:"DELETE"});
+  const data = await leerJsonSeguro(r);
 
-table.appendChild(tr)
+  if(!r.ok){
+    setEstado(data.detail || "No se pudo eliminar la fila.", "error");
+    return;
+  }
 
+  row.remove();
+  setEstado("Fila eliminada.", "ok");
 }
 
 async function guardarCambios(){
+  if(!tablaActual){
+    setEstado("Seleccione una tabla primero.", "error");
+    return;
+  }
 
-let table=document.getElementById("tabla_editable")
+  const table = document.getElementById("tabla_editable");
+  const filas = [];
 
-let filas=[]
+  for(let i = 1; i < table.rows.length; i++){
+    const row = table.rows[i];
+    const fila = [];
 
-for(let i=1;i<table.rows.length;i++){
+    for(let j = 0; j < columnasGlobal.length; j++){
+      if(j === 0){
+        fila.push(row.cells[j].dataset.id || "");
+      }else{
+        fila.push(row.cells[j].innerText.trim());
+      }
+    }
 
-let row=table.rows[i]
+    filas.push(fila);
+  }
 
-let fila=[]
+  const r = await fetch("/config/tabla/" + tablaActual + "/guardar", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({columnas:columnasGlobal, filas:filas})
+  });
 
-for(let j=0;j<columnasGlobal.length;j++){
+  const data = await leerJsonSeguro(r);
+  if(!r.ok){
+    setEstado(data.detail || "No se pudieron guardar los cambios.", "error");
+    return;
+  }
 
-fila.push(row.cells[j].innerText)
-
+  setEstado("Cambios guardados sin recrear IDs.", "ok");
+  await cargarTabla(tablaActual, document.querySelector(".tab-btn.activa"));
 }
-
-filas.push(fila)
-
-}
-
-await fetch("/config/tabla/"+tablaActual+"/guardar",{
-
-method:"POST",
-
-headers:{
-"Content-Type":"application/json"
-},
-
-body:JSON.stringify({
-columnas:columnasGlobal,
-filas:filas
-})
-
-})
-
-alert("Cambios guardados")
-
-}
-
-cargarTabs()
 
 function filtrarTabla(){
+  const filtro = document.getElementById("buscador").value.toLowerCase();
+  const table = document.getElementById("tabla_editable");
+  if(!table) return;
 
-let filtro=document.getElementById("buscador").value.toLowerCase()
-
-let table=document.getElementById("tabla_editable")
-
-for(let i=1;i<table.rows.length;i++){
-
-let row=table.rows[i]
-
-let texto=row.innerText.toLowerCase()
-
-row.style.display = texto.includes(filtro) ? "" : "none"
-
-}
-
+  for(let i = 1; i < table.rows.length; i++){
+    const row = table.rows[i];
+    const texto = row.innerText.toLowerCase();
+    row.style.display = texto.includes(filtro) ? "" : "none";
+  }
 }
 
 function ordenarColumna(col){
+  const table = document.getElementById("tabla_editable");
+  if(!table) return;
 
-let table=document.getElementById("tabla_editable")
+  const rows = Array.from(table.rows).slice(1);
+  rows.sort((a,b) => {
+    const A = a.cells[col].innerText;
+    const B = b.cells[col].innerText;
+    return A.localeCompare(B, undefined, {numeric:true});
+  });
 
-let rows=Array.from(table.rows).slice(1)
-
-rows.sort((a,b)=>{
-
-let A=a.cells[col].innerText
-let B=b.cells[col].innerText
-
-return A.localeCompare(B,undefined,{numeric:true})
-
-})
-
-rows.forEach(r=>table.appendChild(r))
-
+  rows.forEach(r => table.appendChild(r));
 }
 
+cargarTabs();
 </script>
-
 </body>
 </html>
