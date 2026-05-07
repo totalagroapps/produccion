@@ -716,7 +716,19 @@ function ordenarColumna(col){
   rows.forEach(r => table.appendChild(r));
 }
 
-cargarTabs();
+function iniciarConfiguracion(){
+  const actividadMaquina = document.getElementById("actividadMaquina");
+  if(actividadMaquina){
+    actividadMaquina.addEventListener("change", function(){
+      actualizarProcesosActividad(this.value, "");
+    });
+  }
+
+  cargarTabs();
+  cargarCatalogosRapidos();
+}
+
+iniciarConfiguracion();
 </script>
 </body>
 </html>
