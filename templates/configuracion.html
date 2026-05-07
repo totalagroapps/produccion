@@ -80,10 +80,22 @@ color:#334155;
 
 .field input,
 .field select{
-padding:9px;
+width:100%;
+height:38px;
+box-sizing:border-box;
+padding:8px 10px;
 border:1px solid #cbd5e1;
 border-radius:6px;
 font-size:14px;
+background:white;
+color:#111827;
+line-height:20px;
+}
+
+.field select:disabled{
+background:#f1f5f9;
+color:#64748b;
+cursor:not-allowed;
 }
 
 .field-wide{
@@ -235,7 +247,7 @@ El ID es solo lectura. Guardar actualiza cada fila por su ID y las filas nuevas 
 
     <div class="form-grid">
       <label class="field field-wide">Maquina
-        <select id="procesoMaquina"></select>
+        <select id="procesoMaquina"><option value="">Cargando maquinas...</option></select>
       </label>
       <label class="field field-wide">Nombre del proceso
         <input id="procesoNombre" placeholder="Ej: Alistamiento">
@@ -264,8 +276,11 @@ El ID es solo lectura. Guardar actualiza cada fila por su ID y las filas nuevas 
     <p>Asocia la actividad al proceso correcto y guarda el estandar en el mismo paso. Tambien se sincroniza con ordenes abiertas.</p>
 
     <div class="form-grid">
+      <label class="field field-wide">Maquina
+        <select id="actividadMaquina"><option value="">Cargando maquinas...</option></select>
+      </label>
       <label class="field field-wide">Proceso
-        <select id="actividadProceso"></select>
+        <select id="actividadProceso" disabled><option value="">Seleccione una maquina primero</option></select>
       </label>
       <label class="field field-wide">Nombre de la actividad
         <input id="actividadNombre" placeholder="Ej: Pulido final">
@@ -346,21 +361,73 @@ function llenarSelect(select, opciones, textoVacio){
   });
 }
 
+function valorSiExiste(select, valor){
+  if(valor && Array.from(select.options).some(opt => opt.value === valor)){
+    select.value = valor;
+  }
+}
+
+function actualizarProcesosActividad(maquinaId, procesoActual){
+  const select = document.getElementById("actividadProceso");
+
+  if(!maquinaId){
+    llenarSelect(select, [], "Seleccione una maquina primero");
+    select.disabled = true;
+    return;
+  }
+
+  const procesos = catalogosRapidos.procesos
+    .filter(p => String(p.maquina_id) === String(maquinaId))
+    .map(p => ({id:p.id, label:p.nombre}));
+
+  llenarSelect(
+    select,
+    procesos,
+    procesos.length ? "Seleccione proceso" : "Esta maquina no tiene procesos"
+  );
+  select.disabled = procesos.length === 0;
+  valorSiExiste(select, procesoActual || "");
+}
+
 async function cargarCatalogosRapidos(){
-  const r = await fetch("/config/catalogos");
-  catalogosRapidos = await r.json();
+  try{
+    const procesoMaquinaSelect = document.getElementById("procesoMaquina");
+    const actividadMaquinaSelect = document.getElementById("actividadMaquina");
+    const actividadProcesoSelect = document.getElementById("actividadProceso");
+    const procesoMaquinaActual = procesoMaquinaSelect.value;
+    const actividadMaquinaActual = actividadMaquinaSelect.value;
+    const actividadProcesoActual = actividadProcesoSelect.value;
 
-  llenarSelect(
-    document.getElementById("procesoMaquina"),
-    catalogosRapidos.maquinas.map(m => ({id:m.id, label:m.nombre})),
-    "Seleccione maquina"
-  );
+    const r = await fetch("/config/catalogos");
+    const data = await leerJsonSeguro(r);
+    if(!r.ok){
+      throw new Error(data.detail || "No se pudieron cargar los catalogos.");
+    }
 
-  llenarSelect(
-    document.getElementById("actividadProceso"),
-    catalogosRapidos.procesos.map(p => ({id:p.id, label:p.maquina + " / " + p.nombre})),
-    "Seleccione proceso"
-  );
+    catalogosRapidos = data;
+    const maquinas = catalogosRapidos.maquinas.map(m => ({id:m.id, label:m.nombre}));
+
+    llenarSelect(
+      procesoMaquinaSelect,
+      maquinas,
+      maquinas.length ? "Seleccione maquina" : "No hay maquinas disponibles"
+    );
+    valorSiExiste(procesoMaquinaSelect, procesoMaquinaActual);
+
+    llenarSelect(
+      actividadMaquinaSelect,
+      maquinas,
+      maquinas.length ? "Seleccione maquina" : "No hay maquinas disponibles"
+    );
+    valorSiExiste(actividadMaquinaSelect, actividadMaquinaActual);
+    actualizarProcesosActividad(actividadMaquinaSelect.value, actividadProcesoActual);
+  }catch(error){
+    llenarSelect(document.getElementById("procesoMaquina"), [], "Error cargando maquinas");
+    llenarSelect(document.getElementById("actividadMaquina"), [], "Error cargando maquinas");
+    llenarSelect(document.getElementById("actividadProceso"), [], "Error cargando procesos");
+    document.getElementById("actividadProceso").disabled = true;
+    setQuickStatus(error.message, "error");
+  }
 }
 
 async function postJson(url, payload){
@@ -385,11 +452,29 @@ async function refrescarConfiguracion(tablas){
 
 async function crearProcesoRapido(){
   try{
+    const maquinaId = document.getElementById("procesoMaquina").value;
+    const nombreProceso = document.getElementById("procesoNombre").value.trim();
+    const actividadInicial = document.getElementById("procesoActividad").value.trim();
+    const unidadesIniciales = document.getElementById("procesoUnidades").value.trim();
+
+    if(!maquinaId){
+      setQuickStatus("Seleccione una maquina.", "error");
+      return;
+    }
+    if(!nombreProceso){
+      setQuickStatus("Escriba el nombre del proceso.", "error");
+      return;
+    }
+    if(actividadInicial && !unidadesIniciales){
+      setQuickStatus("Si agrega una primera actividad, indique unidades por hora.", "error");
+      return;
+    }
+
     setQuickStatus("Guardando proceso...", "");
     const payload = {
-      maquina_id: document.getElementById("procesoMaquina").value,
-      nombre: document.getElementById("procesoNombre").value,
-      actividad_nombre: document.getElementById("procesoActividad").value,
+      maquina_id: maquinaId,
+      nombre: nombreProceso,
+      actividad_nombre: actividadInicial,
       unidades_por_hora: document.getElementById("procesoUnidades").value,
       costo_mo_unidad: document.getElementById("procesoCostoUnidad").value,
       costo_mo_hora: document.getElementById("procesoCostoHora").value
@@ -410,11 +495,33 @@ async function crearProcesoRapido(){
 
 async function crearActividadRapida(){
   try{
+    const maquinaId = document.getElementById("actividadMaquina").value;
+    const procesoId = document.getElementById("actividadProceso").value;
+    const nombreActividad = document.getElementById("actividadNombre").value.trim();
+    const unidadesActividad = document.getElementById("actividadUnidades").value.trim();
+
+    if(!maquinaId){
+      setQuickStatus("Seleccione una maquina.", "error");
+      return;
+    }
+    if(!procesoId){
+      setQuickStatus("Seleccione un proceso.", "error");
+      return;
+    }
+    if(!nombreActividad){
+      setQuickStatus("Escriba el nombre de la actividad.", "error");
+      return;
+    }
+    if(!unidadesActividad){
+      setQuickStatus("Indique unidades por hora para el estandar.", "error");
+      return;
+    }
+
     setQuickStatus("Guardando actividad...", "");
     const payload = {
-      proceso_id: document.getElementById("actividadProceso").value,
-      nombre: document.getElementById("actividadNombre").value,
-      unidades_por_hora: document.getElementById("actividadUnidades").value,
+      proceso_id: procesoId,
+      nombre: nombreActividad,
+      unidades_por_hora: unidadesActividad,
       costo_mo_unidad: document.getElementById("actividadCostoUnidad").value,
       costo_mo_hora: document.getElementById("actividadCostoHora").value
     };
