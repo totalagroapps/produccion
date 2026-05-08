@@ -179,6 +179,57 @@ button:disabled{
     font-size:13px;
     line-height:1.45;
 }
+/* Modal cantidad */
+.modal-overlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(15,23,42,.45);
+    z-index:1000;
+    align-items:center;
+    justify-content:center;
+}
+.modal-overlay.visible{
+    display:flex;
+}
+.modal-box{
+    background:white;
+    border-radius:12px;
+    box-shadow:0 8px 32px rgba(15,23,42,.22);
+    padding:32px 28px 24px;
+    width:340px;
+    max-width:92vw;
+}
+.modal-box h2{
+    margin:0 0 6px;
+    font-size:20px;
+}
+.modal-box p{
+    margin:0 0 18px;
+    color:#475569;
+    font-size:13px;
+}
+.modal-cantidad-input{
+    width:100%;
+    height:52px;
+    box-sizing:border-box;
+    border:2px solid #2563eb;
+    border-radius:8px;
+    font-size:28px;
+    font-weight:800;
+    text-align:center;
+    color:#111827;
+    outline:none;
+    margin-bottom:20px;
+}
+.modal-cantidad-input:focus{
+    border-color:#1d4ed8;
+}
+.modal-actions{
+    display:flex;
+    gap:10px;
+    justify-content:flex-end;
+}
 @media(max-width:900px){
     .layout,
     .form-grid{
@@ -228,10 +279,6 @@ button:disabled{
                     <select id="actividadSelect" disabled><option value="">Seleccione un proceso primero</option></select>
                 </label>
 
-                <label class="field">Cantidad
-                    <input id="cantidadInput" type="number" min="0" step="1" placeholder="0">
-                </label>
-
                 <label class="field">Inicio
                     <input id="inicioInput" type="text" disabled placeholder="Pendiente">
                 </label>
@@ -270,6 +317,19 @@ button:disabled{
 
             <p class="help">La cantidad puede ser 0 para registrar una interrupcion, pausa o actividad larga sin avance de unidades.</p>
         </aside>
+    </div>
+</div>
+
+<!-- Modal de cantidad al guardar -->
+<div id="modalCantidad" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-box">
+        <h2 id="modalTitle">¿Cuántas unidades hiciste?</h2>
+        <p>Ingresa la cantidad producida en esta operación. Puede ser 0.</p>
+        <input id="modalCantidadInput" class="modal-cantidad-input" type="number" min="0" step="1" placeholder="0" inputmode="numeric">
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="cerrarModalCantidad()">Cancelar</button>
+            <button class="btn-save" onclick="confirmarCantidad()">Confirmar</button>
+        </div>
     </div>
 </div>
 
@@ -524,18 +584,35 @@ async function guardarRegistro(){
         mostrarMensaje("Debe iniciar el registro primero.", "error");
         return;
     }
+    // Abrir modal para pedir cantidad
+    abrirModalCantidad();
+}
 
-    const cantidadTexto = document.getElementById("cantidadInput").value.trim();
+function abrirModalCantidad(){
+    const input = document.getElementById("modalCantidadInput");
+    input.value = "";
+    document.getElementById("modalCantidad").classList.add("visible");
+    setTimeout(() => input.focus(), 50);
+}
+
+function cerrarModalCantidad(){
+    document.getElementById("modalCantidad").classList.remove("visible");
+}
+
+async function confirmarCantidad(){
+    const cantidadTexto = document.getElementById("modalCantidadInput").value.trim();
     if(cantidadTexto === ""){
-        mostrarMensaje("Ingrese una cantidad. Puede ser 0.", "error");
+        document.getElementById("modalCantidadInput").focus();
         return;
     }
-
     const cantidad = Number(cantidadTexto);
     if(!Number.isFinite(cantidad) || cantidad < 0 || !Number.isInteger(cantidad)){
-        mostrarMensaje("La cantidad debe ser un numero entero de 0 o mayor.", "error");
+        alert("La cantidad debe ser un número entero de 0 o mayor.");
+        document.getElementById("modalCantidadInput").focus();
         return;
     }
+
+    cerrarModalCantidad();
 
     const sel = seleccionActual();
     const fin = new Date();
@@ -561,6 +638,7 @@ async function guardarRegistro(){
         });
         const data = await leerJsonSeguro(r);
         if(!r.ok){
+            document.getElementById("btnGuardar").disabled = false;
             throw new Error(data.detail || "No se pudo guardar el registro.");
         }
 
@@ -574,7 +652,6 @@ async function guardarRegistro(){
         document.getElementById("btnGuardar").disabled = true;
         document.getElementById("btnCancelar").disabled = true;
         document.getElementById("inicioInput").value = "";
-        document.getElementById("cantidadInput").value = "";
         await recargarDatos();
         setEstado("Registro guardado");
         mostrarMensaje("Registro guardado correctamente.", "ok");
@@ -584,6 +661,11 @@ async function guardarRegistro(){
         mostrarMensaje(error.message, "error");
     }
 }
+
+document.getElementById("modalCantidadInput").addEventListener("keydown", function(e){
+    if(e.key === "Enter") confirmarCantidad();
+    if(e.key === "Escape") cerrarModalCantidad();
+});
 
 document.getElementById("ordenSelect").addEventListener("change", cargarProcesos);
 document.getElementById("procesoSelect").addEventListener("change", cargarActividades);
