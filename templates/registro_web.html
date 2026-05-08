@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Registro web</title>
+<style>
+body{
+    margin:0;
+    font-family:Arial, Helvetica, sans-serif;
+    background:#f3f4f6;
+    color:#111827;
+}
+.container{
+    max-width:1180px;
+    margin:0 auto;
+    padding:28px 24px 44px;
+}
+.header-row{
+    display:flex;
+    justify-content:space-between;
+    gap:16px;
+    align-items:flex-start;
+    margin-bottom:18px;
+}
+h1{
+    margin:0 0 6px;
+    font-size:28px;
+}
+.subtitle{
+    color:#475569;
+    margin:0;
+}
+.status-pill{
+    background:#e0f2fe;
+    color:#075985;
+    border:1px solid #7dd3fc;
+    padding:10px 14px;
+    border-radius:8px;
+    font-weight:700;
+    min-width:220px;
+    text-align:center;
+}
+.layout{
+    display:grid;
+    grid-template-columns:minmax(0,1.3fr) minmax(280px,.7fr);
+    gap:18px;
+}
+.panel{
+    background:white;
+    border-radius:8px;
+    box-shadow:0 2px 8px rgba(15,23,42,.08);
+    padding:22px;
+}
+.form-grid{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:16px;
+}
+.field{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    font-size:13px;
+    font-weight:700;
+    color:#334155;
+}
+.field-wide{
+    grid-column:1 / -1;
+}
+select,
+input{
+    width:100%;
+    height:40px;
+    box-sizing:border-box;
+    border:1px solid #cbd5e1;
+    border-radius:6px;
+    background:white;
+    color:#111827;
+    padding:8px 10px;
+    font-size:14px;
+}
+select:disabled,
+input:disabled{
+    background:#f1f5f9;
+    color:#64748b;
+}
+.actions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-top:20px;
+}
+button{
+    border:0;
+    border-radius:6px;
+    padding:10px 14px;
+    font-weight:700;
+    cursor:pointer;
+}
+.btn-start{
+    background:#16a34a;
+    color:white;
+}
+.btn-save{
+    background:#2563eb;
+    color:white;
+}
+.btn-cancel{
+    background:#ef4444;
+    color:white;
+}
+.btn-secondary{
+    background:#e2e8f0;
+    color:#0f172a;
+}
+button:disabled{
+    opacity:.55;
+    cursor:not-allowed;
+}
+.timer{
+    text-align:center;
+    padding:22px 12px;
+    border:1px solid #e2e8f0;
+    border-radius:8px;
+    background:#f8fafc;
+}
+.timer-label{
+    color:#64748b;
+    font-size:13px;
+    font-weight:700;
+    margin-bottom:6px;
+}
+.timer-value{
+    font-family:Consolas, monospace;
+    font-size:42px;
+    font-weight:800;
+    letter-spacing:0;
+}
+.summary{
+    margin-top:16px;
+    display:grid;
+    gap:10px;
+}
+.summary-item{
+    border-bottom:1px solid #e5e7eb;
+    padding-bottom:9px;
+}
+.summary-item strong{
+    display:block;
+    color:#334155;
+    font-size:12px;
+    margin-bottom:3px;
+}
+.summary-item span{
+    color:#111827;
+}
+.message{
+    margin-top:16px;
+    padding:12px 14px;
+    border-radius:8px;
+    font-weight:700;
+    display:none;
+}
+.message.ok{
+    display:block;
+    background:#dcfce7;
+    color:#14532d;
+    border:1px solid #86efac;
+}
+.message.error{
+    display:block;
+    background:#fee2e2;
+    color:#991b1b;
+    border:1px solid #fca5a5;
+}
+.help{
+    margin-top:16px;
+    color:#475569;
+    font-size:13px;
+    line-height:1.45;
+}
+@media(max-width:900px){
+    .layout,
+    .form-grid{
+        grid-template-columns:1fr;
+    }
+    .field-wide{
+        grid-column:auto;
+    }
+    .header-row{
+        flex-direction:column;
+    }
+    .status-pill{
+        width:100%;
+        box-sizing:border-box;
+    }
+}
+</style>
+</head>
+<body>
+{% include '_navbar.html' %}
+
+<div class="container">
+    <div class="header-row">
+        <div>
+            <h1>Registro web de produccion</h1>
+            <p class="subtitle">Modulo administrativo para registrar operaciones con el mismo flujo de Android.</p>
+        </div>
+        <div id="estadoGeneral" class="status-pill">Listo para iniciar</div>
+    </div>
+
+    <div class="layout">
+        <section class="panel">
+            <div class="form-grid">
+                <label class="field field-wide">Operario
+                    <select id="operarioSelect"><option value="">Cargando operarios...</option></select>
+                </label>
+
+                <label class="field field-wide">Orden abierta
+                    <select id="ordenSelect"><option value="">Cargando ordenes...</option></select>
+                </label>
+
+                <label class="field">Proceso
+                    <select id="procesoSelect" disabled><option value="">Seleccione una orden primero</option></select>
+                </label>
+
+                <label class="field">Actividad
+                    <select id="actividadSelect" disabled><option value="">Seleccione un proceso primero</option></select>
+                </label>
+
+                <label class="field">Cantidad
+                    <input id="cantidadInput" type="number" min="0" step="1" placeholder="0">
+                </label>
+
+                <label class="field">Inicio
+                    <input id="inicioInput" type="text" disabled placeholder="Pendiente">
+                </label>
+            </div>
+
+            <div class="actions">
+                <button id="btnIniciar" class="btn-start" onclick="iniciarRegistro()">Iniciar</button>
+                <button id="btnGuardar" class="btn-save" onclick="guardarRegistro()" disabled>Guardar registro</button>
+                <button id="btnCancelar" class="btn-cancel" onclick="cancelarRegistro()" disabled>Cancelar</button>
+                <button class="btn-secondary" onclick="recargarDatos()">Recargar datos</button>
+            </div>
+
+            <div id="mensaje" class="message"></div>
+        </section>
+
+        <aside class="panel">
+            <div class="timer">
+                <div class="timer-label">Tiempo transcurrido</div>
+                <div id="cronometro" class="timer-value">00:00:00</div>
+            </div>
+
+            <div class="summary">
+                <div class="summary-item">
+                    <strong>Orden</strong>
+                    <span id="resOrden">Sin seleccionar</span>
+                </div>
+                <div class="summary-item">
+                    <strong>Actividad</strong>
+                    <span id="resActividad">Sin seleccionar</span>
+                </div>
+                <div class="summary-item">
+                    <strong>Operario</strong>
+                    <span id="resOperario">Sin seleccionar</span>
+                </div>
+            </div>
+
+            <p class="help">La cantidad puede ser 0 para registrar una interrupcion, pausa o actividad larga sin avance de unidades.</p>
+        </aside>
+    </div>
+</div>
+
+<script>
+let operarios = [];
+let maquinas = [];
+let ordenes = [];
+let procesos = [];
+let actividades = [];
+let inicioRegistro = null;
+let timerId = null;
+let bloqueado = false;
+
+function mostrarMensaje(texto, tipo){
+    const box = document.getElementById("mensaje");
+    box.innerText = texto || "";
+    box.className = "message " + (tipo || "");
+}
+
+function setEstado(texto){
+    document.getElementById("estadoGeneral").innerText = texto;
+}
+
+function pad(n){
+    return String(n).padStart(2, "0");
+}
+
+function formatoLocal(fecha){
+    return fecha.getFullYear() + "-" + pad(fecha.getMonth() + 1) + "-" + pad(fecha.getDate()) + " " + pad(fecha.getHours()) + ":" + pad(fecha.getMinutes()) + ":" + pad(fecha.getSeconds());
+}
+
+function formatoCrono(segundos){
+    const h = Math.floor(segundos / 3600);
+    const m = Math.floor((segundos % 3600) / 60);
+    const s = segundos % 60;
+    return pad(h) + ":" + pad(m) + ":" + pad(s);
+}
+
+function leerJsonSeguro(response){
+    return response.text().then(text => {
+        try{
+            return text ? JSON.parse(text) : {};
+        }catch(_){
+            return {detail:text};
+        }
+    });
+}
+
+function normalizarOperario(item){
+    if(Array.isArray(item)) return {id:item[0], nombre:item[1]};
+    return item;
+}
+
+function normalizarMaquina(item){
+    if(Array.isArray(item)) return {id:item[0], nombre:item[1]};
+    return item;
+}
+
+function normalizarOrden(item){
+    if(Array.isArray(item)){
+        const maquina = maquinas.find(m => String(m.id) === String(item[1]));
+        return {
+            id:item[0],
+            maquina_id:item[1],
+            estado:item[2],
+            porcentaje:item[3],
+            producto: maquina ? maquina.nombre : "Maquina " + item[1],
+            cantidad:""
+        };
+    }
+    return item;
+}
+
+function normalizarBasico(item){
+    if(Array.isArray(item)) return {id:item[0], nombre:item[1]};
+    return item;
+}
+
+function llenarSelect(select, datos, placeholder, labelFn){
+    select.innerHTML = "";
+    const ph = document.createElement("option");
+    ph.value = "";
+    ph.innerText = placeholder;
+    select.appendChild(ph);
+
+    datos.forEach(item => {
+        const opt = document.createElement("option");
+        opt.value = item.id;
+        opt.innerText = labelFn ? labelFn(item) : item.nombre;
+        select.appendChild(opt);
+    });
+}
+
+async function cargarJson(url){
+    const r = await fetch(url);
+    const data = await leerJsonSeguro(r);
+    if(!r.ok){
+        throw new Error(data.detail || "No se pudo cargar " + url);
+    }
+    return data;
+}
+
+async function recargarDatos(){
+    try{
+        mostrarMensaje("", "");
+        setEstado("Cargando datos...");
+        maquinas = (await cargarJson("/maquinas")).map(normalizarMaquina);
+        operarios = (await cargarJson("/operarios")).map(normalizarOperario);
+        ordenes = (await cargarJson("/ordenes")).map(normalizarOrden);
+
+        llenarSelect(document.getElementById("operarioSelect"), operarios, operarios.length ? "Seleccione operario" : "No hay operarios");
+        llenarSelect(
+            document.getElementById("ordenSelect"),
+            ordenes,
+            ordenes.length ? "Seleccione orden" : "No hay ordenes abiertas",
+            o => "Orden " + o.id + " - " + (o.producto || "Maquina " + o.maquina_id) + (o.cantidad ? " (" + o.cantidad + " uds)" : "")
+        );
+        limpiarProcesosActividades();
+        setEstado("Listo para iniciar");
+        actualizarResumen();
+    }catch(error){
+        setEstado("Error cargando datos");
+        mostrarMensaje(error.message, "error");
+    }
+}
+
+function limpiarProcesosActividades(){
+    procesos = [];
+    actividades = [];
+    llenarSelect(document.getElementById("procesoSelect"), [], "Seleccione una orden primero");
+    llenarSelect(document.getElementById("actividadSelect"), [], "Seleccione un proceso primero");
+    document.getElementById("procesoSelect").disabled = true;
+    document.getElementById("actividadSelect").disabled = true;
+}
+
+async function cargarProcesos(){
+    const ordenId = document.getElementById("ordenSelect").value;
+    llenarSelect(document.getElementById("actividadSelect"), [], "Seleccione un proceso primero");
+    document.getElementById("actividadSelect").disabled = true;
+
+    if(!ordenId){
+        limpiarProcesosActividades();
+        actualizarResumen();
+        return;
+    }
+
+    try{
+        procesos = (await cargarJson("/procesos/" + ordenId)).map(normalizarBasico);
+        llenarSelect(document.getElementById("procesoSelect"), procesos, procesos.length ? "Seleccione proceso" : "Esta orden no tiene procesos");
+        document.getElementById("procesoSelect").disabled = procesos.length === 0 || bloqueado;
+        actualizarResumen();
+    }catch(error){
+        mostrarMensaje(error.message, "error");
+    }
+}
+
+async function cargarActividades(){
+    const ordenId = document.getElementById("ordenSelect").value;
+    const procesoId = document.getElementById("procesoSelect").value;
+
+    if(!ordenId || !procesoId){
+        llenarSelect(document.getElementById("actividadSelect"), [], "Seleccione un proceso primero");
+        document.getElementById("actividadSelect").disabled = true;
+        actualizarResumen();
+        return;
+    }
+
+    try{
+        actividades = (await cargarJson("/actividades/" + ordenId + "/" + procesoId)).map(normalizarBasico);
+        llenarSelect(document.getElementById("actividadSelect"), actividades, actividades.length ? "Seleccione actividad" : "Este proceso no tiene actividades");
+        document.getElementById("actividadSelect").disabled = actividades.length === 0 || bloqueado;
+        actualizarResumen();
+    }catch(error){
+        mostrarMensaje(error.message, "error");
+    }
+}
+
+function seleccionActual(){
+    return {
+        operario: operarios.find(x => String(x.id) === document.getElementById("operarioSelect").value),
+        orden: ordenes.find(x => String(x.id) === document.getElementById("ordenSelect").value),
+        proceso: procesos.find(x => String(x.id) === document.getElementById("procesoSelect").value),
+        actividad: actividades.find(x => String(x.id) === document.getElementById("actividadSelect").value)
+    };
+}
+
+function actualizarResumen(){
+    const sel = seleccionActual();
+    document.getElementById("resOperario").innerText = sel.operario ? sel.operario.nombre : "Sin seleccionar";
+    document.getElementById("resOrden").innerText = sel.orden ? "Orden " + sel.orden.id + " - " + (sel.orden.producto || "") : "Sin seleccionar";
+    document.getElementById("resActividad").innerText = sel.actividad ? sel.actividad.nombre : "Sin seleccionar";
+}
+
+function validarSeleccion(){
+    const sel = seleccionActual();
+    if(!sel.operario) return "Seleccione un operario.";
+    if(!sel.orden) return "Seleccione una orden.";
+    if(!sel.proceso) return "Seleccione un proceso.";
+    if(!sel.actividad) return "Seleccione una actividad.";
+    return "";
+}
+
+function setBloqueo(valor){
+    bloqueado = valor;
+    ["operarioSelect", "ordenSelect", "procesoSelect", "actividadSelect"].forEach(id => {
+        const el = document.getElementById(id);
+        el.disabled = valor || (id === "procesoSelect" && procesos.length === 0) || (id === "actividadSelect" && actividades.length === 0);
+    });
+}
+
+function iniciarRegistro(){
+    const error = validarSeleccion();
+    if(error){
+        mostrarMensaje(error, "error");
+        return;
+    }
+
+    inicioRegistro = new Date();
+    document.getElementById("inicioInput").value = formatoLocal(inicioRegistro);
+    document.getElementById("cronometro").innerText = "00:00:00";
+    timerId = setInterval(() => {
+        const segundos = Math.max(0, Math.floor((new Date() - inicioRegistro) / 1000));
+        document.getElementById("cronometro").innerText = formatoCrono(segundos);
+    }, 1000);
+
+    setBloqueo(true);
+    document.getElementById("btnIniciar").disabled = true;
+    document.getElementById("btnGuardar").disabled = false;
+    document.getElementById("btnCancelar").disabled = false;
+    setEstado("Registro en curso");
+    mostrarMensaje("Operacion iniciada.", "ok");
+}
+
+function cancelarRegistro(){
+    if(timerId){
+        clearInterval(timerId);
+        timerId = null;
+    }
+    inicioRegistro = null;
+    document.getElementById("inicioInput").value = "";
+    document.getElementById("cronometro").innerText = "00:00:00";
+    setBloqueo(false);
+    document.getElementById("btnIniciar").disabled = false;
+    document.getElementById("btnGuardar").disabled = true;
+    document.getElementById("btnCancelar").disabled = true;
+    setEstado("Listo para iniciar");
+    mostrarMensaje("Registro cancelado.", "error");
+}
+
+async function guardarRegistro(){
+    if(!inicioRegistro){
+        mostrarMensaje("Debe iniciar el registro primero.", "error");
+        return;
+    }
+
+    const cantidadTexto = document.getElementById("cantidadInput").value.trim();
+    if(cantidadTexto === ""){
+        mostrarMensaje("Ingrese una cantidad. Puede ser 0.", "error");
+        return;
+    }
+
+    const cantidad = Number(cantidadTexto);
+    if(!Number.isFinite(cantidad) || cantidad < 0 || !Number.isInteger(cantidad)){
+        mostrarMensaje("La cantidad debe ser un numero entero de 0 o mayor.", "error");
+        return;
+    }
+
+    const sel = seleccionActual();
+    const fin = new Date();
+    const tiempo = Math.max(0, Math.floor((fin - inicioRegistro) / 1000));
+
+    const payload = {
+        operario_id: sel.operario.id,
+        orden_id: sel.orden.id,
+        actividad_id: sel.actividad.id,
+        cantidad: cantidad,
+        inicio: formatoLocal(inicioRegistro),
+        fin: formatoLocal(fin),
+        tiempo: tiempo
+    };
+
+    try{
+        setEstado("Guardando...");
+        document.getElementById("btnGuardar").disabled = true;
+        const r = await fetch("/registro_android", {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify(payload)
+        });
+        const data = await leerJsonSeguro(r);
+        if(!r.ok){
+            throw new Error(data.detail || "No se pudo guardar el registro.");
+        }
+
+        if(timerId){
+            clearInterval(timerId);
+            timerId = null;
+        }
+        inicioRegistro = null;
+        setBloqueo(false);
+        document.getElementById("btnIniciar").disabled = false;
+        document.getElementById("btnGuardar").disabled = true;
+        document.getElementById("btnCancelar").disabled = true;
+        document.getElementById("inicioInput").value = "";
+        document.getElementById("cantidadInput").value = "";
+        await recargarDatos();
+        setEstado("Registro guardado");
+        mostrarMensaje("Registro guardado correctamente.", "ok");
+    }catch(error){
+        document.getElementById("btnGuardar").disabled = false;
+        setEstado("Error al guardar");
+        mostrarMensaje(error.message, "error");
+    }
+}
+
+document.getElementById("ordenSelect").addEventListener("change", cargarProcesos);
+document.getElementById("procesoSelect").addEventListener("change", cargarActividades);
+document.getElementById("operarioSelect").addEventListener("change", actualizarResumen);
+document.getElementById("actividadSelect").addEventListener("change", actualizarResumen);
+
+recargarDatos();
+</script>
+</body>
+</html>

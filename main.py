@@ -1,5 +1,5 @@
-from fastapi import FastAPI, Request, Form, UploadFile, File, Depends  # type: ignore
-from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse  # type: ignore
+﻿from fastapi import FastAPI, Request, Form, UploadFile, File, Depends  # type: ignore
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse, JSONResponse  # type: ignore
 from fastapi.templating import Jinja2Templates  # type: ignore
 from starlette.middleware.sessions import SessionMiddleware  # type: ignore
 from datetime import datetime, timedelta
@@ -30,6 +30,47 @@ ADMIN_PASS = os.getenv("ADMIN_PASS")
 app = FastAPI()
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+RUTAS_PUBLICAS_EXACTAS = {
+    "/admin",
+    "/logout",
+    "/registro_web",
+    "/registro_android",
+    "/operarios",
+    "/maquinas",
+    "/ordenes",
+    "/favicon.ico",
+}
+
+RUTAS_PUBLICAS_PREFIJOS = (
+    "/static/",
+    "/procesos/",
+    "/actividades/",
+)
+
+
+def ruta_publica(path: str):
+    return path in RUTAS_PUBLICAS_EXACTAS or any(
+        path.startswith(prefijo) for prefijo in RUTAS_PUBLICAS_PREFIJOS
+    )
+
+
+@app.middleware("http")
+async def proteger_rutas_administrativas(request: Request, call_next):
+    path = request.url.path
+
+    if ruta_publica(path) or (request.session.get("username") and request.session.get("role") == "admin"):
+        return await call_next(request)
+
+    if request.method in ("GET", "HEAD"):
+        destino = path.strip("/") or ""
+        return RedirectResponse(f"/admin?next={destino}", status_code=303)
+
+    return JSONResponse(
+        {"detail": "Debe iniciar sesion como admin"},
+        status_code=401,
+    )
+
 
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 
@@ -470,6 +511,13 @@ def sincronizar_ordenes_abiertas_web(request: Request):
     return RedirectResponse(f"/panel?sync={insertadas}", 303)
 
 
+@app.get("/registro_web", response_class=HTMLResponse)
+def registro_web(request: Request):
+    return templates.TemplateResponse(
+        request=request, name="registro_web.html", context={"request": request}
+    )
+
+
 # ================= REGISTRO =================
 
 @app.post("/registro")
@@ -622,6 +670,12 @@ def admin_post(request: Request, user: str = Form(...), password: str = Form(...
         next_page = "/"
 
     return RedirectResponse(next_page, status_code=303)
+
+
+@app.get("/logout")
+def logout(request: Request):
+    request.session.clear()
+    return RedirectResponse("/admin", status_code=303)
 
 
 # ================= REGISTRO PRODUCCION ANDROID =================

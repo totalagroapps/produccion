@@ -88,18 +88,21 @@
         </a>
 
         <nav class="global-menu">
+            {% if request and request.session.get("role") == "admin" %}
             <a href="/">Inicio</a>
             <a href="/panel">Produccion</a>
+            <a href="/registro_web">Registro Web</a>
             <a href="/metricas_operarios">Metricas</a>
             <a href="/kpi">KPI</a>
             <a href="/bonos">Bonos</a>
             <a href="/planificador">Planificador</a>
-            {% if request and request.session.get("role") == "admin" %}
             <a class="admin-link" href="/usuarios">Usuarios</a>
             <a class="admin-link" href="/admin_tools">Herramientas</a>
             <a class="admin-link" href="/configuracion">Configuracion</a>
-            {% endif %}
             <a class="logout-link" href="/logout">Salir</a>
+            {% else %}
+            <a href="/registro_web">Registro Web</a>
+            {% endif %}
         </nav>
     </div>
 </header>

@@ -12,7 +12,7 @@ def verify_password(plain_password: str, hashed_password: str):
     return pwd_context.verify(plain_password, hashed_password)
 
 def require_admin(request: Request):
-    return request.session.get("role") == "admin"
+    return bool(request.session.get("username")) and request.session.get("role") == "admin"
 
 def login_user(request: Request, username: str, password: str):
     conn = db()
