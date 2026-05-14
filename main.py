@@ -1,9 +1,8 @@
 ﻿from fastapi import FastAPI, Request, Form, UploadFile, File, Depends  # type: ignore
-from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse, JSONResponse  # type: ignore
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse  # type: ignore
 from fastapi.templating import Jinja2Templates  # type: ignore
 from starlette.middleware.sessions import SessionMiddleware  # type: ignore
 from datetime import datetime, timedelta
-from openpyxl import Workbook  # type: ignore
 from fastapi.staticfiles import StaticFiles  # type: ignore
 from dotenv import load_dotenv
 from auth import login_user, require_admin, hash_password
@@ -11,7 +10,7 @@ from database import db
 from routers.ordenes import router as ordenes_router
 from routers.usuarios import router as usuarios_router
 from routers.android import router as android_router
-from routers.metricas import router as metricas_router
+from routers.metricas import router as metricas_router, metricas_semanales
 from routers.bonos import router as bonos_router
 from routers.admin_tools import router as admin_tools_router
 from routers import planificador
@@ -20,6 +19,7 @@ from routers import admin_panel
 
 import os
 import pandas as pd  # type: ignore
+from urllib.parse import urlencode
 
 load_dotenv()
 
@@ -374,42 +374,14 @@ def metricas_operarios(request: Request):
     conn = db()
     c = conn.cursor()
 
-    c.execute("""
-    SELECT
-        op.nombre,
-        SUM(r.cantidad) as unidades,
-        SUM(EXTRACT(EPOCH FROM (r.fin::timestamp - r.inicio::timestamp))) as segundos,
-        COUNT(r.id) as operaciones
-    FROM registros_produccion r
-    JOIN operarios op ON op.id = r.operario_id
-    GROUP BY op.nombre
-    ORDER BY unidades DESC
-    """)
-    resumen = c.fetchall()
-
-    resumen_final = []
-    for nombre, unidades, segundos, operaciones in resumen:
-        segundos = segundos or 0
-        horas = round(segundos / 3600, 2) if segundos else 0
-        productividad = round(unidades / horas, 2) if horas else 0
-        resumen_final.append((nombre, unidades, horas, productividad, operaciones))
-
-    c.execute("""
-    SELECT op.nombre, a.nombre, r.cantidad, r.inicio, r.fin
-    FROM registros_produccion r
-    JOIN operarios op ON op.id = r.operario_id
-    JOIN actividades a ON a.id = r.actividad_id
-    ORDER BY r.id DESC
-    """)
-    detalle = c.fetchall()
+    semanas = metricas_semanales(c)
 
     conn.close()
 
     return templates.TemplateResponse(
         request=request, name="Metricas.html", context={
         "request": request,
-        "resumen": resumen_final,
-        "detalle": detalle
+        "semanas": semanas
     })
 
 
@@ -583,30 +555,12 @@ def registro(data: dict):
 # ================= EXPORTAR =================
 
 @app.get("/exportar_excel")
-def exportar_excel():
+def exportar_excel(periodo: str = "semanal", fecha: str = None):
+    params = {"periodo": periodo}
+    if fecha:
+        params["fecha"] = fecha
 
-    conn = db()
-    c = conn.cursor()
-
-    c.execute("""
-    SELECT o.nombre, a.nombre, r.cantidad, r.inicio, r.fin
-    FROM registros_produccion r
-    JOIN operarios o ON o.id = r.operario_id
-    JOIN actividades a ON a.id = r.actividad_id
-    """)
-    rows = c.fetchall()
-
-    wb = Workbook()
-    ws = wb.active
-    ws.append(["Operario", "Actividad", "Cantidad", "Inicio", "Fin"])
-    for r in rows:
-        ws.append(list(r))
-
-    path = "/tmp/reporte_produccion.xlsx"
-    wb.save(path)
-    conn.close()
-
-    return FileResponse(path, filename="reporte_produccion.xlsx")
+    return RedirectResponse(f"/metricas/exportar_excel?{urlencode(params)}", 303)
 
 
 # ================= ELIMINAR ORDEN =================
@@ -846,33 +800,14 @@ def metricas(request: Request):
     conn = db()
     c = conn.cursor()
 
-    c.execute("""
-    SELECT o.nombre,
-           SUM(r.cantidad) as unidades,
-           SUM(EXTRACT(EPOCH FROM (r.fin::timestamp - r.inicio::timestamp)) / 60.0) as minutos
-    FROM registros_produccion r
-    JOIN operarios o ON o.id = r.operario_id
-    GROUP BY o.nombre
-    ORDER BY unidades DESC
-    """)
-    resumen = c.fetchall()
-
-    c.execute("""
-    SELECT o.nombre, a.nombre, r.cantidad, r.inicio, r.fin
-    FROM registros_produccion r
-    JOIN operarios o ON o.id = r.operario_id
-    JOIN actividades a ON a.id = r.actividad_id
-    ORDER BY r.id DESC
-    """)
-    detalle = c.fetchall()
+    semanas = metricas_semanales(c)
 
     conn.close()
 
     return templates.TemplateResponse(
         request=request, name="Metricas.html", context={
         "request": request,
-        "resumen": resumen,
-        "detalle": detalle
+        "semanas": semanas
     })
 
 
