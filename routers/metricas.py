@@ -135,6 +135,7 @@ def metricas_semanales(cursor):
 
     resumen = cursor.fetchall()
     semanas = OrderedDict()
+    operarios_por_semana = {}
 
     for semana_inicio, nombre, unidades, segundos, operaciones in resumen:
         semana = _asegurar_semana(semanas, semana_inicio)
@@ -144,13 +145,17 @@ def metricas_semanales(cursor):
         horas = round(segundos / 3600, 2) if segundos else 0
         productividad = round(unidades / horas, 2) if horas else 0
 
-        semana["operarios"].append({
+        operario_data = {
             "nombre": nombre,
             "unidades": unidades,
             "horas": horas,
             "productividad": productividad,
             "operaciones": operaciones,
-        })
+            "registros": [],
+        }
+
+        semana["operarios"].append(operario_data)
+        operarios_por_semana[(semana["inicio"], nombre)] = operario_data
 
         semana["total"]["unidades"] += unidades
         semana["total"]["segundos"] += segundos
@@ -175,14 +180,20 @@ def metricas_semanales(cursor):
 
     for semana_inicio, operario, actividad, cantidad, inicio, fin, horas in detalle:
         semana = _asegurar_semana(semanas, semana_inicio)
-        semana["detalle"].append({
+        registro = {
             "operario": operario,
             "actividad": actividad,
             "cantidad": cantidad,
             "inicio": inicio,
             "fin": fin,
             "horas": float(horas or 0),
-        })
+        }
+
+        semana["detalle"].append(registro)
+
+        operario_data = operarios_por_semana.get((semana["inicio"], operario))
+        if operario_data:
+            operario_data["registros"].append(registro)
 
     for semana in semanas.values():
         segundos = semana["total"]["segundos"]

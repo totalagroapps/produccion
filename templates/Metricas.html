@@ -115,6 +115,73 @@ body{
     font-size:17px;
 }
 
+.operario-list{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:16px;
+}
+
+.operario-subbloque{
+    border:1px solid #dce5ea;
+    border-radius:8px;
+    overflow:hidden;
+    background:#fbfcfd;
+}
+
+.operario-subheader{
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    align-items:center;
+    background:#edf3f6;
+    border-bottom:1px solid #dce5ea;
+    padding:12px 14px;
+}
+
+.operario-subheader h4{
+    color:#263238;
+    font-size:16px;
+    margin:0;
+}
+
+.operario-subheader span{
+    color:#607d8b;
+    font-size:13px;
+    font-weight:bold;
+}
+
+.operario-resumen{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(120px,1fr));
+    gap:10px;
+    padding:12px 14px;
+}
+
+.operario-metrica{
+    background:white;
+    border:1px solid #e5e7eb;
+    border-radius:8px;
+    padding:10px;
+}
+
+.operario-metrica span{
+    color:#607d8b;
+    display:block;
+    font-size:12px;
+    font-weight:bold;
+    margin-bottom:4px;
+    text-transform:uppercase;
+}
+
+.operario-metrica strong{
+    color:#263238;
+    font-size:18px;
+}
+
+.operario-tabla{
+    padding:0 14px 14px;
+}
+
 table{
     width:100%;
     border-collapse:collapse;
@@ -254,6 +321,15 @@ tr:hover{
         grid-template-columns:1fr 1fr;
     }
 
+    .operario-subheader{
+        align-items:flex-start;
+        flex-direction:column;
+    }
+
+    .operario-resumen{
+        grid-template-columns:1fr 1fr;
+    }
+
     .export-grid,
     .export-form{
         grid-template-columns:1fr;
@@ -350,51 +426,58 @@ tr:hover{
                 </div>
 
                 <div class="bloque">
-                    <h3>Rendimiento por operario</h3>
-                    <table>
-                        <tr>
-                            <th>Operario</th>
-                            <th>Unidades</th>
-                            <th>Horas</th>
-                            <th>Unid/Hora</th>
-                            <th>Operaciones</th>
-                        </tr>
-
+                    <h3>Operarios de la semana</h3>
+                    <div class="operario-list">
                         {% for operario in semana.operarios %}
-                        <tr>
-                            <td><b>{{ operario.nombre }}</b></td>
-                            <td>{{ operario.unidades }}</td>
-                            <td>{{ operario.horas }}</td>
-                            <td>{{ operario.productividad }}</td>
-                            <td>{{ operario.operaciones }}</td>
-                        </tr>
-                        {% endfor %}
-                    </table>
-                </div>
+                            <div class="operario-subbloque">
+                                <div class="operario-subheader">
+                                    <h4>{{ operario.nombre }}</h4>
+                                    <span>{{ operario.registros|length }} registro(s)</span>
+                                </div>
 
-                <div class="bloque">
-                    <h3>Registros de la semana</h3>
-                    <table>
-                        <tr>
-                            <th>Operario</th>
-                            <th>Actividad</th>
-                            <th>Cantidad</th>
-                            <th>Horas</th>
-                            <th>Inicio</th>
-                            <th>Fin</th>
-                        </tr>
+                                <div class="operario-resumen">
+                                    <div class="operario-metrica">
+                                        <span>Unidades</span>
+                                        <strong>{{ operario.unidades }}</strong>
+                                    </div>
+                                    <div class="operario-metrica">
+                                        <span>Horas</span>
+                                        <strong>{{ operario.horas }}</strong>
+                                    </div>
+                                    <div class="operario-metrica">
+                                        <span>Unid/Hora</span>
+                                        <strong>{{ operario.productividad }}</strong>
+                                    </div>
+                                    <div class="operario-metrica">
+                                        <span>Operaciones</span>
+                                        <strong>{{ operario.operaciones }}</strong>
+                                    </div>
+                                </div>
 
-                        {% for registro in semana.detalle %}
-                        <tr>
-                            <td>{{ registro.operario }}</td>
-                            <td>{{ registro.actividad }}</td>
-                            <td>{{ registro.cantidad }}</td>
-                            <td>{{ registro.horas }}</td>
-                            <td>{{ registro.inicio }}</td>
-                            <td>{{ registro.fin }}</td>
-                        </tr>
+                                <div class="operario-tabla">
+                                    <table>
+                                        <tr>
+                                            <th>Actividad</th>
+                                            <th>Cantidad</th>
+                                            <th>Horas</th>
+                                            <th>Inicio</th>
+                                            <th>Fin</th>
+                                        </tr>
+
+                                        {% for registro in operario.registros %}
+                                        <tr>
+                                            <td>{{ registro.actividad }}</td>
+                                            <td>{{ registro.cantidad }}</td>
+                                            <td>{{ registro.horas }}</td>
+                                            <td>{{ registro.inicio }}</td>
+                                            <td>{{ registro.fin }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </table>
+                                </div>
+                            </div>
                         {% endfor %}
-                    </table>
+                    </div>
                 </div>
             </section>
         {% endfor %}
