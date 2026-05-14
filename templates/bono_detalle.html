@@ -31,6 +31,7 @@ input {padding:8px;width:80px;}
 
 <table>
 <tr>
+<th>Maquina</th>
 <th>Actividad</th>
 <th>Unidades</th>
 <th>Horas</th>
@@ -42,6 +43,7 @@ input {padding:8px;width:80px;}
 
 {% for d in detalle %}
 <tr>
+<td>{{d.maquina}}</td>
 <td>{{d.actividad}}</td>
 <td>{{d.unidades}}</td>
 <td>{{d.horas}}</td>
@@ -78,7 +80,7 @@ input {padding:8px;width:80px;}
 
 <script>
 const actividades = {{ detalle | tojson }};
-const labels = actividades.map(a => a.actividad);
+const labels = actividades.map(a => a.maquina ? `${a.maquina} - ${a.actividad}` : a.actividad);
 const eficiencia = actividades.map(a => a.eficiencia);
 
 new Chart(document.getElementById('grafico'), {

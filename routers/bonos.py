@@ -134,15 +134,18 @@ def detalle_bono(request: Request):
         SELECT 
             a.id,
             a.nombre,
+            COALESCE(m.nombre, '') as maquina,
             SUM(r.cantidad) as unidades,
             SUM((EXTRACT(EPOCH FROM r.fin::timestamp) - EXTRACT(EPOCH FROM r.inicio::timestamp)) / 3600.0) as horas
         FROM registros_produccion r
         JOIN operarios o ON o.id = r.operario_id
         JOIN actividades a ON a.id = r.actividad_id
+        LEFT JOIN procesos p ON p.id = a.proceso_id
+        LEFT JOIN maquinas m ON m.id = p.maquina_id
         WHERE o.nombre = %s
         AND TO_CHAR(r.inicio::timestamp, 'MM') = %s
         AND TO_CHAR(r.inicio::timestamp, 'YYYY') = %s
-        GROUP BY a.id, a.nombre
+        GROUP BY a.id, a.nombre, m.nombre
     """, (nombre, f"{mes:02d}", str(anio)))
 
     rows = c.fetchall() or []
@@ -150,7 +153,7 @@ def detalle_bono(request: Request):
     detalle = []
     total_bono = 0
 
-    for actividad_id, actividad, unidades, horas in rows:
+    for actividad_id, actividad, maquina, unidades, horas in rows:
 
         horas = float(horas or 0)
         unidades = float(unidades or 0)
@@ -187,6 +190,7 @@ def detalle_bono(request: Request):
         total_bono += bono
 
         detalle.append({
+            "maquina": maquina,
             "actividad": actividad,
             "unidades": unidades,
             "horas": round(horas,2),
