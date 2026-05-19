@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, Header, HTTPException, Depends
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
-from auth import verify_password
+from auth import hash_password, verify_password
 from database import db
 
 router = APIRouter()
@@ -54,7 +54,8 @@ def usuario_android_actual(payload: dict = Depends(leer_token_android)):
     conn = db()
     c = conn.cursor()
     c.execute("""
-        SELECT u.id, u.username, u.role, u.operario_id, o.nombre
+        SELECT u.id, u.username, u.role, u.operario_id, o.nombre,
+               COALESCE(u.debe_cambiar_password, FALSE)
         FROM users u
         LEFT JOIN operarios o ON o.id = u.operario_id
         WHERE u.id = %s
@@ -65,7 +66,7 @@ def usuario_android_actual(payload: dict = Depends(leer_token_android)):
     if not row:
         raise HTTPException(status_code=401, detail="Usuario no encontrado")
 
-    user_id, username, role, operario_id, operario_nombre = row
+    user_id, username, role, operario_id, operario_nombre, debe_cambiar = row
 
     if role != "operario" or not operario_id:
         raise HTTPException(status_code=403, detail="Usuario Android sin operario asignado")
@@ -76,7 +77,17 @@ def usuario_android_actual(payload: dict = Depends(leer_token_android)):
         "role": role,
         "operario_id": operario_id,
         "operario_nombre": operario_nombre,
+        "debe_cambiar_password": bool(debe_cambiar),
     }
+
+
+def usuario_android_habilitado(usuario=Depends(usuario_android_actual)):
+    if usuario.get("debe_cambiar_password"):
+        raise HTTPException(
+            status_code=403,
+            detail="Debe crear su password personal antes de registrar produccion",
+        )
+    return usuario
 
 
 def campo_entero(data: dict, *nombres: str) -> int:
@@ -114,7 +125,8 @@ def login_android(data: dict):
     conn = db()
     c = conn.cursor()
     c.execute("""
-        SELECT u.id, u.username, u.password, u.role, u.operario_id, o.nombre
+        SELECT u.id, u.username, u.password, u.role, u.operario_id, o.nombre,
+               COALESCE(u.debe_cambiar_password, FALSE)
         FROM users u
         LEFT JOIN operarios o ON o.id = u.operario_id
         WHERE u.username = %s
@@ -125,7 +137,7 @@ def login_android(data: dict):
     if not row or not verify_password(password, row[2]):
         raise HTTPException(status_code=401, detail="Usuario o password incorrecto")
 
-    user_id, username, _, role, operario_id, operario_nombre = row
+    user_id, username, _, role, operario_id, operario_nombre, debe_cambiar = row
 
     if role != "operario" or not operario_id:
         raise HTTPException(status_code=403, detail="Este usuario no tiene operario asignado")
@@ -145,7 +157,43 @@ def login_android(data: dict):
             "id": operario_id,
             "nombre": operario_nombre,
         },
+        "debe_cambiar_password": bool(debe_cambiar),
     }
+
+
+@router.post("/android/cambiar_password")
+def cambiar_password_android(data: dict, usuario=Depends(usuario_android_actual)):
+    nueva_password = str(
+        data.get("nueva_password") or data.get("new_password") or data.get("password") or ""
+    ).strip()
+    confirmar_password = str(
+        data.get("confirmar_password") or data.get("confirm_password") or nueva_password
+    ).strip()
+
+    if not nueva_password:
+        raise HTTPException(status_code=400, detail="Nuevo password requerido")
+
+    if len(nueva_password) < 4:
+        raise HTTPException(status_code=400, detail="El password debe tener minimo 4 caracteres")
+
+    if nueva_password != confirmar_password:
+        raise HTTPException(status_code=400, detail="Los passwords no coinciden")
+
+    conn = db()
+    c = conn.cursor()
+    c.execute(
+        """
+        UPDATE users
+        SET password = %s,
+            debe_cambiar_password = FALSE
+        WHERE id = %s
+        """,
+        (hash_password(nueva_password), usuario["user_id"]),
+    )
+    conn.commit()
+    conn.close()
+
+    return {"status": "ok", "debe_cambiar_password": False}
 
 
 @router.get("/android/me")
@@ -160,6 +208,7 @@ def android_me(usuario=Depends(usuario_android_actual)):
             "id": usuario["operario_id"],
             "nombre": usuario["operario_nombre"],
         },
+        "debe_cambiar_password": usuario["debe_cambiar_password"],
     }
 
 
@@ -241,7 +290,7 @@ def guardar_registro_android(data: dict, operario_id: int):
 
 
 @router.post("/registro_android")
-def registro_android(data: dict, usuario=Depends(usuario_android_actual)):
+def registro_android(data: dict, usuario=Depends(usuario_android_habilitado)):
     return guardar_registro_android(data, usuario["operario_id"])
 
 

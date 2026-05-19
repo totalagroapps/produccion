@@ -1,4 +1,4 @@
-﻿from fastapi import FastAPI, Request, Form, UploadFile, File, Depends  # type: ignore
+from fastapi import FastAPI, Request, Form, UploadFile, File, Depends  # type: ignore
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse  # type: ignore
 from fastapi.templating import Jinja2Templates  # type: ignore
 from starlette.middleware.sessions import SessionMiddleware  # type: ignore
@@ -9,7 +9,7 @@ from auth import login_user, require_admin, hash_password
 from database import db
 from routers.ordenes import router as ordenes_router
 from routers.usuarios import router as usuarios_router
-from routers.android import router as android_router, guardar_registro_android, usuario_android_actual
+from routers.android import router as android_router, guardar_registro_android, usuario_android_habilitado
 from routers.metricas import router as metricas_router, metricas_semanales
 from routers.bonos import router as bonos_router
 from routers.admin_tools import router as admin_tools_router
@@ -38,6 +38,7 @@ RUTAS_PUBLICAS_EXACTAS = {
     "/registro_android",
     "/android/login",
     "/android/me",
+    "/android/cambiar_password",
     "/operarios",
     "/maquinas",
     "/ordenes",
@@ -79,6 +80,7 @@ app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 templates = Jinja2Templates(directory="templates")
 app.state.templates = templates
 
+app.include_router(usuarios_router)
 app.include_router(android_router)
 app.include_router(metricas_router)
 app.include_router(bonos_router)
@@ -180,10 +182,12 @@ def crear():
         username TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
         role TEXT NOT NULL,
-        operario_id INTEGER
+        operario_id INTEGER,
+        debe_cambiar_password BOOLEAN DEFAULT FALSE
     )""")
 
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS operario_id INTEGER")
+    c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS debe_cambiar_password BOOLEAN DEFAULT FALSE")
 
     # Crear admin inicial si no existe
     c.execute("SELECT * FROM users WHERE username = %s", ("admin",))
@@ -640,7 +644,7 @@ def logout(request: Request):
 # ================= REGISTRO PRODUCCION ANDROID =================
 
 @app.post("/registro_android")
-def registro_android(data: dict, usuario=Depends(usuario_android_actual)):
+def registro_android(data: dict, usuario=Depends(usuario_android_habilitado)):
     return guardar_registro_android(data, usuario["operario_id"])
 
 

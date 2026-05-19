@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
     <title>Usuarios</title>
@@ -25,8 +25,29 @@
         <option value="{{ op[0] }}">{{ op[1] }}</option>
         {% endfor %}
     </select>
+    <label>
+        <input type="checkbox" name="debe_cambiar_password" checked>
+        Pedir cambio de password al primer inicio
+    </label>
     <button type="submit">Crear</button>
 </form>
+
+<hr>
+
+<h3>Crear usuarios para operarios sin cuenta</h3>
+<form method="post" action="/usuarios/crear_operarios">
+    Password temporal:
+    <input type="text" name="password_temporal" value="{{ password_temporal_default or '1234' }}" required>
+    <button type="submit">Crear usuarios faltantes</button>
+</form>
+
+{% if request.query_params.get('creados') is not none %}
+<p>Usuarios creados: {{ request.query_params.get('creados') }}</p>
+{% endif %}
+
+{% if request.query_params.get('reset') %}
+<p>Password temporal restablecido. El operario debera cambiarlo al iniciar.</p>
+{% endif %}
 
 <hr>
 
@@ -37,7 +58,8 @@
         <th>Usuario</th>
         <th>Rol</th>
         <th>Operario</th>
-        <th>Acción</th>
+        <th>Cambio password</th>
+        <th>Accion</th>
     </tr>
 
     {% for u in usuarios %}
@@ -46,8 +68,14 @@
         <td>{{ u[1] }}</td>
         <td>{{ u[2] }}</td>
         <td>{{ u[4] or "-" }}</td>
+        <td>{{ "Si" if u[5] else "No" }}</td>
         <td>
             <a href="/usuarios/eliminar/{{ u[0] }}">Eliminar</a>
+            {% if u[2] == "operario" %}
+            <form method="post" action="/usuarios/reset_password/{{ u[0] }}" style="display:inline;">
+                <button type="submit">Reset password</button>
+            </form>
+            {% endif %}
         </td>
     </tr>
     {% endfor %}
