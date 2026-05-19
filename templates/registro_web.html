@@ -255,7 +255,7 @@ button:disabled{
     <div class="header-row">
         <div>
             <h1>Registro web de produccion</h1>
-            <p class="subtitle">Modulo administrativo para registrar operaciones con el mismo flujo de Android.</p>
+            <p class="subtitle">Registro de operaciones con el operario que inicio sesion.</p>
         </div>
         <div id="estadoGeneral" class="status-pill">Listo para iniciar</div>
     </div>
@@ -264,7 +264,9 @@ button:disabled{
         <section class="panel">
             <div class="form-grid">
                 <label class="field field-wide">Operario
-                    <select id="operarioSelect"><option value="">Cargando operarios...</option></select>
+                    <select id="operarioSelect" disabled>
+                        <option value="{{ operario_actual.id }}" selected>{{ operario_actual.nombre }}</option>
+                    </select>
                 </label>
 
                 <label class="field field-wide">Orden abierta
@@ -334,7 +336,8 @@ button:disabled{
 </div>
 
 <script>
-let operarios = [];
+const operarioSesion = {{ operario_actual | tojson }};
+let operarios = [operarioSesion];
 let maquinas = [];
 let ordenes = [];
 let procesos = [];
@@ -437,10 +440,11 @@ async function recargarDatos(){
         mostrarMensaje("", "");
         setEstado("Cargando datos...");
         maquinas = (await cargarJson("/maquinas")).map(normalizarMaquina);
-        operarios = (await cargarJson("/operarios")).map(normalizarOperario);
         ordenes = (await cargarJson("/ordenes")).map(normalizarOrden);
 
-        llenarSelect(document.getElementById("operarioSelect"), operarios, operarios.length ? "Seleccione operario" : "No hay operarios");
+        llenarSelect(document.getElementById("operarioSelect"), operarios, "Operario no asignado");
+        document.getElementById("operarioSelect").value = operarioSesion.id || "";
+        document.getElementById("operarioSelect").disabled = true;
         llenarSelect(
             document.getElementById("ordenSelect"),
             ordenes,
@@ -536,7 +540,7 @@ function setBloqueo(valor){
     bloqueado = valor;
     ["operarioSelect", "ordenSelect", "procesoSelect", "actividadSelect"].forEach(id => {
         const el = document.getElementById(id);
-        el.disabled = valor || (id === "procesoSelect" && procesos.length === 0) || (id === "actividadSelect" && actividades.length === 0);
+        el.disabled = id === "operarioSelect" || valor || (id === "procesoSelect" && procesos.length === 0) || (id === "actividadSelect" && actividades.length === 0);
     });
 }
 
@@ -619,7 +623,6 @@ async function confirmarCantidad(){
     const tiempo = Math.max(0, Math.floor((fin - inicioRegistro) / 1000));
 
     const payload = {
-        operario_id: sel.operario.id,
         orden_id: sel.orden.id,
         actividad_id: sel.actividad.id,
         cantidad: cantidad,
@@ -631,7 +634,7 @@ async function confirmarCantidad(){
     try{
         setEstado("Guardando...");
         document.getElementById("btnGuardar").disabled = true;
-        const r = await fetch("/registro_android", {
+        const r = await fetch("/registro_web/registro", {
             method:"POST",
             headers:{"Content-Type":"application/json"},
             body:JSON.stringify(payload)

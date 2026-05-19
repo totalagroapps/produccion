@@ -5,7 +5,7 @@ from starlette.middleware.sessions import SessionMiddleware  # type: ignore
 from datetime import datetime, timedelta
 from fastapi.staticfiles import StaticFiles  # type: ignore
 from dotenv import load_dotenv
-from auth import login_user, require_admin, hash_password
+from auth import login_user, require_admin, require_operario, hash_password
 from database import db
 from routers.ordenes import router as ordenes_router
 from routers.usuarios import router as usuarios_router
@@ -34,7 +34,6 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 RUTAS_PUBLICAS_EXACTAS = {
     "/admin",
     "/logout",
-    "/registro_web",
     "/registro_android",
     "/android/login",
     "/android/me",
@@ -58,9 +57,26 @@ def ruta_publica(path: str):
     )
 
 
+def ruta_operario(path: str):
+    return path in {"/registro_web", "/registro_web/registro"}
+
+
 @app.middleware("http")
 async def proteger_rutas_administrativas(request: Request, call_next):
     path = request.url.path
+
+    if ruta_operario(path):
+        if require_operario(request):
+            return await call_next(request)
+
+        if request.method in ("GET", "HEAD"):
+            destino = path.strip("/") or ""
+            return RedirectResponse(f"/admin?next={destino}", status_code=303)
+
+        return JSONResponse(
+            {"detail": "Debe iniciar sesion como operario"},
+            status_code=401,
+        )
 
     if ruta_publica(path) or (request.session.get("username") and request.session.get("role") == "admin"):
         return await call_next(request)
@@ -495,8 +511,27 @@ def sincronizar_ordenes_abiertas_web(request: Request):
 @app.get("/registro_web", response_class=HTMLResponse)
 def registro_web(request: Request):
     return templates.TemplateResponse(
-        request=request, name="registro_web.html", context={"request": request}
+        request=request,
+        name="registro_web.html",
+        context={
+            "request": request,
+            "operario_actual": {
+                "id": request.session.get("operario_id"),
+                "nombre": request.session.get("operario_nombre") or request.session.get("username"),
+            },
+        },
     )
+
+
+@app.post("/registro_web/registro")
+def registro_web_guardar(data: dict, request: Request):
+    if not require_operario(request):
+        return JSONResponse(
+            {"detail": "Debe iniciar sesion como operario"},
+            status_code=401,
+        )
+
+    return guardar_registro_android(data, request.session["operario_id"])
 
 
 # ================= REGISTRO =================

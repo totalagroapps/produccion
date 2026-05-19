@@ -91,7 +91,6 @@
             {% if request and request.session.get("role") == "admin" %}
             <a href="/">Inicio</a>
             <a href="/panel">Produccion</a>
-            <a href="/registro_web">Registro Web</a>
             <a href="/metricas_operarios">Metricas</a>
             <a href="/kpi">KPI</a>
             <a href="/bonos">Bonos</a>
@@ -100,8 +99,10 @@
             <a class="admin-link" href="/admin_tools">Herramientas</a>
             <a class="admin-link" href="/configuracion">Configuracion</a>
             <a class="logout-link" href="/logout">Salir</a>
-            {% else %}
+            {% elif request and request.session.get("role") == "operario" %}
             <a href="/registro_web">Registro Web</a>
+            <a class="logout-link" href="/logout">Salir</a>
+            {% else %}
             {% endif %}
         </nav>
     </div>
