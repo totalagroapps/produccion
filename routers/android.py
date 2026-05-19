@@ -13,6 +13,14 @@ ANDROID_TOKEN_SALT = "android-operario-token"
 ANDROID_TOKEN_MAX_AGE = int(os.getenv("ANDROID_TOKEN_MAX_AGE", "2592000"))
 
 
+def asegurar_schema_android():
+    conn = db()
+    c = conn.cursor()
+    c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS debe_cambiar_password BOOLEAN DEFAULT FALSE")
+    conn.commit()
+    conn.close()
+
+
 def token_serializer():
     secret_key = os.getenv("SECRET_KEY")
     if not secret_key:
@@ -51,6 +59,8 @@ def leer_token_android(authorization: str = Header(default=None)):
 
 
 def usuario_android_actual(payload: dict = Depends(leer_token_android)):
+    asegurar_schema_android()
+
     conn = db()
     c = conn.cursor()
     c.execute("""
@@ -116,6 +126,8 @@ def fecha_android(valor):
 
 @router.post("/android/login")
 def login_android(data: dict):
+    asegurar_schema_android()
+
     username = str(data.get("username") or data.get("usuario") or "").strip()
     password = str(data.get("password") or data.get("clave") or "")
 
@@ -129,8 +141,10 @@ def login_android(data: dict):
                COALESCE(u.debe_cambiar_password, FALSE)
         FROM users u
         LEFT JOIN operarios o ON o.id = u.operario_id
-        WHERE u.username = %s
-    """, (username,))
+        WHERE u.username = %s OR LOWER(o.nombre) = LOWER(%s)
+        ORDER BY CASE WHEN u.username = %s THEN 0 ELSE 1 END
+        LIMIT 1
+    """, (username, username, username))
     row = c.fetchone()
     conn.close()
 

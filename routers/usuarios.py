@@ -14,6 +14,14 @@ templates = Jinja2Templates(directory="templates")
 PASSWORD_TEMPORAL_DEFAULT = "1234"
 
 
+def asegurar_schema_usuarios():
+    conn = db()
+    c = conn.cursor()
+    c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS debe_cambiar_password BOOLEAN DEFAULT FALSE")
+    conn.commit()
+    conn.close()
+
+
 def slug_usuario(nombre: str) -> str:
     texto = unicodedata.normalize("NFKD", nombre or "")
     texto = texto.encode("ascii", "ignore").decode("ascii")
@@ -39,6 +47,8 @@ def ver_usuarios(request: Request):
 
     if not require_admin(request):
         return RedirectResponse("/admin", 303)
+
+    asegurar_schema_usuarios()
 
     conn = db()
     c = conn.cursor()
@@ -77,6 +87,8 @@ def crear_usuario(
 
     if not require_admin(request):
         return RedirectResponse("/admin", 303)
+
+    asegurar_schema_usuarios()
 
     hashed = hash_password(password)
     operario_id_valor = int(operario_id) if operario_id else None
@@ -120,6 +132,8 @@ def crear_usuarios_operarios(
     if not require_admin(request):
         return RedirectResponse("/admin", 303)
 
+    asegurar_schema_usuarios()
+
     password_temporal = (password_temporal or PASSWORD_TEMPORAL_DEFAULT).strip()
     if len(password_temporal) < 4:
         return "El password temporal debe tener minimo 4 caracteres"
@@ -161,6 +175,8 @@ def reset_password_usuario(request: Request, user_id: int):
 
     if not require_admin(request):
         return RedirectResponse("/admin", 303)
+
+    asegurar_schema_usuarios()
 
     conn = db()
     c = conn.cursor()
