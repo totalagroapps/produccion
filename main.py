@@ -58,7 +58,7 @@ def ruta_publica(path: str):
 
 
 def ruta_operario(path: str):
-    return path in {"/registro_web", "/registro_web/registro"}
+    return path in {"/registro_web", "/registro_web/registro", "/cambiar_password"}
 
 
 @app.middleware("http")
@@ -67,6 +67,13 @@ async def proteger_rutas_administrativas(request: Request, call_next):
 
     if ruta_operario(path):
         if require_operario(request):
+            if request.session.get("debe_cambiar_password") and path != "/cambiar_password":
+                if request.method in ("GET", "HEAD"):
+                    return RedirectResponse("/cambiar_password", status_code=303)
+                return JSONResponse(
+                    {"detail": "Debe cambiar su password antes de registrar produccion"},
+                    status_code=403,
+                )
             return await call_next(request)
 
         if request.method in ("GET", "HEAD"):
@@ -660,7 +667,10 @@ def admin(request: Request):
 def admin_post(request: Request, user: str = Form(...), password: str = Form(...)):
 
     if login_user(request, user, password):
-        next_page = request.query_params.get("next")
+        if request.session.get("role") == "operario" and request.session.get("debe_cambiar_password"):
+            next_page = "/cambiar_password"
+        else:
+            next_page = request.query_params.get("next")
     else:
         next_page = "/admin"
 
@@ -668,6 +678,59 @@ def admin_post(request: Request, user: str = Form(...), password: str = Form(...
         next_page = "/"
 
     return RedirectResponse(next_page, status_code=303)
+
+
+@app.get("/cambiar_password", response_class=HTMLResponse)
+def cambiar_password_web(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="cambiar_password.html",
+        context={"request": request, "error": ""},
+    )
+
+
+@app.post("/cambiar_password", response_class=HTMLResponse)
+def cambiar_password_web_post(
+    request: Request,
+    nueva_password: str = Form(...),
+    confirmar_password: str = Form(...),
+):
+    nueva_password = nueva_password.strip()
+    confirmar_password = confirmar_password.strip()
+
+    error = ""
+    if not nueva_password:
+        error = "Nuevo password requerido"
+    elif len(nueva_password) < 4:
+        error = "El password debe tener minimo 4 caracteres"
+    elif nueva_password != confirmar_password:
+        error = "Los passwords no coinciden"
+
+    if error:
+        return templates.TemplateResponse(
+            request=request,
+            name="cambiar_password.html",
+            context={"request": request, "error": error},
+            status_code=400,
+        )
+
+    conn = db()
+    c = conn.cursor()
+    c.execute(
+        """
+        UPDATE users
+        SET password = %s,
+            debe_cambiar_password = FALSE
+        WHERE username = %s
+          AND role = 'operario'
+        """,
+        (hash_password(nueva_password), request.session["username"]),
+    )
+    conn.commit()
+    conn.close()
+
+    request.session["debe_cambiar_password"] = False
+    return RedirectResponse("/registro_web", status_code=303)
 
 
 @app.get("/logout")
