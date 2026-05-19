@@ -9,7 +9,7 @@ from auth import login_user, require_admin, hash_password
 from database import db
 from routers.ordenes import router as ordenes_router
 from routers.usuarios import router as usuarios_router
-from routers.android import router as android_router
+from routers.android import router as android_router, guardar_registro_android, usuario_android_actual
 from routers.metricas import router as metricas_router, metricas_semanales
 from routers.bonos import router as bonos_router
 from routers.admin_tools import router as admin_tools_router
@@ -36,6 +36,8 @@ RUTAS_PUBLICAS_EXACTAS = {
     "/logout",
     "/registro_web",
     "/registro_android",
+    "/android/login",
+    "/android/me",
     "/operarios",
     "/maquinas",
     "/ordenes",
@@ -177,8 +179,11 @@ def crear():
         id SERIAL PRIMARY KEY,
         username TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
-        role TEXT NOT NULL
+        role TEXT NOT NULL,
+        operario_id INTEGER
     )""")
+
+    c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS operario_id INTEGER")
 
     # Crear admin inicial si no existe
     c.execute("SELECT * FROM users WHERE username = %s", ("admin",))
@@ -635,74 +640,8 @@ def logout(request: Request):
 # ================= REGISTRO PRODUCCION ANDROID =================
 
 @app.post("/registro_android")
-def registro_android(data: dict):
-
-    conn = db()
-    c = conn.cursor()
-
-    tiempo = int(data.get("tiempo", 0))
-
-    inicio = None
-    fin = None
-
-    if data.get("inicio") and data.get("fin"):
-        try:
-            inicio = datetime.fromisoformat(str(data["inicio"]).replace("Z", "+00:00"))
-            fin = datetime.fromisoformat(str(data["fin"]).replace("Z", "+00:00"))
-            tiempo = max(0, int((fin - inicio).total_seconds()))
-        except ValueError:
-            inicio = datetime.strptime(str(data["inicio"]), "%Y-%m-%d %H:%M:%S")
-            fin = datetime.strptime(str(data["fin"]), "%Y-%m-%d %H:%M:%S")
-            tiempo = max(0, int((fin - inicio).total_seconds()))
-
-    if not inicio or not fin:
-        fin = datetime.now()
-        inicio = fin - timedelta(seconds=tiempo)
-
-    c.execute("""
-    INSERT INTO registros_produccion
-    (operario_id, orden_id, actividad_id, cantidad, inicio, fin, tiempo)
-    VALUES (%s, %s, %s, %s, %s, %s, %s)
-    """, (
-        data["operario_id"],
-        data["orden_id"],
-        data["actividad_id"],
-        data["cantidad"],
-        inicio.strftime("%Y-%m-%d %H:%M:%S"),
-        fin.strftime("%Y-%m-%d %H:%M:%S"),
-        tiempo
-    ))
-
-    c.execute("""
-    UPDATE orden_actividades
-    SET cantidad_realizada = cantidad_realizada + %s
-    WHERE orden_id = %s AND actividad_id = %s
-    """, (data["cantidad"], data["orden_id"], data["actividad_id"]))
-
-    c.execute("""
-        SELECT SUM(cantidad_realizada), SUM(cantidad_total)
-        FROM orden_actividades
-        WHERE orden_id = %s
-    """, (data["orden_id"],))
-
-    row = c.fetchone()
-
-    if row and row[1] and row[1] > 0:
-        porcentaje = round((row[0] / row[1]) * 100, 2)
-    else:
-        porcentaje = 0
-
-    c.execute("""
-        UPDATE ordenes
-        SET porcentaje = %s,
-            estado = CASE WHEN %s >= 100 THEN 'CERRADA' ELSE estado END
-        WHERE id = %s
-    """, (porcentaje, porcentaje, data["orden_id"]))
-
-    conn.commit()
-    conn.close()
-
-    return {"status": "ok"}
+def registro_android(data: dict, usuario=Depends(usuario_android_actual)):
+    return guardar_registro_android(data, usuario["operario_id"])
 
 
 # ================= IMPORTAR =================
@@ -1110,31 +1049,55 @@ def ver_usuarios(request: Request):
 
     conn = db()
     c = conn.cursor()
-    c.execute("SELECT id, username, role FROM users")
+    c.execute("""
+        SELECT u.id, u.username, u.role, u.operario_id, COALESCE(o.nombre, '')
+        FROM users u
+        LEFT JOIN operarios o ON o.id = u.operario_id
+        ORDER BY u.id
+    """)
     usuarios = c.fetchall()
+
+    c.execute("SELECT id, nombre FROM operarios ORDER BY nombre")
+    operarios = c.fetchall()
+
     conn.close()
 
     return templates.TemplateResponse(
         request=request, name="usuarios.html", context={
         "request": request,
-        "usuarios": usuarios
+        "usuarios": usuarios,
+        "operarios": operarios
     })
 
 
 @app.post("/usuarios/crear")
-def crear_usuario(request: Request, username: str = Form(...), password: str = Form(...), role: str = Form(...)):
+def crear_usuario(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    role: str = Form(...),
+    operario_id: str = Form("")
+):
 
     if not require_admin(request):
         return RedirectResponse("/admin", status_code=303)
 
     hashed = hash_password(password)
+    operario_id_valor = int(operario_id) if operario_id else None
+
+    if role == "operario" and not operario_id_valor:
+        return "Seleccione un operario para usuarios con rol operario"
+
+    if role != "operario":
+        operario_id_valor = None
+
     conn = db()
     c = conn.cursor()
 
     try:
         c.execute(
-            "INSERT INTO users (username, password, role) VALUES (%s, %s, %s)",
-            (username, hashed, role)
+            "INSERT INTO users (username, password, role, operario_id) VALUES (%s, %s, %s, %s)",
+            (username, hashed, role, operario_id_valor)
         )
         conn.commit()
     except Exception:

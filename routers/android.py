@@ -1,8 +1,82 @@
-from fastapi import APIRouter, HTTPException
+import os
 from datetime import datetime, timedelta
+
+from fastapi import APIRouter, Header, HTTPException, Depends
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
+
+from auth import verify_password
 from database import db
 
 router = APIRouter()
+
+ANDROID_TOKEN_SALT = "android-operario-token"
+ANDROID_TOKEN_MAX_AGE = int(os.getenv("ANDROID_TOKEN_MAX_AGE", "2592000"))
+
+
+def token_serializer():
+    secret_key = os.getenv("SECRET_KEY")
+    if not secret_key:
+        raise HTTPException(status_code=500, detail="SECRET_KEY no configurado")
+    return URLSafeTimedSerializer(secret_key)
+
+
+def generar_token_android(user_id, username, role, operario_id):
+    return token_serializer().dumps(
+        {
+            "user_id": user_id,
+            "username": username,
+            "role": role,
+            "operario_id": operario_id,
+        },
+        salt=ANDROID_TOKEN_SALT,
+    )
+
+
+def leer_token_android(authorization: str = Header(default=None)):
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(status_code=401, detail="Token Android requerido")
+
+    token = authorization.split(" ", 1)[1].strip()
+
+    try:
+        return token_serializer().loads(
+            token,
+            salt=ANDROID_TOKEN_SALT,
+            max_age=ANDROID_TOKEN_MAX_AGE,
+        )
+    except SignatureExpired as exc:
+        raise HTTPException(status_code=401, detail="Sesion expirada") from exc
+    except BadSignature as exc:
+        raise HTTPException(status_code=401, detail="Token invalido") from exc
+
+
+def usuario_android_actual(payload: dict = Depends(leer_token_android)):
+    conn = db()
+    c = conn.cursor()
+    c.execute("""
+        SELECT u.id, u.username, u.role, u.operario_id, o.nombre
+        FROM users u
+        LEFT JOIN operarios o ON o.id = u.operario_id
+        WHERE u.id = %s
+    """, (payload.get("user_id"),))
+    row = c.fetchone()
+    conn.close()
+
+    if not row:
+        raise HTTPException(status_code=401, detail="Usuario no encontrado")
+
+    user_id, username, role, operario_id, operario_nombre = row
+
+    if role != "operario" or not operario_id:
+        raise HTTPException(status_code=403, detail="Usuario Android sin operario asignado")
+
+    return {
+        "user_id": user_id,
+        "username": username,
+        "role": role,
+        "operario_id": operario_id,
+        "operario_nombre": operario_nombre,
+    }
 
 
 def campo_entero(data: dict, *nombres: str) -> int:
@@ -29,13 +103,71 @@ def fecha_android(valor):
         return datetime.strptime(str(valor), "%Y-%m-%d %H:%M:%S")
 
 
+@router.post("/android/login")
+def login_android(data: dict):
+    username = str(data.get("username") or data.get("usuario") or "").strip()
+    password = str(data.get("password") or data.get("clave") or "")
+
+    if not username or not password:
+        raise HTTPException(status_code=400, detail="Usuario y password son requeridos")
+
+    conn = db()
+    c = conn.cursor()
+    c.execute("""
+        SELECT u.id, u.username, u.password, u.role, u.operario_id, o.nombre
+        FROM users u
+        LEFT JOIN operarios o ON o.id = u.operario_id
+        WHERE u.username = %s
+    """, (username,))
+    row = c.fetchone()
+    conn.close()
+
+    if not row or not verify_password(password, row[2]):
+        raise HTTPException(status_code=401, detail="Usuario o password incorrecto")
+
+    user_id, username, _, role, operario_id, operario_nombre = row
+
+    if role != "operario" or not operario_id:
+        raise HTTPException(status_code=403, detail="Este usuario no tiene operario asignado")
+
+    token = generar_token_android(user_id, username, role, operario_id)
+
+    return {
+        "token": token,
+        "token_type": "bearer",
+        "expires_in": ANDROID_TOKEN_MAX_AGE,
+        "usuario": {
+            "id": user_id,
+            "username": username,
+            "role": role,
+        },
+        "operario": {
+            "id": operario_id,
+            "nombre": operario_nombre,
+        },
+    }
+
+
+@router.get("/android/me")
+def android_me(usuario=Depends(usuario_android_actual)):
+    return {
+        "usuario": {
+            "id": usuario["user_id"],
+            "username": usuario["username"],
+            "role": usuario["role"],
+        },
+        "operario": {
+            "id": usuario["operario_id"],
+            "nombre": usuario["operario_nombre"],
+        },
+    }
+
+
 # ================= REGISTRO ANDROID =================
 
-@router.post("/registro_android")
-def registro_android(data: dict):
+def guardar_registro_android(data: dict, operario_id: int):
 
     try:
-        operario_id = campo_entero(data, "operario_id", "operario")
         orden_id = campo_entero(data, "orden_id", "orden")
         actividad_id = campo_entero(data, "actividad_id", "actividad")
         cantidad = campo_entero(data, "cantidad")
@@ -106,6 +238,11 @@ def registro_android(data: dict):
     conn.close()
 
     return {"status":"ok"}
+
+
+@router.post("/registro_android")
+def registro_android(data: dict, usuario=Depends(usuario_android_actual)):
+    return guardar_registro_android(data, usuario["operario_id"])
 
 
 # ================= LISTAS PARA ANDROID =================

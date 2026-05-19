@@ -18,6 +18,13 @@
         <option value="supervisor">Supervisor</option>
         <option value="operario">Operario</option>
     </select>
+    Operario:
+    <select name="operario_id">
+        <option value="">Sin operario</option>
+        {% for op in operarios %}
+        <option value="{{ op[0] }}">{{ op[1] }}</option>
+        {% endfor %}
+    </select>
     <button type="submit">Crear</button>
 </form>
 
@@ -29,6 +36,7 @@
         <th>ID</th>
         <th>Usuario</th>
         <th>Rol</th>
+        <th>Operario</th>
         <th>Acción</th>
     </tr>
 
@@ -37,6 +45,7 @@
         <td>{{ u[0] }}</td>
         <td>{{ u[1] }}</td>
         <td>{{ u[2] }}</td>
+        <td>{{ u[4] or "-" }}</td>
         <td>
             <a href="/usuarios/eliminar/{{ u[0] }}">Eliminar</a>
         </td>
