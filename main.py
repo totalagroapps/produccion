@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request, Form, UploadFile, File, Depends  # type: ignore
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse  # type: ignore
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, FileResponse  # type: ignore
 from fastapi.templating import Jinja2Templates  # type: ignore
 from starlette.middleware.sessions import SessionMiddleware  # type: ignore
 from datetime import datetime, timedelta
@@ -31,6 +31,11 @@ app = FastAPI()
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+
+@app.get("/sw.js", include_in_schema=False)
+def service_worker():
+    return FileResponse("static/sw.js", media_type="application/javascript")
+
 RUTAS_PUBLICAS_EXACTAS = {
     "/admin",
     "/logout",
@@ -41,6 +46,7 @@ RUTAS_PUBLICAS_EXACTAS = {
     "/operarios",
     "/maquinas",
     "/ordenes",
+    "/sw.js",
     "/favicon.ico",
 }
 

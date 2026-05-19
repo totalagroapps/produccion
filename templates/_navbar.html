@@ -75,6 +75,45 @@
         justify-content:flex-start;
     }
 }
+@media(max-width:640px){
+    .global-nav-shell{
+        position:sticky;
+        top:0;
+        z-index:50;
+        border-bottom-width:3px;
+    }
+    .global-nav{
+        flex-direction:row;
+        align-items:center;
+        gap:10px;
+        padding:8px 12px;
+    }
+    .global-brand{
+        min-width:0;
+        flex:1;
+        gap:8px;
+    }
+    .global-brand img{
+        height:34px;
+        border-radius:6px;
+        padding:4px;
+    }
+    .global-brand strong{
+        font-size:14px;
+    }
+    .global-brand span{
+        display:none;
+    }
+    .global-menu{
+        flex-wrap:nowrap;
+        gap:6px;
+    }
+    .global-menu a{
+        padding:8px 9px;
+        font-size:12px;
+        white-space:nowrap;
+    }
+}
 </style>
 
 <header class="global-nav-shell">
