@@ -37,7 +37,7 @@
 <h3>Crear usuarios para operarios sin cuenta</h3>
 <form method="post" action="/usuarios/crear_operarios">
     Password temporal:
-    <input type="text" name="password_temporal" value="{{ password_temporal_default or '1234' }}" required>
+    <input type="text" name="password_temporal" value="{{ password_temporal_default or '123456' }}" required>
     <button type="submit">Crear usuarios faltantes</button>
 </form>
 
