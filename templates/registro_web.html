@@ -2,824 +2,702 @@
 <html>
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0f172a">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Registro Produccion">
-<link rel="manifest" href="/static/manifest.webmanifest">
-<link rel="apple-touch-icon" href="/static/logo.png">
-<title>Registro web</title>
+<meta name="viewport" content="width=800, initial-scale=1, user-scalable=no">
+<title>Registro Produccion HMI</title>
 <style>
-body{
-    margin:0;
-    font-family:Arial, Helvetica, sans-serif;
-    background:#f3f4f6;
-    color:#111827;
-}
-.container{
-    max-width:1180px;
-    margin:0 auto;
-    padding:28px 24px 44px;
-}
-.header-row{
-    display:flex;
-    justify-content:space-between;
-    gap:16px;
-    align-items:flex-start;
-    margin-bottom:18px;
-}
-h1{
-    margin:0 0 6px;
-    font-size:28px;
-}
-.subtitle{
-    color:#475569;
-    margin:0;
-}
-.status-pill{
-    background:#e0f2fe;
-    color:#075985;
-    border:1px solid #7dd3fc;
-    padding:10px 14px;
-    border-radius:8px;
-    font-weight:700;
-    min-width:220px;
-    text-align:center;
-}
-.layout{
-    display:grid;
-    grid-template-columns:minmax(0,1.3fr) minmax(280px,.7fr);
-    gap:18px;
-}
-.panel{
-    background:white;
-    border-radius:8px;
-    box-shadow:0 2px 8px rgba(15,23,42,.08);
-    padding:22px;
-}
-.form-grid{
-    display:grid;
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    gap:16px;
-}
-.field{
-    display:flex;
-    flex-direction:column;
-    gap:6px;
-    font-size:13px;
-    font-weight:700;
-    color:#334155;
-}
-.field-wide{
-    grid-column:1 / -1;
-}
-select,
-input{
-    width:100%;
-    height:40px;
-    box-sizing:border-box;
-    border:1px solid #cbd5e1;
-    border-radius:6px;
-    background:white;
-    color:#111827;
-    padding:8px 10px;
-    font-size:14px;
-}
-select:disabled,
-input:disabled{
-    background:#f1f5f9;
-    color:#64748b;
-}
-.actions{
-    display:flex;
-    flex-wrap:wrap;
-    gap:10px;
-    margin-top:20px;
-}
-button{
-    border:0;
-    border-radius:6px;
-    padding:10px 14px;
-    font-weight:700;
-    cursor:pointer;
-}
-.btn-start{
-    background:#16a34a;
-    color:white;
-}
-.btn-save{
-    background:#2563eb;
-    color:white;
-}
-.btn-cancel{
-    background:#ef4444;
-    color:white;
-}
-.btn-secondary{
-    background:#e2e8f0;
-    color:#0f172a;
-}
-button:disabled{
-    opacity:.55;
-    cursor:not-allowed;
-}
-.timer{
-    text-align:center;
-    padding:22px 12px;
-    border:1px solid #e2e8f0;
-    border-radius:8px;
-    background:#f8fafc;
-}
-.timer-label{
-    color:#64748b;
-    font-size:13px;
-    font-weight:700;
-    margin-bottom:6px;
-}
-.timer-value{
-    font-family:Consolas, monospace;
-    font-size:42px;
-    font-weight:800;
-    letter-spacing:0;
-}
-.summary{
-    margin-top:16px;
-    display:grid;
-    gap:10px;
-}
-.summary-item{
-    border-bottom:1px solid #e5e7eb;
-    padding-bottom:9px;
-}
-.summary-item strong{
-    display:block;
-    color:#334155;
-    font-size:12px;
-    margin-bottom:3px;
-}
-.summary-item span{
-    color:#111827;
-}
-.message{
-    margin-top:16px;
-    padding:12px 14px;
-    border-radius:8px;
-    font-weight:700;
-    display:none;
-}
-.message.ok{
-    display:block;
-    background:#dcfce7;
-    color:#14532d;
-    border:1px solid #86efac;
-}
-.message.error{
-    display:block;
-    background:#fee2e2;
-    color:#991b1b;
-    border:1px solid #fca5a5;
-}
-.help{
-    margin-top:16px;
-    color:#475569;
-    font-size:13px;
-    line-height:1.45;
-}
-/* Modal cantidad */
-.modal-overlay{
-    display:none;
-    position:fixed;
-    inset:0;
-    background:rgba(15,23,42,.45);
-    z-index:1000;
-    align-items:center;
-    justify-content:center;
-}
-.modal-overlay.visible{
-    display:flex;
-}
-.modal-box{
-    background:white;
-    border-radius:12px;
-    box-shadow:0 8px 32px rgba(15,23,42,.22);
-    padding:32px 28px 24px;
-    width:340px;
-    max-width:92vw;
-}
-.modal-box h2{
-    margin:0 0 6px;
-    font-size:20px;
-}
-.modal-box p{
-    margin:0 0 18px;
-    color:#475569;
-    font-size:13px;
-}
-.modal-cantidad-input{
-    width:100%;
-    height:52px;
-    box-sizing:border-box;
-    border:2px solid #2563eb;
-    border-radius:8px;
-    font-size:28px;
-    font-weight:800;
-    text-align:center;
-    color:#111827;
-    outline:none;
-    margin-bottom:20px;
-}
-.modal-cantidad-input:focus{
-    border-color:#1d4ed8;
-}
-.modal-actions{
-    display:flex;
-    gap:10px;
-    justify-content:flex-end;
-}
-.install-btn{
-    display:none;
-}
-.install-btn.visible{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-}
-*{
-    box-sizing:border-box;
-}
-@media(max-width:900px){
-    .layout,
-    .form-grid{
-        grid-template-columns:1fr;
-    }
-    .field-wide{
-        grid-column:auto;
-    }
-    .header-row{
-        flex-direction:column;
-    }
-    .status-pill{
-        width:100%;
-        box-sizing:border-box;
-    }
-}
-@media(max-width:640px){
-    body{
-        background:white;
-        min-height:100vh;
-        -webkit-tap-highlight-color:transparent;
-    }
-    .container{
-        padding:14px 12px calc(18px + env(safe-area-inset-bottom));
-    }
-    .header-row{
-        gap:10px;
-        margin-bottom:12px;
-    }
-    h1{
-        font-size:22px;
-    }
-    .subtitle{
-        font-size:13px;
-        line-height:1.35;
-    }
-    .status-pill{
-        min-width:0;
-        padding:9px 12px;
-        font-size:13px;
-    }
-    .layout{
-        gap:12px;
-    }
-    .panel{
-        border-radius:0;
-        border-left:0;
-        border-right:0;
-        box-shadow:none;
-        margin-left:-12px;
-        margin-right:-12px;
-        padding:16px 12px;
-    }
-    .field{
-        font-size:12px;
-        gap:5px;
-    }
-    select,
-    input{
-        height:auto;
-        min-height:48px;
-        border-radius:8px;
-        font-size:16px;
-        padding:10px 12px;
-    }
-    .actions{
-        display:grid;
-        grid-template-columns:1fr 1fr;
-        gap:10px;
-        position:sticky;
-        bottom:0;
-        z-index:20;
-        margin:18px -12px -16px;
-        padding:10px 12px calc(10px + env(safe-area-inset-bottom));
-        background:rgba(255,255,255,.96);
-        border-top:1px solid #e2e8f0;
-        backdrop-filter:blur(12px);
-    }
-    button{
-        min-height:50px;
-        border-radius:8px;
-        font-size:15px;
-        touch-action:manipulation;
-    }
-    #btnIniciar,
-    #btnGuardar{
-        grid-column:span 2;
-        font-size:16px;
-    }
-    .timer{
-        padding:16px 10px;
-        border-radius:8px;
-    }
-    .timer-value{
-        font-size:38px;
-    }
-    .summary{
-        gap:0;
-        margin-top:12px;
-    }
-    .summary-item{
-        padding:10px 0;
-    }
-    .message{
-        margin-top:12px;
-        font-size:13px;
-    }
-    .modal-overlay{
-        padding:18px;
-        background:rgba(15,23,42,.55);
-    }
-    .modal-box{
-        width:100%;
-        max-width:380px;
-        border-radius:10px;
-        padding:24px 18px 18px;
-    }
-    .modal-actions{
-        display:grid;
-        grid-template-columns:1fr 1fr;
-    }
-}
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2128;
+    --border: #30363d;
+    --accent: #1f6feb;
+    --accent-glow: rgba(31,111,235,0.25);
+    --green: #2ea043;
+    --green-glow: rgba(46,160,67,0.25);
+    --red: #da3633;
+    --red-glow: rgba(218,54,51,0.2);
+    --amber: #d29922;
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --text3: #484f58;
+    --font: 'Segoe UI', system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    width: 800px;
+    height: 480px;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    user-select: none;
+  }
+
+  /* ── TOP BAR ── */
+  #topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 44px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 14px;
+  }
+  #topbar .title {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: .5px;
+    color: var(--text);
+  }
+  #topbar .title span { color: var(--accent); }
+
+  #estadoPill {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 20px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    transition: all .3s;
+    letter-spacing: .4px;
+  }
+  #estadoPill.running  { background: rgba(46,160,67,.15); border-color: var(--green); color: #3fb950; }
+  #estadoPill.saving   { background: rgba(31,111,235,.15); border-color: var(--accent); color: #58a6ff; }
+  #estadoPill.saved    { background: rgba(46,160,67,.1); border-color: var(--green); color: #3fb950; }
+  #estadoPill.error    { background: rgba(218,54,51,.15); border-color: var(--red); color: #f85149; }
+
+  #clock {
+    font-size: 13px;
+    color: var(--text2);
+    font-variant-numeric: tabular-nums;
+    min-width: 60px;
+    text-align: right;
+  }
+
+  /* ── MAIN LAYOUT ── */
+  #main {
+    display: grid;
+    grid-template-columns: 460px 1fr;
+    height: 436px;
+  }
+
+  /* ── LEFT PANEL ── */
+  #left {
+    border-right: 1px solid var(--border);
+    padding: 12px 14px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .field.wide { grid-column: 1 / -1; }
+
+  .field label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: .6px;
+  }
+
+  .field select, .field input {
+    height: 40px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: var(--font);
+    padding: 0 10px;
+    outline: none;
+    width: 100%;
+    cursor: pointer;
+    transition: border-color .2s;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  .field select:focus, .field input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+  .field select:disabled, .field input:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+  }
+
+  /* custom arrow for selects */
+  .sel-wrap { position: relative; }
+  .sel-wrap::after {
+    content: '▾';
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text3);
+    pointer-events: none;
+    font-size: 14px;
+  }
+
+  /* ── BUTTONS ── */
+  #actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 7px;
+    margin-top: auto;
+  }
+
+  button {
+    height: 48px;
+    border: 0;
+    border-radius: 8px;
+    font-family: var(--font);
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: transform .1s, opacity .2s, box-shadow .2s;
+    letter-spacing: .3px;
+  }
+  button:active { transform: scale(.95); }
+  button:disabled { opacity: .35; cursor: not-allowed; transform: none; }
+
+  #btnIniciar {
+    grid-column: 1 / 3;
+    background: var(--green);
+    color: white;
+    font-size: 15px;
+    box-shadow: 0 2px 12px var(--green-glow);
+  }
+  #btnIniciar:not(:disabled):hover { box-shadow: 0 4px 18px var(--green-glow); }
+
+  #btnGuardar {
+    grid-column: 3 / 5;
+    background: var(--accent);
+    color: white;
+    font-size: 15px;
+    box-shadow: 0 2px 12px var(--accent-glow);
+  }
+  #btnGuardar:not(:disabled):hover { box-shadow: 0 4px 18px var(--accent-glow); }
+
+  #btnCancelar {
+    grid-column: 1 / 3;
+    background: var(--surface2);
+    border: 1px solid var(--red);
+    color: #f85149;
+  }
+
+  #btnRecargar {
+    grid-column: 3 / 5;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text2);
+  }
+
+  /* ── MESSAGE BAR ── */
+  #mensaje {
+    display: none;
+    padding: 7px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  #mensaje.ok    { display: block; background: rgba(46,160,67,.12); border: 1px solid rgba(46,160,67,.4); color: #3fb950; }
+  #mensaje.error { display: block; background: rgba(218,54,51,.12); border: 1px solid rgba(218,54,51,.4); color: #f85149; }
+
+  /* ── RIGHT PANEL ── */
+  #right {
+    display: flex;
+    flex-direction: column;
+    padding: 14px;
+    gap: 10px;
+  }
+
+  /* TIMER */
+  #timerBox {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 10px 12px;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  #timerLabel { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text3); font-weight: 700; }
+  #cronometro {
+    font-size: 46px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -1px;
+    color: var(--text);
+    line-height: 1;
+  }
+  #cronometro.running { color: #3fb950; }
+
+  /* SUMMARY */
+  #summary {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    overflow: hidden;
+  }
+  .sumrow {
+    display: flex;
+    flex-direction: column;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--surface2);
+    gap: 2px;
+    min-width: 0;
+  }
+  .sumrow strong { font-size: 10px; text-transform: uppercase; letter-spacing: .7px; color: var(--text3); font-weight: 700; }
+  .sumrow span { font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ── MODAL ── */
+  #modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(1,4,9,.7);
+    backdrop-filter: blur(6px);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  #modal.visible { display: flex; }
+  #modalBox {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px 26px 22px;
+    width: 320px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.7);
+  }
+  #modalBox h2 { font-size: 18px; margin-bottom: 6px; }
+  #modalBox p { color: var(--text2); font-size: 12px; margin-bottom: 16px; }
+  #modalCantidadInput {
+    width: 100%;
+    height: 60px;
+    background: var(--surface2);
+    border: 2px solid var(--accent);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 34px;
+    font-weight: 800;
+    text-align: center;
+    outline: none;
+    font-family: var(--font);
+    margin-bottom: 16px;
+  }
+  #modalBox .modal-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  #modalBox .modal-btns button { height: 44px; font-size: 14px; }
+  .btn-modal-cancel { background: var(--surface2); border: 1px solid var(--border); color: var(--text2); }
+  .btn-modal-ok { background: var(--accent); color: white; }
+
+  /* loading spinner */
+  #loadingOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(1,4,9,.6);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 14px;
+  }
+  #loadingOverlay.visible { display: flex; }
+  .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #loadingOverlay span { color: var(--text2); font-size: 13px; }
 </style>
 </head>
 <body>
-{% include '_navbar.html' %}
 
-<div class="container">
-    <div class="header-row">
-        <div>
-            <h1>Registro web de produccion</h1>
-            <p class="subtitle">Registro de operaciones con el operario que inicio sesion.</p>
-        </div>
-        <div id="estadoGeneral" class="status-pill">Listo para iniciar</div>
-    </div>
-
-    <div class="layout">
-        <section class="panel">
-            <div class="form-grid">
-                <label class="field field-wide">Operario
-                    <select id="operarioSelect" disabled>
-                        <option value="{{ operario_actual.id }}" selected>{{ operario_actual.nombre }}</option>
-                    </select>
-                </label>
-
-                <label class="field field-wide">Orden abierta
-                    <select id="ordenSelect"><option value="">Cargando ordenes...</option></select>
-                </label>
-
-                <label class="field">Proceso
-                    <select id="procesoSelect" disabled><option value="">Seleccione una orden primero</option></select>
-                </label>
-
-                <label class="field">Actividad
-                    <select id="actividadSelect" disabled><option value="">Seleccione un proceso primero</option></select>
-                </label>
-
-                <label class="field">Inicio
-                    <input id="inicioInput" type="text" disabled placeholder="Pendiente">
-                </label>
-            </div>
-
-            <div class="actions">
-                <button id="btnIniciar" class="btn-start" onclick="iniciarRegistro()">Iniciar</button>
-                <button id="btnGuardar" class="btn-save" onclick="guardarRegistro()" disabled>Guardar registro</button>
-                <button id="btnCancelar" class="btn-cancel" onclick="cancelarRegistro()" disabled>Cancelar</button>
-                <button class="btn-secondary" onclick="recargarDatos()">Recargar datos</button>
-                <button id="btnInstalar" class="btn-secondary install-btn" type="button">Instalar app</button>
-            </div>
-
-            <div id="mensaje" class="message"></div>
-        </section>
-
-        <aside class="panel">
-            <div class="timer">
-                <div class="timer-label">Tiempo transcurrido</div>
-                <div id="cronometro" class="timer-value">00:00:00</div>
-            </div>
-
-            <div class="summary">
-                <div class="summary-item">
-                    <strong>Orden</strong>
-                    <span id="resOrden">Sin seleccionar</span>
-                </div>
-                <div class="summary-item">
-                    <strong>Actividad</strong>
-                    <span id="resActividad">Sin seleccionar</span>
-                </div>
-                <div class="summary-item">
-                    <strong>Operario</strong>
-                    <span id="resOperario">Sin seleccionar</span>
-                </div>
-            </div>
-
-            <p class="help">La cantidad puede ser 0 para registrar una interrupcion, pausa o actividad larga sin avance de unidades.</p>
-        </aside>
-    </div>
+<!-- TOP BAR -->
+<div id="topbar">
+  <div class="title">⚙ Registro <span>Producción</span></div>
+  <div id="estadoPill">Listo</div>
+  <div id="clock">--:--:--</div>
 </div>
 
-<!-- Modal de cantidad al guardar -->
-<div id="modalCantidad" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-    <div class="modal-box">
-        <h2 id="modalTitle">¿Cuántas unidades hiciste?</h2>
-        <p>Ingresa la cantidad producida en esta operación. Puede ser 0.</p>
-        <input id="modalCantidadInput" class="modal-cantidad-input" type="number" min="0" step="1" placeholder="0" inputmode="numeric">
-        <div class="modal-actions">
-            <button class="btn-cancel" onclick="cerrarModalCantidad()">Cancelar</button>
-            <button class="btn-save" onclick="confirmarCantidad()">Confirmar</button>
-        </div>
+<!-- MAIN -->
+<div id="main">
+
+  <!-- LEFT -->
+  <div id="left">
+
+    <div class="field wide">
+      <label>Operario</label>
+      <div class="sel-wrap">
+        <select id="operarioSelect" disabled>
+          <option value="{{ operario_actual.id }}">{{ operario_actual.nombre }}</option>
+        </select>
+      </div>
     </div>
+
+    <div class="field wide">
+      <label>Orden abierta</label>
+      <div class="sel-wrap">
+        <select id="ordenSelect"><option value="">Cargando...</option></select>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Proceso</label>
+        <div class="sel-wrap">
+          <select id="procesoSelect" disabled><option value="">— primero orden —</option></select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Actividad</label>
+        <div class="sel-wrap">
+          <select id="actividadSelect" disabled><option value="">— primero proceso —</option></select>
+        </div>
+      </div>
+    </div>
+
+    <div class="field wide">
+      <label>Inicio del registro</label>
+      <input id="inicioInput" type="text" disabled placeholder="Pendiente de iniciar...">
+    </div>
+
+    <div id="mensaje"></div>
+
+    <div id="actions">
+      <button id="btnIniciar"  onclick="iniciarRegistro()">▶ Iniciar</button>
+      <button id="btnGuardar"  onclick="guardarRegistro()" disabled>💾 Guardar</button>
+      <button id="btnCancelar" onclick="cancelarRegistro()" disabled>✕ Cancelar</button>
+      <button id="btnRecargar" onclick="recargarDatos()">↺ Recargar</button>
+    </div>
+
+  </div>
+
+  <!-- RIGHT -->
+  <div id="right">
+
+    <div id="timerBox">
+      <div id="timerLabel">Tiempo transcurrido</div>
+      <div id="cronometro">00:00:00</div>
+    </div>
+
+    <div id="summary">
+      <div class="sumrow">
+        <strong>Orden</strong>
+        <span id="resOrden">Sin seleccionar</span>
+      </div>
+      <div class="sumrow">
+        <strong>Actividad</strong>
+        <span id="resActividad">Sin seleccionar</span>
+      </div>
+      <div class="sumrow">
+        <strong>Operario</strong>
+        <span id="resOperario">Sin seleccionar</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL CANTIDAD -->
+<div id="modal" role="dialog" aria-modal="true">
+  <div id="modalBox">
+    <h2>¿Cuántas unidades?</h2>
+    <p>Ingresa la cantidad producida (puede ser 0 para pausa o interrupción).</p>
+    <input id="modalCantidadInput" type="number" min="0" step="1" placeholder="0" inputmode="numeric">
+    <div class="modal-btns">
+      <button class="btn-modal-cancel" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn-modal-ok"     onclick="confirmarCantidad()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div id="loadingOverlay">
+  <div class="spinner"></div>
+  <span id="loadingText">Cargando datos...</span>
 </div>
 
 <script>
 const operarioSesion = {{ operario_actual | tojson }};
 let operarios = [operarioSesion];
-let maquinas = [];
-let ordenes = [];
-let procesos = [];
-let actividades = [];
-let inicioRegistro = null;
-let timerId = null;
-let bloqueado = false;
-let installPrompt = null;
+let maquinas = [], ordenes = [], procesos = [], actividades = [];
+let inicioRegistro = null, timerId = null, bloqueado = false;
 
-function mostrarMensaje(texto, tipo){
-    const box = document.getElementById("mensaje");
-    box.innerText = texto || "";
-    box.className = "message " + (tipo || "");
+// ── CLOCK ──
+function tickClock(){
+  const n = new Date();
+  document.getElementById('clock').textContent =
+    pad(n.getHours()) + ':' + pad(n.getMinutes()) + ':' + pad(n.getSeconds());
+}
+setInterval(tickClock, 1000);
+tickClock();
+
+// ── HELPERS ──
+function pad(n){ return String(n).padStart(2,'0'); }
+function formatoLocal(f){
+  return f.getFullYear()+'-'+pad(f.getMonth()+1)+'-'+pad(f.getDate())+' '+
+         pad(f.getHours())+':'+pad(f.getMinutes())+':'+pad(f.getSeconds());
+}
+function formatoCrono(s){
+  return pad(Math.floor(s/3600))+':'+pad(Math.floor((s%3600)/60))+':'+pad(s%60);
 }
 
-function setEstado(texto){
-    document.getElementById("estadoGeneral").innerText = texto;
+function setEstado(txt, cls){
+  const p = document.getElementById('estadoPill');
+  p.textContent = txt;
+  p.className = cls || '';
+}
+function mostrarMensaje(txt, tipo){
+  const b = document.getElementById('mensaje');
+  b.textContent = txt;
+  b.className = tipo || '';
+}
+function loading(visible, txt){
+  document.getElementById('loadingText').textContent = txt || 'Cargando...';
+  document.getElementById('loadingOverlay').classList.toggle('visible', visible);
 }
 
-function pad(n){
-    return String(n).padStart(2, "0");
+// ── NORMALIZE ──
+function normMaq(i)  { return Array.isArray(i)?{id:i[0],nombre:i[1]}:i; }
+function normOrden(i){
+  if(!Array.isArray(i)) return i;
+  const maq = maquinas.find(m=>String(m.id)===String(i[1]));
+  return {id:i[0],maquina_id:i[1],estado:i[2],porcentaje:i[3],
+          producto:maq?maq.nombre:'Máquina '+i[1],cantidad:''};
 }
+function normBasic(i){ return Array.isArray(i)?{id:i[0],nombre:i[1]}:i; }
 
-function formatoLocal(fecha){
-    return fecha.getFullYear() + "-" + pad(fecha.getMonth() + 1) + "-" + pad(fecha.getDate()) + " " + pad(fecha.getHours()) + ":" + pad(fecha.getMinutes()) + ":" + pad(fecha.getSeconds());
-}
-
-function formatoCrono(segundos){
-    const h = Math.floor(segundos / 3600);
-    const m = Math.floor((segundos % 3600) / 60);
-    const s = segundos % 60;
-    return pad(h) + ":" + pad(m) + ":" + pad(s);
-}
-
-function leerJsonSeguro(response){
-    return response.text().then(text => {
-        try{
-            return text ? JSON.parse(text) : {};
-        }catch(_){
-            return {detail:text};
-        }
-    });
-}
-
-function normalizarOperario(item){
-    if(Array.isArray(item)) return {id:item[0], nombre:item[1]};
-    return item;
-}
-
-function normalizarMaquina(item){
-    if(Array.isArray(item)) return {id:item[0], nombre:item[1]};
-    return item;
-}
-
-function normalizarOrden(item){
-    if(Array.isArray(item)){
-        const maquina = maquinas.find(m => String(m.id) === String(item[1]));
-        return {
-            id:item[0],
-            maquina_id:item[1],
-            estado:item[2],
-            porcentaje:item[3],
-            producto: maquina ? maquina.nombre : "Maquina " + item[1],
-            cantidad:""
-        };
-    }
-    return item;
-}
-
-function normalizarBasico(item){
-    if(Array.isArray(item)) return {id:item[0], nombre:item[1]};
-    return item;
-}
-
-function llenarSelect(select, datos, placeholder, labelFn){
-    select.innerHTML = "";
-    const ph = document.createElement("option");
-    ph.value = "";
-    ph.innerText = placeholder;
-    select.appendChild(ph);
-
-    datos.forEach(item => {
-        const opt = document.createElement("option");
-        opt.value = item.id;
-        opt.innerText = labelFn ? labelFn(item) : item.nombre;
-        select.appendChild(opt);
-    });
+function llenarSelect(sel, datos, ph, labelFn){
+  sel.innerHTML='';
+  const o=document.createElement('option'); o.value=''; o.textContent=ph; sel.appendChild(o);
+  datos.forEach(item=>{
+    const opt=document.createElement('option');
+    opt.value=item.id;
+    opt.textContent=labelFn?labelFn(item):item.nombre;
+    sel.appendChild(opt);
+  });
 }
 
 async function cargarJson(url){
-    const r = await fetch(url);
-    const data = await leerJsonSeguro(r);
-    if(!r.ok){
-        throw new Error(data.detail || "No se pudo cargar " + url);
-    }
-    return data;
+  const r = await fetch(url);
+  const txt = await r.text();
+  let data; try{ data=JSON.parse(txt); }catch(_){ data={detail:txt}; }
+  if(!r.ok) throw new Error(data.detail||'Error '+url);
+  return data;
 }
 
+// ── LOAD DATA ──
 async function recargarDatos(){
-    try{
-        mostrarMensaje("", "");
-        setEstado("Cargando datos...");
-        maquinas = (await cargarJson("/maquinas")).map(normalizarMaquina);
-        ordenes = (await cargarJson("/ordenes")).map(normalizarOrden);
-
-        llenarSelect(document.getElementById("operarioSelect"), operarios, "Operario no asignado");
-        document.getElementById("operarioSelect").value = operarioSesion.id || "";
-        document.getElementById("operarioSelect").disabled = true;
-        llenarSelect(
-            document.getElementById("ordenSelect"),
-            ordenes,
-            ordenes.length ? "Seleccione orden" : "No hay ordenes abiertas",
-            o => "Orden " + o.id + " - " + (o.producto || "Maquina " + o.maquina_id) + (o.cantidad ? " (" + o.cantidad + " uds)" : "")
-        );
-        limpiarProcesosActividades();
-        setEstado("Listo para iniciar");
-        actualizarResumen();
-    }catch(error){
-        setEstado("Error cargando datos");
-        mostrarMensaje(error.message, "error");
-    }
+  try{
+    loading(true,'Cargando datos...');
+    maquinas = (await cargarJson('/maquinas')).map(normMaq);
+    ordenes  = (await cargarJson('/ordenes')).map(normOrden);
+    llenarSelect(document.getElementById('operarioSelect'), operarios, '—');
+    document.getElementById('operarioSelect').value = operarioSesion.id||'';
+    llenarSelect(
+      document.getElementById('ordenSelect'),
+      ordenes,
+      ordenes.length?'Seleccione orden':'Sin órdenes abiertas',
+      o=>'Orden '+o.id+' — '+(o.producto||'Máq. '+o.maquina_id)
+    );
+    limpiarPA();
+    setEstado('Listo','');
+    actualizarResumen();
+    mostrarMensaje('','');
+  }catch(e){
+    setEstado('Error datos','error');
+    mostrarMensaje(e.message,'error');
+  }finally{ loading(false); }
 }
 
-function limpiarProcesosActividades(){
-    procesos = [];
-    actividades = [];
-    llenarSelect(document.getElementById("procesoSelect"), [], "Seleccione una orden primero");
-    llenarSelect(document.getElementById("actividadSelect"), [], "Seleccione un proceso primero");
-    document.getElementById("procesoSelect").disabled = true;
-    document.getElementById("actividadSelect").disabled = true;
+function limpiarPA(){
+  procesos=[]; actividades=[];
+  llenarSelect(document.getElementById('procesoSelect'),  [],'— seleccione orden —');
+  llenarSelect(document.getElementById('actividadSelect'),[],'— seleccione proceso —');
+  document.getElementById('procesoSelect').disabled=true;
+  document.getElementById('actividadSelect').disabled=true;
 }
 
 async function cargarProcesos(){
-    const ordenId = document.getElementById("ordenSelect").value;
-    llenarSelect(document.getElementById("actividadSelect"), [], "Seleccione un proceso primero");
-    document.getElementById("actividadSelect").disabled = true;
-
-    if(!ordenId){
-        limpiarProcesosActividades();
-        actualizarResumen();
-        return;
-    }
-
-    try{
-        procesos = (await cargarJson("/procesos/" + ordenId)).map(normalizarBasico);
-        llenarSelect(document.getElementById("procesoSelect"), procesos, procesos.length ? "Seleccione proceso" : "Esta orden no tiene procesos");
-        document.getElementById("procesoSelect").disabled = procesos.length === 0 || bloqueado;
-        actualizarResumen();
-    }catch(error){
-        mostrarMensaje(error.message, "error");
-    }
+  const oid = document.getElementById('ordenSelect').value;
+  llenarSelect(document.getElementById('actividadSelect'),[],'— seleccione proceso —');
+  document.getElementById('actividadSelect').disabled=true;
+  if(!oid){ limpiarPA(); actualizarResumen(); return; }
+  try{
+    procesos=(await cargarJson('/procesos/'+oid)).map(normBasic);
+    llenarSelect(document.getElementById('procesoSelect'),procesos,
+      procesos.length?'Seleccione proceso':'Sin procesos');
+    document.getElementById('procesoSelect').disabled=procesos.length===0||bloqueado;
+    actualizarResumen();
+  }catch(e){ mostrarMensaje(e.message,'error'); }
 }
 
 async function cargarActividades(){
-    const ordenId = document.getElementById("ordenSelect").value;
-    const procesoId = document.getElementById("procesoSelect").value;
-
-    if(!ordenId || !procesoId){
-        llenarSelect(document.getElementById("actividadSelect"), [], "Seleccione un proceso primero");
-        document.getElementById("actividadSelect").disabled = true;
-        actualizarResumen();
-        return;
-    }
-
-    try{
-        actividades = (await cargarJson("/actividades/" + ordenId + "/" + procesoId)).map(normalizarBasico);
-        llenarSelect(document.getElementById("actividadSelect"), actividades, actividades.length ? "Seleccione actividad" : "Este proceso no tiene actividades");
-        document.getElementById("actividadSelect").disabled = actividades.length === 0 || bloqueado;
-        actualizarResumen();
-    }catch(error){
-        mostrarMensaje(error.message, "error");
-    }
+  const oid=document.getElementById('ordenSelect').value;
+  const pid=document.getElementById('procesoSelect').value;
+  if(!oid||!pid){
+    llenarSelect(document.getElementById('actividadSelect'),[],'— seleccione proceso —');
+    document.getElementById('actividadSelect').disabled=true;
+    actualizarResumen(); return;
+  }
+  try{
+    actividades=(await cargarJson('/actividades/'+oid+'/'+pid)).map(normBasic);
+    llenarSelect(document.getElementById('actividadSelect'),actividades,
+      actividades.length?'Seleccione actividad':'Sin actividades');
+    document.getElementById('actividadSelect').disabled=actividades.length===0||bloqueado;
+    actualizarResumen();
+  }catch(e){ mostrarMensaje(e.message,'error'); }
 }
 
-function seleccionActual(){
-    return {
-        operario: operarios.find(x => String(x.id) === document.getElementById("operarioSelect").value),
-        orden: ordenes.find(x => String(x.id) === document.getElementById("ordenSelect").value),
-        proceso: procesos.find(x => String(x.id) === document.getElementById("procesoSelect").value),
-        actividad: actividades.find(x => String(x.id) === document.getElementById("actividadSelect").value)
-    };
+function selActual(){
+  return {
+    operario: operarios.find(x=>String(x.id)===document.getElementById('operarioSelect').value),
+    orden:    ordenes.find(x=>String(x.id)===document.getElementById('ordenSelect').value),
+    proceso:  procesos.find(x=>String(x.id)===document.getElementById('procesoSelect').value),
+    actividad:actividades.find(x=>String(x.id)===document.getElementById('actividadSelect').value)
+  };
 }
-
 function actualizarResumen(){
-    const sel = seleccionActual();
-    document.getElementById("resOperario").innerText = sel.operario ? sel.operario.nombre : "Sin seleccionar";
-    document.getElementById("resOrden").innerText = sel.orden ? "Orden " + sel.orden.id + " - " + (sel.orden.producto || "") : "Sin seleccionar";
-    document.getElementById("resActividad").innerText = sel.actividad ? sel.actividad.nombre : "Sin seleccionar";
+  const s=selActual();
+  document.getElementById('resOperario').textContent = s.operario?s.operario.nombre:'Sin seleccionar';
+  document.getElementById('resOrden').textContent    = s.orden?'Orden '+s.orden.id+' — '+(s.orden.producto||''):'Sin seleccionar';
+  document.getElementById('resActividad').textContent= s.actividad?s.actividad.nombre:'Sin seleccionar';
+}
+function validar(){
+  const s=selActual();
+  if(!s.operario)  return 'Seleccione un operario.';
+  if(!s.orden)     return 'Seleccione una orden.';
+  if(!s.proceso)   return 'Seleccione un proceso.';
+  if(!s.actividad) return 'Seleccione una actividad.';
+  return '';
+}
+function setBloqueo(v){
+  bloqueado=v;
+  ['operarioSelect','ordenSelect','procesoSelect','actividadSelect'].forEach(id=>{
+    const el=document.getElementById(id);
+    el.disabled = id==='operarioSelect'||v||(id==='procesoSelect'&&procesos.length===0)||(id==='actividadSelect'&&actividades.length===0);
+  });
 }
 
-function validarSeleccion(){
-    const sel = seleccionActual();
-    if(!sel.operario) return "Seleccione un operario.";
-    if(!sel.orden) return "Seleccione una orden.";
-    if(!sel.proceso) return "Seleccione un proceso.";
-    if(!sel.actividad) return "Seleccione una actividad.";
-    return "";
-}
-
-function setBloqueo(valor){
-    bloqueado = valor;
-    ["operarioSelect", "ordenSelect", "procesoSelect", "actividadSelect"].forEach(id => {
-        const el = document.getElementById(id);
-        el.disabled = id === "operarioSelect" || valor || (id === "procesoSelect" && procesos.length === 0) || (id === "actividadSelect" && actividades.length === 0);
-    });
-}
-
+// ── REGISTRO ──
 function iniciarRegistro(){
-    const error = validarSeleccion();
-    if(error){
-        mostrarMensaje(error, "error");
-        return;
-    }
-
-    inicioRegistro = new Date();
-    document.getElementById("inicioInput").value = formatoLocal(inicioRegistro);
-    document.getElementById("cronometro").innerText = "00:00:00";
-    timerId = setInterval(() => {
-        const segundos = Math.max(0, Math.floor((new Date() - inicioRegistro) / 1000));
-        document.getElementById("cronometro").innerText = formatoCrono(segundos);
-    }, 1000);
-
-    setBloqueo(true);
-    document.getElementById("btnIniciar").disabled = true;
-    document.getElementById("btnGuardar").disabled = false;
-    document.getElementById("btnCancelar").disabled = false;
-    setEstado("Registro en curso");
-    mostrarMensaje("Operacion iniciada.", "ok");
+  const err=validar(); if(err){ mostrarMensaje(err,'error'); return; }
+  inicioRegistro=new Date();
+  document.getElementById('inicioInput').value=formatoLocal(inicioRegistro);
+  document.getElementById('cronometro').classList.add('running');
+  timerId=setInterval(()=>{
+    const s=Math.max(0,Math.floor((new Date()-inicioRegistro)/1000));
+    document.getElementById('cronometro').textContent=formatoCrono(s);
+  },1000);
+  setBloqueo(true);
+  document.getElementById('btnIniciar').disabled=true;
+  document.getElementById('btnGuardar').disabled=false;
+  document.getElementById('btnCancelar').disabled=false;
+  setEstado('En curso','running');
+  mostrarMensaje('Operación iniciada.','ok');
 }
 
 function cancelarRegistro(){
-    if(timerId){
-        clearInterval(timerId);
-        timerId = null;
-    }
-    inicioRegistro = null;
-    document.getElementById("inicioInput").value = "";
-    document.getElementById("cronometro").innerText = "00:00:00";
-    setBloqueo(false);
-    document.getElementById("btnIniciar").disabled = false;
-    document.getElementById("btnGuardar").disabled = true;
-    document.getElementById("btnCancelar").disabled = true;
-    setEstado("Listo para iniciar");
-    mostrarMensaje("Registro cancelado.", "error");
+  clearInterval(timerId); timerId=null; inicioRegistro=null;
+  document.getElementById('inicioInput').value='';
+  document.getElementById('cronometro').textContent='00:00:00';
+  document.getElementById('cronometro').classList.remove('running');
+  setBloqueo(false);
+  document.getElementById('btnIniciar').disabled=false;
+  document.getElementById('btnGuardar').disabled=true;
+  document.getElementById('btnCancelar').disabled=true;
+  setEstado('Listo','');
+  mostrarMensaje('Registro cancelado.','error');
 }
 
-async function guardarRegistro(){
-    if(!inicioRegistro){
-        mostrarMensaje("Debe iniciar el registro primero.", "error");
-        return;
-    }
-    // Abrir modal para pedir cantidad
-    abrirModalCantidad();
+function guardarRegistro(){
+  if(!inicioRegistro){ mostrarMensaje('Debe iniciar el registro primero.','error'); return; }
+  document.getElementById('modalCantidadInput').value='';
+  document.getElementById('modal').classList.add('visible');
+  setTimeout(()=>document.getElementById('modalCantidadInput').focus(),60);
 }
 
-function abrirModalCantidad(){
-    const input = document.getElementById("modalCantidadInput");
-    input.value = "";
-    document.getElementById("modalCantidad").classList.add("visible");
-    setTimeout(() => input.focus(), 50);
-}
-
-function cerrarModalCantidad(){
-    document.getElementById("modalCantidad").classList.remove("visible");
+function cerrarModal(){
+  document.getElementById('modal').classList.remove('visible');
 }
 
 async function confirmarCantidad(){
-    const cantidadTexto = document.getElementById("modalCantidadInput").value.trim();
-    if(cantidadTexto === ""){
-        document.getElementById("modalCantidadInput").focus();
-        return;
-    }
-    const cantidad = Number(cantidadTexto);
-    if(!Number.isFinite(cantidad) || cantidad < 0 || !Number.isInteger(cantidad)){
-        alert("La cantidad debe ser un número entero de 0 o mayor.");
-        document.getElementById("modalCantidadInput").focus();
-        return;
-    }
-
-    cerrarModalCantidad();
-
-    const sel = seleccionActual();
-    const fin = new Date();
-    const tiempo = Math.max(0, Math.floor((fin - inicioRegistro) / 1000));
-
-    const payload = {
-        orden_id: sel.orden.id,
-        actividad_id: sel.actividad.id,
-        cantidad: cantidad,
-        inicio: formatoLocal(inicioRegistro),
-        fin: formatoLocal(fin),
-        tiempo: tiempo
-    };
-
-    try{
-        setEstado("Guardando...");
-        document.getElementById("btnGuardar").disabled = true;
-        const r = await fetch("/registro_web/registro", {
-            method:"POST",
-            headers:{"Content-Type":"application/json"},
-            body:JSON.stringify(payload)
-        });
-        const data = await leerJsonSeguro(r);
-        if(!r.ok){
-            document.getElementById("btnGuardar").disabled = false;
-            throw new Error(data.detail || "No se pudo guardar el registro.");
-        }
-
-        if(timerId){
-            clearInterval(timerId);
-            timerId = null;
-        }
-        inicioRegistro = null;
-        setBloqueo(false);
-        document.getElementById("btnIniciar").disabled = false;
-        document.getElementById("btnGuardar").disabled = true;
-        document.getElementById("btnCancelar").disabled = true;
-        document.getElementById("inicioInput").value = "";
-        await recargarDatos();
-        setEstado("Registro guardado");
-        mostrarMensaje("Registro guardado correctamente.", "ok");
-    }catch(error){
-        document.getElementById("btnGuardar").disabled = false;
-        setEstado("Error al guardar");
-        mostrarMensaje(error.message, "error");
-    }
+  const txt=document.getElementById('modalCantidadInput').value.trim();
+  if(txt==='') return;
+  const cant=Number(txt);
+  if(!Number.isFinite(cant)||cant<0||!Number.isInteger(cant)){
+    alert('Ingrese un número entero mayor o igual a 0.');
+    return;
+  }
+  cerrarModal();
+  const s=selActual(), fin=new Date();
+  const payload={
+    orden_id:s.orden.id, actividad_id:s.actividad.id, cantidad:cant,
+    inicio:formatoLocal(inicioRegistro), fin:formatoLocal(fin),
+    tiempo:Math.max(0,Math.floor((fin-inicioRegistro)/1000))
+  };
+  try{
+    loading(true,'Guardando registro...');
+    setEstado('Guardando...','saving');
+    document.getElementById('btnGuardar').disabled=true;
+    const r=await fetch('/registro_web/registro',{
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
+    });
+    const txt2=await r.text();
+    let data; try{ data=JSON.parse(txt2); }catch(_){ data={detail:txt2}; }
+    if(!r.ok){ document.getElementById('btnGuardar').disabled=false; throw new Error(data.detail||'Error al guardar.'); }
+    clearInterval(timerId); timerId=null; inicioRegistro=null;
+    document.getElementById('cronometro').textContent='00:00:00';
+    document.getElementById('cronometro').classList.remove('running');
+    document.getElementById('inicioInput').value='';
+    setBloqueo(false);
+    document.getElementById('btnIniciar').disabled=false;
+    document.getElementById('btnGuardar').disabled=true;
+    document.getElementById('btnCancelar').disabled=true;
+    await recargarDatos();
+    setEstado('Guardado ✓','saved');
+    mostrarMensaje('Registro guardado correctamente.','ok');
+  }catch(e){
+    document.getElementById('btnGuardar').disabled=false;
+    setEstado('Error al guardar','error');
+    mostrarMensaje(e.message,'error');
+  }finally{ loading(false); }
 }
 
-document.getElementById("modalCantidadInput").addEventListener("keydown", function(e){
-    if(e.key === "Enter") confirmarCantidad();
-    if(e.key === "Escape") cerrarModalCantidad();
+document.getElementById('modalCantidadInput').addEventListener('keydown',e=>{
+  if(e.key==='Enter') confirmarCantidad();
+  if(e.key==='Escape') cerrarModal();
 });
-
-document.getElementById("ordenSelect").addEventListener("change", cargarProcesos);
-document.getElementById("procesoSelect").addEventListener("change", cargarActividades);
-document.getElementById("operarioSelect").addEventListener("change", actualizarResumen);
-document.getElementById("actividadSelect").addEventListener("change", actualizarResumen);
+document.getElementById('ordenSelect').addEventListener('change', cargarProcesos);
+document.getElementById('procesoSelect').addEventListener('change', cargarActividades);
+document.getElementById('operarioSelect').addEventListener('change', actualizarResumen);
+document.getElementById('actividadSelect').addEventListener('change', actualizarResumen);
 
 recargarDatos();
-
-if("serviceWorker" in navigator){
-    navigator.serviceWorker.register("/sw.js").catch(() => {});
-}
-
-window.addEventListener("beforeinstallprompt", event => {
-    event.preventDefault();
-    installPrompt = event;
-    document.getElementById("btnInstalar").classList.add("visible");
-});
-
-document.getElementById("btnInstalar").addEventListener("click", async () => {
-    if(!installPrompt) return;
-    installPrompt.prompt();
-    await installPrompt.userChoice;
-    installPrompt = null;
-    document.getElementById("btnInstalar").classList.remove("visible");
-});
 </script>
 </body>
 </html>
