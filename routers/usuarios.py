@@ -11,7 +11,7 @@ router = APIRouter()
 
 templates = Jinja2Templates(directory="templates")
 
-PASSWORD_TEMPORAL_DEFAULT = "1234"
+PASSWORD_TEMPORAL_DEFAULT = "981124"
 
 
 def asegurar_schema_usuarios():
