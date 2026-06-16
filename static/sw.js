@@ -1,4 +1,4 @@
-const STATIC_CACHE = "registro-web-static-v1";
+const STATIC_CACHE = "registro-web-v2";
 const STATIC_ASSETS = [
   "/static/logo.png",
   "/static/icon-192.png",
@@ -23,11 +23,20 @@ self.addEventListener("activate", event => {
 });
 
 self.addEventListener("fetch", event => {
-  const requestUrl = new URL(event.request.url);
+  const req = event.request;
+  const url = new URL(req.url);
 
-  if (requestUrl.origin === location.origin && requestUrl.pathname.startsWith("/static/")) {
+  if (url.origin === location.origin && url.pathname.startsWith("/static/")) {
     event.respondWith(
-      caches.match(event.request).then(cached => cached || fetch(event.request))
+      caches.match(req).then(cached => cached || fetch(req))
+    );
+  } else if (req.mode === 'navigate' || url.pathname.startsWith("/registro_web")) {
+    event.respondWith(
+      fetch(req).then(res => {
+        const resClone = res.clone();
+        caches.open(STATIC_CACHE).then(cache => cache.put(req, resClone));
+        return res;
+      }).catch(() => caches.match(req))
     );
   }
 });

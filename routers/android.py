@@ -1,5 +1,7 @@
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
+from zoneinfo import ZoneInfo
+from datetime import timedelta
 
 from fastapi import APIRouter, Header, HTTPException, Depends
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
@@ -247,7 +249,7 @@ def guardar_registro_android(data: dict, operario_id: int):
     if inicio and fin:
         tiempo = max(0, int((fin - inicio).total_seconds()))
     else:
-        fin = datetime.now()
+        fin = datetime.now(ZoneInfo("America/Bogota"))
         inicio = fin - timedelta(seconds=tiempo)
 
     c.execute("""

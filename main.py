@@ -1,8 +1,11 @@
 from fastapi import FastAPI, Request, Form, UploadFile, File, Depends  # type: ignore
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, FileResponse  # type: ignore
 from fastapi.templating import Jinja2Templates  # type: ignore
-from starlette.middleware.sessions import SessionMiddleware  # type: ignore
-from datetime import datetime, timedelta
+from starlette.middleware.sessions import SessionMiddleware
+from fastapi.middleware.gzip import GZipMiddleware  # type: ignore
+from datetime import datetime
+from zoneinfo import ZoneInfo
+from datetime import timedelta
 from fastapi.staticfiles import StaticFiles  # type: ignore
 from dotenv import load_dotenv
 from auth import login_user, require_admin, require_operario, hash_password
@@ -105,6 +108,7 @@ async def proteger_rutas_administrativas(request: Request, call_next):
 
 
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
+app.add_middleware(GZipMiddleware, minimum_size=500)
 
 templates = Jinja2Templates(directory="templates")
 app.state.templates = templates
@@ -655,7 +659,7 @@ def cerrar_orden(orden_id: int):
         UPDATE ordenes
         SET estado = 'CERRADA', cerrado_en = %s
         WHERE id = %s
-    """, (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), orden_id))
+    """, (datetime.now(ZoneInfo("America/Bogota")).strftime("%Y-%m-%d %H:%M:%S"), orden_id))
 
     conn.commit()
     conn.close()
@@ -1042,7 +1046,7 @@ def bonos(request: Request):
     if not require_admin(request):
         return RedirectResponse("/admin", 303)
 
-    hoy = datetime.now()
+    hoy = datetime.now(ZoneInfo("America/Bogota"))
     mes = int(request.query_params.get("mes", hoy.month))
     anio = int(request.query_params.get("anio", hoy.year))
 
