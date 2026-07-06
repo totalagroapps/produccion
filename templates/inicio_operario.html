@@ -1,0 +1,19 @@
+{% include 'base.html' %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 40px auto; text-align: center;">
+    <h2 style="margin-bottom: 30px; color: #1e293b;">Bienvenido, {{ request.session.get('username') }}</h2>
+    
+    <p style="color: #64748b; margin-bottom: 40px;">¿Qué deseas hacer el día de hoy?</p>
+
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+        <a href="/registro_web" style="display: block; background: #3b82f6; color: white; padding: 20px; border-radius: 12px; text-decoration: none; font-size: 18px; font-weight: bold; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3); transition: transform 0.2s;">
+            📋 Registrar Producción
+        </a>
+
+        <a href="/tickets/mis_tickets" style="display: block; background: #10b981; color: white; padding: 20px; border-radius: 12px; text-decoration: none; font-size: 18px; font-weight: bold; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3); transition: transform 0.2s;">
+            🛠️ Mis Tickets Asignados
+        </a>
+    </div>
+</div>
+{% endblock %}

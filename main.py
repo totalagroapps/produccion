@@ -68,11 +68,11 @@ def ruta_publica(path: str):
 
 
 def ruta_operario(path: str):
-    return (path in {"/registro_web", "/registro_web/registro", "/cambiar_password"} 
+    return (path in {"/registro_web", "/registro_web/registro", "/cambiar_password", "/inicio_operario"} 
             or path.startswith("/tickets/mis_tickets") 
             or path.startswith("/tickets/actualizar_estado")
             or path.startswith("/tickets/detalle")
-            or path.startswith("/tickets/") and "/actividades/" in path)
+            or path.startswith("/tickets/add_nota"))
 
 def ruta_jefe_tickets(path: str):
     return (path.startswith("/tickets/admin") 
@@ -596,6 +596,15 @@ def sincronizar_ordenes_abiertas_web(request: Request):
     return RedirectResponse(f"/panel?sync={insertadas}", 303)
 
 
+@app.get("/inicio_operario", response_class=HTMLResponse)
+def inicio_operario(request: Request):
+    if request.session.get("role") != "operario":
+        return RedirectResponse("/admin", 303)
+    return templates.TemplateResponse(
+        request=request, name="inicio_operario.html", context={"request": request}
+    )
+
+
 @app.get("/registro_web", response_class=HTMLResponse)
 def registro_web(request: Request):
     return templates.TemplateResponse(
@@ -744,7 +753,7 @@ def admin(request: Request):
         role = request.session.get("role")
         if role == "admin": return RedirectResponse("/", status_code=303)
         elif role == "jefe_tickets": return RedirectResponse("/tickets/admin", status_code=303)
-        elif role == "operario": return RedirectResponse("/registro_web", status_code=303)
+        elif role == "operario": return RedirectResponse("/inicio_operario", status_code=303)
         return RedirectResponse("/", status_code=303)
         
     return templates.TemplateResponse(
@@ -769,7 +778,7 @@ def admin_post(request: Request, user: str = Form(...), password: str = Form(...
         elif role == "jefe_tickets":
             next_page = "/tickets/admin"
         elif role == "operario":
-            next_page = "/registro_web"
+            next_page = "/inicio_operario"
         else:
             next_page = "/"
 
