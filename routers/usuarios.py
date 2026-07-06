@@ -18,6 +18,7 @@ def asegurar_schema_usuarios():
     conn = db()
     c = conn.cursor()
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS debe_cambiar_password BOOLEAN DEFAULT FALSE")
+    c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS telefono TEXT")
     conn.commit()
     conn.close()
 
@@ -54,7 +55,7 @@ def ver_usuarios(request: Request):
     c = conn.cursor()
     c.execute("""
         SELECT u.id, u.username, u.role, u.operario_id, COALESCE(o.nombre, ''),
-               COALESCE(u.debe_cambiar_password, FALSE)
+               COALESCE(u.debe_cambiar_password, FALSE), COALESCE(u.telefono, '')
         FROM users u
         LEFT JOIN operarios o ON o.id = u.operario_id
         ORDER BY u.id
@@ -82,7 +83,8 @@ def crear_usuario(
     password: str = Form(...),
     role: str = Form(...),
     operario_id: str = Form(""),
-    debe_cambiar_password: str = Form("")
+    debe_cambiar_password: str = Form(""),
+    telefono: str = Form("")
 ):
 
     if not require_admin(request):
@@ -108,10 +110,10 @@ def crear_usuario(
         c.execute(
             """
             INSERT INTO users
-                (username, password, role, operario_id, debe_cambiar_password)
-            VALUES (%s, %s, %s, %s, %s)
+                (username, password, role, operario_id, debe_cambiar_password, telefono)
+            VALUES (%s, %s, %s, %s, %s, %s)
             """,
-            (username, hashed, role, operario_id_valor, debe_cambiar)
+            (username, hashed, role, operario_id_valor, debe_cambiar, telefono)
         )
         conn.commit()
     except Exception:

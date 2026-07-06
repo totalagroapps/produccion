@@ -237,7 +237,8 @@ def crear():
         password TEXT NOT NULL,
         role TEXT NOT NULL,
         operario_id INTEGER,
-        debe_cambiar_password BOOLEAN DEFAULT FALSE
+        debe_cambiar_password BOOLEAN DEFAULT FALSE,
+        telefono TEXT
     )""")
 
     c.execute("""

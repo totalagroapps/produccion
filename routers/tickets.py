@@ -3,6 +3,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from database import db
 from auth import require_jefe_tickets, require_operario
+from utils_wpp import notificar_ticket_asignado
 import os
 import shutil
 import time
@@ -124,7 +125,7 @@ def detalle_ticket(request: Request, ticket_id: int):
     c.execute("""
         SELECT t.id, t.titulo, t.descripcion, t.estado, t.fecha_creacion, 
                u_asignado.username as asignado, u_creador.username as creador,
-               t.notas_operario, t.asignado_a
+               t.notas_operario, t.asignado_a, u_asignado.telefono
         FROM tickets t
         LEFT JOIN users u_asignado ON t.asignado_a = u_asignado.id
         LEFT JOIN users u_creador ON t.creado_por = u_creador.id
@@ -137,6 +138,7 @@ def detalle_ticket(request: Request, ticket_id: int):
 
     ticket = _formato_ticket(t_row)
     ticket["id_asignado_principal"] = t_row[8]
+    ticket["telefono_asignado"] = t_row[9] if len(t_row) > 9 else None
 
     # Adjuntos
     c.execute("""
@@ -211,6 +213,11 @@ def crear_ticket(
     )
     ticket_id = c.fetchone()[0]
 
+    c.execute("SELECT telefono FROM users WHERE id = %s", (asignado_a,))
+    tel_row = c.fetchone()
+    if tel_row and tel_row[0]:
+        notificar_ticket_asignado(tel_row[0], f"TK-{ticket_id:04d}", titulo)
+
     if archivos:
         for archivo in archivos:
             if archivo.filename:
@@ -227,7 +234,7 @@ def crear_ticket(
 
     conn.commit()
     conn.close()
-    return RedirectResponse("/tickets/admin", 303)
+    return RedirectResponse(f"/tickets/detalle/{ticket_id}", 303)
 
 @router.post("/tickets/eliminar/{ticket_id}")
 def eliminar_ticket(request: Request, ticket_id: int):

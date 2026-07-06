@@ -12,6 +12,7 @@
 <form method="post" action="/usuarios/crear">
     Usuario: <input type="text" name="username" required>
     Password: <input type="password" name="password" required>
+    Teléfono (Opcional): <input type="text" name="telefono" placeholder="+573123456789">
     Rol:
     <select name="role">
         <option value="admin">Admin</option>
@@ -59,6 +60,7 @@
         <th>Usuario</th>
         <th>Rol</th>
         <th>Operario</th>
+        <th>Teléfono</th>
         <th>Cambio password</th>
         <th>Accion</th>
     </tr>
@@ -69,6 +71,7 @@
         <td>{{ u[1] }}</td>
         <td>{{ u[2] }}</td>
         <td>{{ u[4] or "-" }}</td>
+        <td>{{ u[6] or "-" }}</td>
         <td>{{ "Si" if u[5] else "No" }}</td>
         <td>
             <a href="/usuarios/eliminar/{{ u[0] }}">Eliminar</a>
