@@ -24,6 +24,13 @@
                 <div>
                     <strong>Creado por:</strong> {{ ticket.creador or 'N/A' }}<br>
                     <strong>Asignado a:</strong> {{ ticket.asignado or 'N/A' }}<br>
+                    <strong>Prioridad:</strong> 
+                    <span style="padding:2px 6px; border-radius:10px; font-size:11px; font-weight:bold; color:white;
+                    {% if ticket.prioridad == 'ALTA' %}background:#ef4444;
+                    {% elif ticket.prioridad == 'MEDIA' %}background:#f59e0b;
+                    {% elif ticket.prioridad == 'BAJA' %}background:#10b981;{% endif %}">
+                        {{ ticket.prioridad }}
+                    </span><br>
                     <strong>Fecha:</strong> {{ ticket.fecha_creacion.strftime('%Y-%m-%d %H:%M') if ticket.fecha_creacion else '' }}
                 </div>
                 <div>

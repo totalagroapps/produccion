@@ -22,9 +22,10 @@ def _formato_ticket(t_row):
         "descripcion": t_row[2],
         "estado": t_row[3],
         "fecha_creacion": t_row[4],
-        "asignado": t_row[5], # o creador, dependiendo de la query
+        "asignado": t_row[5],
         "creador": t_row[6] if len(t_row) > 6 else None,
-        "notas_operario": t_row[7] if len(t_row) > 7 else None
+        "notas_operario": t_row[7] if len(t_row) > 7 else None,
+        "prioridad": t_row[8] if len(t_row) > 8 else 'MEDIA'
     }
 
 @router.get("/tickets/admin", response_class=HTMLResponse)
@@ -38,7 +39,8 @@ def panel_admin_tickets(request: Request):
     # Obtener tickets (resumen)
     c.execute("""
         SELECT t.id, t.titulo, t.descripcion, t.estado, t.fecha_creacion, 
-               u_asignado.username as asignado, u_creador.username as creador
+               u_asignado.username as asignado, u_creador.username as creador,
+               t.notas_operario, t.prioridad
         FROM tickets t
         LEFT JOIN users u_asignado ON t.asignado_a = u_asignado.id
         LEFT JOIN users u_creador ON t.creado_por = u_creador.id
@@ -74,7 +76,8 @@ def mis_tickets(request: Request):
 
     # Obtener tickets (resumen)
     c.execute("""
-        SELECT DISTINCT t.id, t.titulo, t.descripcion, t.estado, t.fecha_creacion, u_creador.username as creador
+        SELECT DISTINCT t.id, t.titulo, t.descripcion, t.estado, t.fecha_creacion, u_creador.username as creador,
+               t.notas_operario, t.prioridad
         FROM tickets t
         LEFT JOIN users u_creador ON t.creado_por = u_creador.id
         LEFT JOIN ticket_actividades a ON t.id = a.ticket_id
@@ -125,7 +128,7 @@ def detalle_ticket(request: Request, ticket_id: int):
     c.execute("""
         SELECT t.id, t.titulo, t.descripcion, t.estado, t.fecha_creacion, 
                u_asignado.username as asignado, u_creador.username as creador,
-               t.notas_operario, t.asignado_a, u_asignado.telefono
+               t.notas_operario, t.prioridad, t.asignado_a, u_asignado.telefono
         FROM tickets t
         LEFT JOIN users u_asignado ON t.asignado_a = u_asignado.id
         LEFT JOIN users u_creador ON t.creado_por = u_creador.id
@@ -137,8 +140,8 @@ def detalle_ticket(request: Request, ticket_id: int):
         raise HTTPException(status_code=404, detail="Ticket no encontrado")
 
     ticket = _formato_ticket(t_row)
-    ticket["id_asignado_principal"] = t_row[8]
-    ticket["telefono_asignado"] = t_row[9] if len(t_row) > 9 else None
+    ticket["id_asignado_principal"] = t_row[9]
+    ticket["telefono_asignado"] = t_row[10] if len(t_row) > 10 else None
 
     # Adjuntos
     c.execute("""
@@ -192,6 +195,7 @@ def crear_ticket(
     titulo: str = Form(...),
     descripcion: str = Form(""),
     asignado_a: int = Form(...),
+    prioridad: str = Form("MEDIA"),
     archivos: list[UploadFile] = File(None)
 ):
     if not require_jefe_tickets(request):
@@ -206,10 +210,10 @@ def crear_ticket(
 
     c.execute(
         """
-        INSERT INTO tickets (titulo, descripcion, estado, asignado_a, creado_por)
-        VALUES (%s, %s, 'PENDIENTE', %s, %s) RETURNING id
+        INSERT INTO tickets (titulo, descripcion, estado, prioridad, asignado_a, creado_por)
+        VALUES (%s, %s, 'PENDIENTE', %s, %s, %s) RETURNING id
         """,
-        (titulo, descripcion, asignado_a, creado_por_id)
+        (titulo, descripcion, prioridad, asignado_a, creado_por_id)
     )
     ticket_id = c.fetchone()[0]
 
@@ -235,6 +239,24 @@ def crear_ticket(
     conn.commit()
     conn.close()
     return RedirectResponse(f"/tickets/detalle/{ticket_id}", 303)
+
+
+@router.post("/tickets/kanban_update/{ticket_id}")
+def kanban_update(request: Request, ticket_id: int, estado: str = Form(...)):
+    if not require_jefe_tickets(request):
+        return RedirectResponse("/admin", 303)
+
+    estados_validos = ["PENDIENTE", "EN PROGRESO", "CERRADO"]
+    if estado not in estados_validos:
+        raise HTTPException(status_code=400, detail="Estado no válido")
+
+    conn = db()
+    c = conn.cursor()
+    c.execute("UPDATE tickets SET estado = %s WHERE id = %s", (estado, ticket_id))
+    conn.commit()
+    conn.close()
+    return {"status": "ok", "estado": estado}
+
 
 @router.post("/tickets/eliminar/{ticket_id}")
 def eliminar_ticket(request: Request, ticket_id: int):

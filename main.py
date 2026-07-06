@@ -256,10 +256,13 @@ def crear():
         titulo TEXT NOT NULL,
         descripcion TEXT,
         estado TEXT DEFAULT 'PENDIENTE',
+        prioridad TEXT DEFAULT 'MEDIA',
         asignado_a INTEGER REFERENCES users(id),
         creado_por INTEGER REFERENCES users(id),
         fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""")
+    
+    c.execute("ALTER TABLE tickets ADD COLUMN IF NOT EXISTS prioridad TEXT DEFAULT 'MEDIA'")
 
     c.execute("""
     CREATE TABLE IF NOT EXISTS ticket_adjuntos(
