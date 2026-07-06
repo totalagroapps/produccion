@@ -25,7 +25,8 @@ def panel_admin_tickets(request: Request):
     # Obtener tickets
     c.execute("""
         SELECT t.id, t.titulo, t.descripcion, t.estado, t.fecha_creacion, 
-               u_asignado.username as asignado, u_creador.username as creador
+               u_asignado.username as asignado, u_creador.username as creador,
+               t.notas_operario
         FROM tickets t
         LEFT JOIN users u_asignado ON t.asignado_a = u_asignado.id
         LEFT JOIN users u_creador ON t.creado_por = u_creador.id
@@ -50,6 +51,7 @@ def panel_admin_tickets(request: Request):
         tickets.append({
             "id": t[0], "titulo": t[1], "descripcion": t[2], "estado": t[3],
             "fecha_creacion": t[4], "asignado": t[5], "creador": t[6],
+            "notas_operario": t[7],
             "adjuntos": adjuntos_por_ticket.get(t[0], [])
         })
 
@@ -131,13 +133,12 @@ def eliminar_ticket(request: Request, ticket_id: int):
 
     conn = db()
     c = conn.cursor()
-    # Los adjuntos se borran solos si pusiste ON DELETE CASCADE en la bd,
-    # pero los archivos fisicos hay que borrarlos.
+    
     c.execute("SELECT ruta_archivo FROM ticket_adjuntos WHERE ticket_id = %s", (ticket_id,))
     rutas = c.fetchall()
     
     for r in rutas:
-        path = r[0].lstrip("/") # quitar el / inicial si lo tiene
+        path = r[0].lstrip("/")
         if os.path.exists(path):
             try:
                 os.remove(path)
@@ -165,7 +166,7 @@ def mis_tickets(request: Request):
     user_id = row[0] if row else None
 
     c.execute("""
-        SELECT t.id, t.titulo, t.descripcion, t.estado, t.fecha_creacion, u_creador.username as creador
+        SELECT t.id, t.titulo, t.descripcion, t.estado, t.fecha_creacion, u_creador.username as creador, t.notas_operario
         FROM tickets t
         LEFT JOIN users u_creador ON t.creado_por = u_creador.id
         WHERE t.asignado_a = %s
@@ -189,7 +190,7 @@ def mis_tickets(request: Request):
     for t in tickets_rows:
         tickets.append({
             "id": t[0], "titulo": t[1], "descripcion": t[2], "estado": t[3],
-            "fecha_creacion": t[4], "creador": t[5],
+            "fecha_creacion": t[4], "creador": t[5], "notas_operario": t[6],
             "adjuntos": adjuntos_por_ticket.get(t[0], [])
         })
 
@@ -206,7 +207,9 @@ def mis_tickets(request: Request):
 def actualizar_estado_ticket(
     request: Request,
     ticket_id: int,
-    estado: str = Form(...)
+    estado: str = Form(...),
+    notas_operario: str = Form(""),
+    archivos: list[UploadFile] = File(None)
 ):
     if not require_operario(request):
         return RedirectResponse("/admin", 303)
@@ -224,10 +227,33 @@ def actualizar_estado_ticket(
 
     c.execute("""
         UPDATE tickets 
-        SET estado = %s 
+        SET estado = %s, notas_operario = %s
         WHERE id = %s AND asignado_a = %s
-    """, (estado, ticket_id, user_id))
+    """, (estado, notas_operario, ticket_id, user_id))
     
+    # Guardar archivos subidos por el operario
+    if archivos:
+        for archivo in archivos:
+            if archivo.filename:
+                # Generar nombre único
+                timestamp = int(time.time())
+                safe_filename = f"{timestamp}_{archivo.filename.replace(' ', '_')}"
+                file_path = os.path.join(UPLOAD_DIR, safe_filename)
+                
+                with open(file_path, "wb") as buffer:
+                    shutil.copyfileobj(archivo.file, buffer)
+                
+                # Guardar ruta relativa para poder cargar en la web
+                web_path = f"/static/uploads/tickets/{safe_filename}"
+                
+                c.execute(
+                    """
+                    INSERT INTO ticket_adjuntos (ticket_id, nombre_original, ruta_archivo)
+                    VALUES (%s, %s, %s)
+                    """,
+                    (ticket_id, archivo.filename, web_path)
+                )
+
     conn.commit()
     conn.close()
 

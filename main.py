@@ -254,6 +254,7 @@ def crear():
 
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS operario_id INTEGER")
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS debe_cambiar_password BOOLEAN DEFAULT FALSE")
+    c.execute("ALTER TABLE tickets ADD COLUMN IF NOT EXISTS notas_operario TEXT")
 
     # Crear admin inicial si no existe
     c.execute("SELECT * FROM users WHERE username = %s", ("admin",))
