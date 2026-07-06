@@ -252,6 +252,17 @@ def crear():
         fecha_subida TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""")
 
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS ticket_actividades(
+        id SERIAL PRIMARY KEY,
+        ticket_id INTEGER REFERENCES tickets(id) ON DELETE CASCADE,
+        descripcion TEXT NOT NULL,
+        estado TEXT DEFAULT 'PENDIENTE',
+        asignado_a INTEGER REFERENCES users(id),
+        creado_por INTEGER REFERENCES users(id),
+        fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )""")
+
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS operario_id INTEGER")
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS debe_cambiar_password BOOLEAN DEFAULT FALSE")
     c.execute("ALTER TABLE tickets ADD COLUMN IF NOT EXISTS notas_operario TEXT")

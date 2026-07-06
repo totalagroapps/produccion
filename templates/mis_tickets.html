@@ -35,6 +35,40 @@
                 </ul>
             </div>
             {% endif %}
+
+            <!-- Actividades -->
+            <div style="margin-top:10px; font-size:12px; border-top:1px solid #eee; padding-top:8px;">
+                <strong>Actividades (Sub-tareas):</strong>
+                {% if t.actividades %}
+                <ul style="list-style-type:none; padding-left:0; margin:4px 0;">
+                    {% for act in t.actividades %}
+                    <li style="margin-bottom:4px; padding:4px; background:{% if act.asignado_a == current_user_id %}#eff6ff{% else %}#f9fafb{% endif %}; border-radius:4px; display:flex; align-items:center; gap:8px;">
+                        <form method="post" action="/tickets/actividades/{{ act.id }}/completar" style="margin:0;">
+                            <input type="hidden" name="estado" value="off">
+                            <input type="checkbox" name="estado" {% if act.estado == 'COMPLETADA' %}checked{% endif %} onchange="this.form.submit()">
+                        </form>
+                        <span style="{% if act.estado == 'COMPLETADA' %}text-decoration:line-through; color:#9ca3af;{% endif %}">
+                            {{ act.descripcion }} 
+                            <em style="color:#6b7280; font-size:10px;">(Asignado a: {{ act.asignado_a or 'N/A' }})</em>
+                        </span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p style="color:#9ca3af; margin:4px 0; font-size:11px;">No hay actividades delegadas.</p>
+                {% endif %}
+                
+                <form method="post" action="/tickets/{{ t.id }}/actividades/crear" style="margin-top:8px; display:flex; gap:4px; align-items:center;">
+                    <input type="text" name="descripcion" placeholder="Nueva actividad..." required style="padding:4px; flex:1; border:1px solid #ccc; border-radius:4px; font-size:11px;">
+                    <select name="asignado_a" required style="padding:4px; border-radius:4px; font-size:11px;">
+                        <option value="">- Asignar a -</option>
+                        {% for op in operarios %}
+                        <option value="{{ op[0] }}">{{ op[1] }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn" style="padding:4px 8px; font-size:11px;">Añadir</button>
+                </form>
+            </div>
         </td>
         <td>
             <span style="padding:4px 8px; border-radius:4px; font-size:12px; font-weight:bold;
