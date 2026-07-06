@@ -240,6 +240,9 @@ def crear():
         debe_cambiar_password BOOLEAN DEFAULT FALSE,
         telefono TEXT
     )""")
+    
+    c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS telefono TEXT")
+    c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS debe_cambiar_password BOOLEAN DEFAULT FALSE")
 
     c.execute("""
     CREATE TABLE IF NOT EXISTS tickets(
