@@ -1,0 +1,150 @@
+{% include 'base.html' %}
+
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+    <h2>{{ ticket.consecutivo }}: {{ ticket.titulo }}</h2>
+    <a href="javascript:history.back()" class="btn" style="background:#6b7280; text-decoration:none;">Volver</a>
+</div>
+
+<div style="display:flex; flex-wrap:wrap; gap:20px;">
+    <!-- Columna Izquierda: Detalles del Ticket -->
+    <div style="flex:2; min-width:300px; display:flex; flex-direction:column; gap:20px;">
+        
+        <div style="background:white; padding:20px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:15px;">
+                <div>
+                    <strong>Creado por:</strong> {{ ticket.creador or 'N/A' }}<br>
+                    <strong>Asignado a:</strong> {{ ticket.asignado or 'N/A' }}<br>
+                    <strong>Fecha:</strong> {{ ticket.fecha_creacion.strftime('%Y-%m-%d %H:%M') if ticket.fecha_creacion else '' }}
+                </div>
+                <div>
+                    <span style="padding:6px 12px; border-radius:16px; font-size:14px; font-weight:bold;
+                    {% if ticket.estado == 'PENDIENTE' %}background:#fef3c7; color:#92400e;
+                    {% elif ticket.estado == 'EN_PROGRESO' %}background:#dbeafe; color:#1e40af;
+                    {% elif ticket.estado == 'COMPLETADO' %}background:#d1fae5; color:#065f46;{% endif %}">
+                        {{ ticket.estado }}
+                    </span>
+                </div>
+            </div>
+            
+            <h4 style="border-bottom:1px solid #eee; padding-bottom:8px;">Descripción</h4>
+            <p style="white-space:pre-wrap; color:#374151; font-size:14px;">{{ ticket.descripcion }}</p>
+        </div>
+
+        <!-- Archivos Adjuntos -->
+        <div style="background:white; padding:20px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+            <h4 style="border-bottom:1px solid #eee; padding-bottom:8px; margin-top:0;">Archivos Adjuntos</h4>
+            {% if ticket.adjuntos %}
+            <ul style="padding-left:20px;">
+                {% for adj in ticket.adjuntos %}
+                <li style="margin-bottom:8px;">
+                    <a href="{{ adj.ruta }}" target="_blank" style="color:#2563eb; text-decoration:none;">{{ adj.nombre }}</a>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p style="color:#9ca3af; font-size:13px;">No hay archivos adjuntos.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Columna Derecha: Acciones, Notas, Actividades -->
+    <div style="flex:1; min-width:300px; display:flex; flex-direction:column; gap:20px;">
+        
+        <!-- Formulario de Actualización (Estado, Notas, Subir Archivos) -->
+        {% if ticket.estado == 'COMPLETADO' %}
+        <div style="background:#d1fae5; padding:20px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1); text-align:center; color:#065f46;">
+            <h3 style="margin:0 0 10px 0;">Ticket Cerrado</h3>
+            <p style="font-size:13px; margin:0;">El ticket se ha marcado como completado y ya no admite modificaciones. Puedes seguir visualizando las notas y archivos.</p>
+            
+            {% if ticket.notas_operario %}
+            <div style="margin-top:15px; padding:10px; background:white; border-radius:4px; text-align:left; color:#374151; font-size:13px; border-left:4px solid #10b981;">
+                <strong>Notas Finales:</strong><br>
+                <span style="white-space:pre-wrap;">{{ ticket.notas_operario }}</span>
+            </div>
+            {% endif %}
+        </div>
+        {% else %}
+            {% if ticket.id_asignado_principal == current_user_id or es_jefe %}
+            <div style="background:white; padding:20px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1); border-top:4px solid #3b82f6;">
+                <h4 style="margin-top:0; margin-bottom:15px;">Actualizar Progreso</h4>
+                <form method="post" action="/tickets/actualizar_estado/{{ ticket.id }}" enctype="multipart/form-data" style="display:flex; flex-direction:column; gap:12px;">
+                    <div>
+                        <label style="font-weight:bold; font-size:13px;">Estado:</label><br>
+                        <select name="estado" style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc; margin-top:4px;">
+                            <option value="PENDIENTE" {% if ticket.estado == 'PENDIENTE' %}selected{% endif %}>Pendiente</option>
+                            <option value="EN_PROGRESO" {% if ticket.estado == 'EN_PROGRESO' %}selected{% endif %}>En Progreso</option>
+                            <option value="COMPLETADO" {% if ticket.estado == 'COMPLETADO' %}selected{% endif %}>Completado</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-weight:bold; font-size:13px;">Avances / Notas:</label><br>
+                        <textarea name="notas_operario" rows="4" style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc; margin-top:4px;" placeholder="Escribe aquí los detalles del trabajo realizado...">{{ ticket.notas_operario or '' }}</textarea>
+                    </div>
+                    <div>
+                        <label style="font-weight:bold; font-size:13px;">Subir más archivos:</label><br>
+                        <input type="file" name="archivos" multiple style="width:100%; padding:4px; margin-top:4px; font-size:12px;">
+                    </div>
+                    <button type="submit" class="btn" style="background:#2563eb; width:100%; margin-top:10px;">Guardar Cambios</button>
+                </form>
+            </div>
+            {% else %}
+            <!-- Es un operario delegado, solo puede ver notas -->
+            <div style="background:white; padding:20px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+                <h4 style="margin-top:0;">Notas Generales</h4>
+                <div style="background:#f9fafb; padding:10px; border-radius:4px; font-size:13px; color:#374151;">
+                    {{ ticket.notas_operario or 'No hay notas aún.' }}
+                </div>
+            </div>
+            {% endif %}
+        {% endif %}
+
+        <!-- Actividades / Checklists -->
+        <div style="background:white; padding:20px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+            <h4 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:8px;">Sub-tareas (Actividades)</h4>
+            
+            {% if ticket.actividades %}
+            <ul style="list-style-type:none; padding-left:0; margin:10px 0;">
+                {% for act in ticket.actividades %}
+                <li style="margin-bottom:8px; padding:10px; background:{% if act.id_asignado == current_user_id %}#eff6ff{% else %}#f9fafb{% endif %}; border-radius:6px; display:flex; align-items:flex-start; gap:10px; border:1px solid #e5e7eb;">
+                    <form method="post" action="/tickets/actividades/{{ act.id }}/completar" style="margin:0; margin-top:2px;">
+                        <input type="hidden" name="estado" value="off">
+                        <input type="checkbox" name="estado" {% if act.estado == 'COMPLETADA' %}checked{% endif %} {% if ticket.estado == 'COMPLETADO' %}disabled{% else %}onchange="this.form.submit()"{% endif %} style="width:16px; height:16px; cursor:pointer;">
+                    </form>
+                    <div style="flex:1;">
+                        <span style="font-size:14px; {% if act.estado == 'COMPLETADA' %}text-decoration:line-through; color:#9ca3af;{% else %}color:#1f2937;{% endif %}">
+                            {{ act.descripcion }} 
+                        </span>
+                        <div style="color:#6b7280; font-size:11px; margin-top:4px;">
+                            Delegado a: <strong>{{ act.asignado_a or 'N/A' }}</strong>
+                        </div>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p style="color:#9ca3af; font-size:13px; margin:10px 0;">No hay sub-tareas delegadas.</p>
+            {% endif %}
+            
+            {% if ticket.estado != 'COMPLETADO' %}
+            <div style="margin-top:15px; padding-top:15px; border-top:1px dashed #e5e7eb;">
+                <strong style="font-size:13px; display:block; margin-bottom:8px;">Delegar nueva actividad:</strong>
+                <form method="post" action="/tickets/{{ ticket.id }}/actividades/crear" style="display:flex; flex-direction:column; gap:8px;">
+                    <input type="text" name="descripcion" placeholder="Descripción de la tarea..." required style="padding:8px; border:1px solid #ccc; border-radius:4px; font-size:13px;">
+                    <div style="display:flex; gap:8px;">
+                        <select name="asignado_a" required style="padding:8px; border-radius:4px; font-size:13px; flex:1; border:1px solid #ccc;">
+                            <option value="">- Asignar a -</option>
+                            {% for op in operarios %}
+                            <option value="{{ op[0] }}">{{ op[1] }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn" style="background:#10b981; padding:8px 12px; font-size:13px;">Añadir</button>
+                    </div>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+{% endblock %}

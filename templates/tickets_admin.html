@@ -31,77 +31,25 @@
     </form>
 </div>
 
-<h3>Listado de Tickets</h3>
+<h3>Tickets Creados</h3>
 <table>
     <tr>
-        <th>ID</th>
+        <th>Consecutivo</th>
         <th>Título</th>
         <th>Descripción</th>
+        <th>Asignado a</th>
         <th>Estado</th>
-        <th>Asignado A</th>
-        <th>Creado Por</th>
         <th>Fecha</th>
         <th>Acciones</th>
     </tr>
     {% for t in tickets %}
     <tr>
-        <td>{{ t.id }}</td>
+        <td style="font-weight:bold; color:#1f2937;">{{ t.consecutivo }}</td>
         <td>{{ t.titulo }}</td>
         <td>
-            {{ t.descripcion }}
-            {% if t.notas_operario %}
-            <div style="margin-top:10px; padding:8px; background:#f9fafb; border-radius:4px; border-left:3px solid #3b82f6; font-size:13px;">
-                <strong>Notas del Operario:</strong><br>
-                {{ t.notas_operario }}
-            </div>
-            {% endif %}
-            {% if t.adjuntos %}
-            <div style="margin-top:8px; font-size:12px; border-top:1px dashed #ccc; padding-top:4px;">
-                <strong>Adjuntos:</strong>
-                <ul style="margin:4px 0; padding-left:16px;">
-                    {% for adj in t.adjuntos %}
-                    <li><a href="{{ adj.ruta }}" target="_blank">{{ adj.nombre }}</a></li>
-                    {% endfor %}
-                </ul>
-            </div>
-            {% endif %}
-
-            <!-- Actividades -->
-            <div style="margin-top:10px; font-size:12px; border-top:1px solid #eee; padding-top:8px;">
-                <strong>Actividades (Sub-tareas):</strong>
-                {% if t.actividades %}
-                <ul style="list-style-type:none; padding-left:0; margin:4px 0;">
-                    {% for act in t.actividades %}
-                    <li style="margin-bottom:4px; padding:4px; background:#f9fafb; border-radius:4px; display:flex; align-items:center; gap:8px;">
-                        <form method="post" action="/tickets/actividades/{{ act.id }}/completar" style="margin:0;">
-                            <input type="hidden" name="estado" value="off">
-                            <input type="checkbox" name="estado" {% if act.estado == 'COMPLETADA' %}checked{% endif %} {% if t.estado == 'COMPLETADO' %}disabled{% else %}onchange="this.form.submit()"{% endif %}>
-                        </form>
-                        <span style="{% if act.estado == 'COMPLETADA' %}text-decoration:line-through; color:#9ca3af;{% endif %}">
-                            {{ act.descripcion }} 
-                            <em style="color:#6b7280; font-size:10px;">(Asignado a: {{ act.asignado_a or 'N/A' }})</em>
-                        </span>
-                    </li>
-                    {% endfor %}
-                </ul>
-                {% else %}
-                <p style="color:#9ca3af; margin:4px 0; font-size:11px;">No hay actividades.</p>
-                {% endif %}
-                
-                {% if t.estado != 'COMPLETADO' %}
-                <form method="post" action="/tickets/{{ t.id }}/actividades/crear" style="margin-top:8px; display:flex; gap:4px; align-items:center;">
-                    <input type="text" name="descripcion" placeholder="Nueva actividad..." required style="padding:4px; flex:1; border:1px solid #ccc; border-radius:4px; font-size:11px;">
-                    <select name="asignado_a" required style="padding:4px; border-radius:4px; font-size:11px;">
-                        <option value="">- Asignar a -</option>
-                        {% for op in operarios %}
-                        <option value="{{ op[0] }}">{{ op[1] }}</option>
-                        {% endfor %}
-                    </select>
-                    <button type="submit" class="btn" style="padding:4px 8px; font-size:11px;">Añadir</button>
-                </form>
-                {% endif %}
-            </div>
+            {{ t.descripcion[:100] }}{% if t.descripcion|length > 100 %}...{% endif %}
         </td>
+        <td>{{ t.asignado or 'N/A' }}</td>
         <td>
             <span style="padding:4px 8px; border-radius:4px; font-size:12px; font-weight:bold;
             {% if t.estado == 'PENDIENTE' %}background:#fef3c7; color:#92400e;
@@ -110,18 +58,19 @@
                 {{ t.estado }}
             </span>
         </td>
-        <td>{{ t.asignado or 'N/A' }}</td>
-        <td>{{ t.creador or 'N/A' }}</td>
         <td>{{ t.fecha_creacion.strftime('%Y-%m-%d %H:%M') if t.fecha_creacion else '' }}</td>
         <td>
-            <form method="post" action="/tickets/eliminar/{{ t.id }}" onsubmit="return confirm('¿Seguro que desea eliminar este ticket?');">
-                <button type="submit" class="btn-red">Eliminar</button>
-            </form>
+            <div style="display:flex; gap:4px;">
+                <a href="/tickets/detalle/{{ t.id }}" class="btn" style="background:#3b82f6; text-decoration:none;">Abrir</a>
+                <form method="post" action="/tickets/eliminar/{{ t.id }}" onsubmit="return confirm('¿Seguro que deseas eliminar el ticket {{ t.consecutivo }}?');" style="margin:0;">
+                    <button type="submit" class="btn" style="background:#ef4444;">Eliminar</button>
+                </form>
+            </div>
         </td>
     </tr>
     {% else %}
     <tr>
-        <td colspan="8" style="text-align:center;">No hay tickets creados aún.</td>
+        <td colspan="7" style="text-align:center;">No hay tickets creados.</td>
     </tr>
     {% endfor %}
 </table>
