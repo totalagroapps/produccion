@@ -75,7 +75,7 @@
                     <li style="margin-bottom:4px; padding:4px; background:#f9fafb; border-radius:4px; display:flex; align-items:center; gap:8px;">
                         <form method="post" action="/tickets/actividades/{{ act.id }}/completar" style="margin:0;">
                             <input type="hidden" name="estado" value="off">
-                            <input type="checkbox" name="estado" {% if act.estado == 'COMPLETADA' %}checked{% endif %} onchange="this.form.submit()">
+                            <input type="checkbox" name="estado" {% if act.estado == 'COMPLETADA' %}checked{% endif %} {% if t.estado == 'COMPLETADO' %}disabled{% else %}onchange="this.form.submit()"{% endif %}>
                         </form>
                         <span style="{% if act.estado == 'COMPLETADA' %}text-decoration:line-through; color:#9ca3af;{% endif %}">
                             {{ act.descripcion }} 
@@ -88,6 +88,7 @@
                 <p style="color:#9ca3af; margin:4px 0; font-size:11px;">No hay actividades.</p>
                 {% endif %}
                 
+                {% if t.estado != 'COMPLETADO' %}
                 <form method="post" action="/tickets/{{ t.id }}/actividades/crear" style="margin-top:8px; display:flex; gap:4px; align-items:center;">
                     <input type="text" name="descripcion" placeholder="Nueva actividad..." required style="padding:4px; flex:1; border:1px solid #ccc; border-radius:4px; font-size:11px;">
                     <select name="asignado_a" required style="padding:4px; border-radius:4px; font-size:11px;">
@@ -98,6 +99,7 @@
                     </select>
                     <button type="submit" class="btn" style="padding:4px 8px; font-size:11px;">Añadir</button>
                 </form>
+                {% endif %}
             </div>
         </td>
         <td>
