@@ -256,8 +256,22 @@ def crear():
         id SERIAL PRIMARY KEY,
         ticket_id INTEGER REFERENCES tickets(id) ON DELETE CASCADE,
         nombre_original TEXT,
-        ruta_archivo TEXT,
-        fecha_subida TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ruta_archivo TEXT
+    )""")
+
+    c.execute("""
+    ALTER TABLE ticket_adjuntos 
+    ADD COLUMN IF NOT EXISTS subido_por INTEGER REFERENCES users(id),
+    ADD COLUMN IF NOT EXISTS fecha_subida TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    """)
+
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS ticket_notas(
+        id SERIAL PRIMARY KEY,
+        ticket_id INTEGER REFERENCES tickets(id) ON DELETE CASCADE,
+        usuario_id INTEGER REFERENCES users(id),
+        nota TEXT,
+        fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""")
 
     c.execute("""

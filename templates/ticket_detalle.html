@@ -38,7 +38,13 @@
             <ul style="padding-left:20px;">
                 {% for adj in ticket.adjuntos %}
                 <li style="margin-bottom:8px;">
-                    <a href="{{ adj.ruta }}" target="_blank" style="color:#2563eb; text-decoration:none;">{{ adj.nombre }}</a>
+                    <a href="{{ adj.ruta }}" target="_blank" style="color:#2563eb; text-decoration:none; font-weight:bold;">{{ adj.nombre }}</a>
+                    {% if adj.subido_por or adj.fecha %}
+                    <div style="font-size:11px; color:#6b7280; margin-top:2px;">
+                        Subido por: <strong>{{ adj.subido_por or 'Desconocido' }}</strong> 
+                        el {{ adj.fecha.strftime('%Y-%m-%d %H:%M') if adj.fecha else 'Desconocida' }}
+                    </div>
+                    {% endif %}
                 </li>
                 {% endfor %}
             </ul>
@@ -51,18 +57,42 @@
     <!-- Columna Derecha: Acciones, Notas, Actividades -->
     <div style="flex:1; min-width:300px; display:flex; flex-direction:column; gap:20px;">
         
+        <!-- Historial de Notas -->
+        <div style="background:white; padding:20px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+            <h4 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:8px;">Historial de Avances</h4>
+            
+            <div style="display:flex; flex-direction:column; gap:12px; margin-top:15px; max-height:400px; overflow-y:auto; padding-right:5px;">
+                {% if ticket.notas_operario %}
+                <!-- Nota Original / Migrada -->
+                <div style="background:#f3f4f6; padding:12px; border-radius:8px; border-left:4px solid #9ca3af;">
+                    <div style="display:flex; justify-content:space-between; font-size:11px; color:#6b7280; margin-bottom:4px;">
+                        <strong>Nota Inicial (Migrada)</strong>
+                    </div>
+                    <div style="font-size:13px; color:#1f2937; white-space:pre-wrap;">{{ ticket.notas_operario }}</div>
+                </div>
+                {% endif %}
+
+                {% for n in ticket.notas %}
+                <div style="background:#f0fdf4; padding:12px; border-radius:8px; border-left:4px solid #10b981;">
+                    <div style="display:flex; justify-content:space-between; font-size:11px; color:#6b7280; margin-bottom:4px;">
+                        <strong>{{ n.autor or 'Desconocido' }}</strong>
+                        <span>{{ n.fecha.strftime('%Y-%m-%d %H:%M') if n.fecha else '' }}</span>
+                    </div>
+                    <div style="font-size:13px; color:#1f2937; white-space:pre-wrap;">{{ n.nota }}</div>
+                </div>
+                {% else %}
+                    {% if not ticket.notas_operario %}
+                    <p style="color:#9ca3af; font-size:13px; margin:0;">No hay avances registrados.</p>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+
         <!-- Formulario de Actualización (Estado, Notas, Subir Archivos) -->
         {% if ticket.estado == 'COMPLETADO' %}
         <div style="background:#d1fae5; padding:20px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1); text-align:center; color:#065f46;">
             <h3 style="margin:0 0 10px 0;">Ticket Cerrado</h3>
-            <p style="font-size:13px; margin:0;">El ticket se ha marcado como completado y ya no admite modificaciones. Puedes seguir visualizando las notas y archivos.</p>
-            
-            {% if ticket.notas_operario %}
-            <div style="margin-top:15px; padding:10px; background:white; border-radius:4px; text-align:left; color:#374151; font-size:13px; border-left:4px solid #10b981;">
-                <strong>Notas Finales:</strong><br>
-                <span style="white-space:pre-wrap;">{{ ticket.notas_operario }}</span>
-            </div>
-            {% endif %}
+            <p style="font-size:13px; margin:0;">El ticket se ha marcado como completado y ya no admite modificaciones.</p>
         </div>
         {% else %}
             {% if ticket.id_asignado_principal == current_user_id or es_jefe %}
@@ -78,8 +108,8 @@
                         </select>
                     </div>
                     <div>
-                        <label style="font-weight:bold; font-size:13px;">Avances / Notas:</label><br>
-                        <textarea name="notas_operario" rows="4" style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc; margin-top:4px;" placeholder="Escribe aquí los detalles del trabajo realizado...">{{ ticket.notas_operario or '' }}</textarea>
+                        <label style="font-weight:bold; font-size:13px;">Añadir Avance / Nota:</label><br>
+                        <textarea name="notas_operario" rows="3" style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc; margin-top:4px;" placeholder="Escribe aquí los detalles del trabajo realizado..."></textarea>
                     </div>
                     <div>
                         <label style="font-weight:bold; font-size:13px;">Subir más archivos:</label><br>
@@ -91,10 +121,7 @@
             {% else %}
             <!-- Es un operario delegado, solo puede ver notas -->
             <div style="background:white; padding:20px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
-                <h4 style="margin-top:0;">Notas Generales</h4>
-                <div style="background:#f9fafb; padding:10px; border-radius:4px; font-size:13px; color:#374151;">
-                    {{ ticket.notas_operario or 'No hay notas aún.' }}
-                </div>
+                <p style="font-size:13px; color:#6b7280; margin:0;">Eres delegado en una sub-tarea. Solo puedes completar tu actividad, pero no puedes cambiar el estado del ticket.</p>
             </div>
             {% endif %}
         {% endif %}

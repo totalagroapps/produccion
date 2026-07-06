@@ -139,8 +139,24 @@ def detalle_ticket(request: Request, ticket_id: int):
     ticket["id_asignado_principal"] = t_row[8]
 
     # Adjuntos
-    c.execute("SELECT nombre_original, ruta_archivo FROM ticket_adjuntos WHERE ticket_id = %s", (ticket_id,))
-    ticket["adjuntos"] = [{"nombre": r[0], "ruta": r[1]} for r in c.fetchall()]
+    c.execute("""
+        SELECT a.nombre_original, a.ruta_archivo, a.fecha_subida, u.username as subido_por_nombre 
+        FROM ticket_adjuntos a
+        LEFT JOIN users u ON a.subido_por = u.id
+        WHERE a.ticket_id = %s
+        ORDER BY a.fecha_subida ASC
+    """, (ticket_id,))
+    ticket["adjuntos"] = [{"nombre": r[0], "ruta": r[1], "fecha": r[2], "subido_por": r[3]} for r in c.fetchall()]
+
+    # Notas
+    c.execute("""
+        SELECT n.id, n.nota, n.fecha_creacion, u.username as autor
+        FROM ticket_notas n
+        LEFT JOIN users u ON n.usuario_id = u.id
+        WHERE n.ticket_id = %s
+        ORDER BY n.fecha_creacion ASC
+    """, (ticket_id,))
+    ticket["notas"] = [{"id": r[0], "nota": r[1], "fecha": r[2], "autor": r[3]} for r in c.fetchall()]
 
     # Actividades
     c.execute("""
@@ -205,8 +221,8 @@ def crear_ticket(
                     shutil.copyfileobj(archivo.file, buffer)
                 web_path = f"/static/uploads/tickets/{safe_filename}"
                 c.execute(
-                    "INSERT INTO ticket_adjuntos (ticket_id, nombre_original, ruta_archivo) VALUES (%s, %s, %s)",
-                    (ticket_id, archivo.filename, web_path)
+                    "INSERT INTO ticket_adjuntos (ticket_id, nombre_original, ruta_archivo, subido_por) VALUES (%s, %s, %s, %s)",
+                    (ticket_id, archivo.filename, web_path, creado_por_id)
                 )
 
     conn.commit()
@@ -257,9 +273,18 @@ def actualizar_estado_ticket(
     # Solo el responsable del ticket principal puede cambiar estado y notas generales
     c.execute("""
         UPDATE tickets 
-        SET estado = %s, notas_operario = %s
+        SET estado = %s
         WHERE id = %s AND asignado_a = %s AND estado != 'COMPLETADO'
-    """, (estado, notas_operario, ticket_id, user_id))
+    """, (estado, ticket_id, user_id))
+    
+    # Si hubo modificación de estado válida (o era el mismo), procedemos. 
+    # Usamos c.rowcount para saber si pudo cambiar el estado.
+    if c.rowcount > 0:
+        if notas_operario.strip():
+            c.execute(
+                "INSERT INTO ticket_notas (ticket_id, usuario_id, nota) VALUES (%s, %s, %s)",
+                (ticket_id, user_id, notas_operario.strip())
+            )
     
     if archivos:
         # Check si se actualizó algo (es decir, sí tenía permiso)
@@ -273,8 +298,8 @@ def actualizar_estado_ticket(
                         shutil.copyfileobj(archivo.file, buffer)
                     web_path = f"/static/uploads/tickets/{safe_filename}"
                     c.execute(
-                        "INSERT INTO ticket_adjuntos (ticket_id, nombre_original, ruta_archivo) VALUES (%s, %s, %s)",
-                        (ticket_id, archivo.filename, web_path)
+                        "INSERT INTO ticket_adjuntos (ticket_id, nombre_original, ruta_archivo, subido_por) VALUES (%s, %s, %s, %s)",
+                        (ticket_id, archivo.filename, web_path, user_id)
                     )
 
     conn.commit()
