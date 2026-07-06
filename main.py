@@ -85,46 +85,52 @@ def ruta_jefe_tickets(path: str):
 @app.middleware("http")
 async def proteger_rutas_administrativas(request: Request, call_next):
     path = request.url.path
+    
+    # Excepción para rutas públicas
+    if ruta_publica(path):
+        return await call_next(request)
 
-    if ruta_operario(path):
-        if require_operario(request):
-            if request.session.get("debe_cambiar_password") and path != "/cambiar_password":
-                if request.method in ("GET", "HEAD"):
-                    return RedirectResponse("/cambiar_password", status_code=303)
-                return JSONResponse(
-                    {"detail": "Debe cambiar su password antes de registrar produccion"},
-                    status_code=403,
-                )
+    from auth import require_jefe_tickets
+    
+    es_operario_ruta = ruta_operario(path)
+    es_jefe_ruta = ruta_jefe_tickets(path)
+    
+    # Si la ruta no está ni en operario ni en jefe_tickets, es de admin puro
+    if not es_operario_ruta and not es_jefe_ruta:
+        if request.session.get("username") and request.session.get("role") == "admin":
             return await call_next(request)
-
         if request.method in ("GET", "HEAD"):
             destino = path.strip("/") or ""
             return RedirectResponse(f"/admin?next={destino}", status_code=303)
+        return JSONResponse({"detail": "Debe iniciar sesion como admin"}, status_code=401)
 
-        return JSONResponse(
-            {"detail": "Debe iniciar sesion como operario"},
-            status_code=401,
-        )
+    es_operario = require_operario(request)
+    es_jefe = require_jefe_tickets(request)
+    
+    can_access = False
+    if es_operario_ruta and es_operario:
+        can_access = True
+    if es_jefe_ruta and es_jefe:
+        can_access = True
+    
+    # Los jefes de tickets y admins siempre pueden acceder a las rutas de operarios que traten sobre tickets
+    if es_operario_ruta and path.startswith("/tickets/") and es_jefe:
+        can_access = True
 
-    from auth import require_jefe_tickets
-    if ruta_jefe_tickets(path):
-        if require_jefe_tickets(request):
-            return await call_next(request)
-        if request.method in ("GET", "HEAD"):
-            return RedirectResponse("/admin", status_code=303)
-        return JSONResponse({"detail": "No autorizado"}, status_code=401)
-
-    if ruta_publica(path) or (request.session.get("username") and request.session.get("role") == "admin"):
+    if can_access:
+        if es_operario and request.session.get("debe_cambiar_password") and path != "/cambiar_password":
+            if request.method in ("GET", "HEAD"):
+                return RedirectResponse("/cambiar_password", status_code=303)
+            return JSONResponse({"detail": "Debe cambiar su password antes de continuar"}, status_code=403)
+            
         return await call_next(request)
 
+    # Si no tiene acceso, redirigir al login
     if request.method in ("GET", "HEAD"):
         destino = path.strip("/") or ""
         return RedirectResponse(f"/admin?next={destino}", status_code=303)
-
-    return JSONResponse(
-        {"detail": "Debe iniciar sesion como admin"},
-        status_code=401,
-    )
+        
+    return JSONResponse({"detail": "No autorizado para esta accion"}, status_code=401)
 
 
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
