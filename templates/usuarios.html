@@ -1,90 +1,172 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Usuarios</title>
-</head>
-<body>
-{% include '_navbar.html' %}
+{% extends "base.html" %}
 
-<h2>Administrar Usuarios</h2>
+{% block title %}Usuarios{% endblock %}
 
-<h3>Crear Nuevo Usuario</h3>
-<form method="post" action="/usuarios/crear">
-    Usuario: <input type="text" name="username" required>
-    Password: <input type="password" name="password" required>
-    Teléfono (Opcional): <input type="text" name="telefono" placeholder="+573123456789">
-    Rol:
-    <select name="role">
-        <option value="admin">Admin</option>
-        <option value="supervisor">Supervisor</option>
-        <option value="jefe_tickets">Jefe de Tickets</option>
-        <option value="operario">Operario</option>
-    </select>
-    Operario:
-    <select name="operario_id">
-        <option value="">Sin operario</option>
-        {% for op in operarios %}
-        <option value="{{ op[0] }}">{{ op[1] }}</option>
-        {% endfor %}
-    </select>
-    <label>
-        <input type="checkbox" name="debe_cambiar_password" checked>
-        Pedir cambio de password al primer inicio
-    </label>
-    <button type="submit">Crear</button>
-</form>
+{% block content %}
+<div class="container my-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Administrar Usuarios</h2>
+    </div>
 
-<hr>
+    <!-- Mensajes de éxito -->
+    {% if request.query_params.get('creados') is not none %}
+    <div class="alert alert-success alert-dismissible fade show">
+        Usuarios creados correctamente: {{ request.query_params.get('creados') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
 
-<h3>Crear usuarios para operarios sin cuenta</h3>
-<form method="post" action="/usuarios/crear_operarios">
-    Password temporal:
-    <input type="text" name="password_temporal" value="{{ password_temporal_default or '123456' }}" required>
-    <button type="submit">Crear usuarios faltantes</button>
-</form>
+    {% if request.query_params.get('reset') %}
+    <div class="alert alert-info alert-dismissible fade show">
+        Password temporal restablecido exitosamente.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
 
-{% if request.query_params.get('creados') is not none %}
-<p>Usuarios creados: {{ request.query_params.get('creados') }}</p>
-{% endif %}
+    <div class="row mb-4">
+        <!-- Columna Crear Usuario Nuevo -->
+        <div class="col-md-7 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Crear Nuevo Usuario</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="/usuarios/crear">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Usuario</label>
+                                <input type="text" class="form-control" name="username" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Password</label>
+                                <input type="password" class="form-control" name="password" required>
+                            </div>
+                        </div>
 
-{% if request.query_params.get('reset') %}
-<p>Password temporal restablecido. El operario debera cambiarlo al iniciar.</p>
-{% endif %}
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Rol</label>
+                                <select class="form-select" name="role">
+                                    <option value="admin">Admin</option>
+                                    <option value="supervisor">Supervisor</option>
+                                    <option value="jefe_tickets">Jefe de Tickets</option>
+                                    <option value="operario">Operario</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Vincular a Operario</label>
+                                <select class="form-select" name="operario_id">
+                                    <option value="">Sin operario</option>
+                                    {% for op in operarios %}
+                                    <option value="{{ op[0] }}">{{ op[1] }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
 
-<hr>
+                        <div class="mb-3">
+                            <label class="form-label">Teléfono (Opcional - WhatsApp)</label>
+                            <input type="text" class="form-control" name="telefono" placeholder="Ej: +573123456789">
+                            <div class="form-text">Si ingresas un número con indicativo (ej. +57...), este usuario recibirá notificaciones de sus tickets asignados por WhatsApp.</div>
+                        </div>
 
-<h3>Lista de Usuarios</h3>
-<table border="1">
-    <tr>
-        <th>ID</th>
-        <th>Usuario</th>
-        <th>Rol</th>
-        <th>Operario</th>
-        <th>Teléfono</th>
-        <th>Cambio password</th>
-        <th>Accion</th>
-    </tr>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" name="debe_cambiar_password" id="checkCambio" checked>
+                            <label class="form-check-label" for="checkCambio">
+                                Pedir cambio de password al primer inicio (solo operarios)
+                            </label>
+                        </div>
 
-    {% for u in usuarios %}
-    <tr>
-        <td>{{ u[0] }}</td>
-        <td>{{ u[1] }}</td>
-        <td>{{ u[2] }}</td>
-        <td>{{ u[4] or "-" }}</td>
-        <td>{{ u[6] or "-" }}</td>
-        <td>{{ "Si" if u[5] else "No" }}</td>
-        <td>
-            <a href="/usuarios/eliminar/{{ u[0] }}">Eliminar</a>
-            {% if u[2] == "operario" %}
-            <form method="post" action="/usuarios/reset_password/{{ u[0] }}" style="display:inline;">
-                <button type="submit">Reset password</button>
-            </form>
-            {% endif %}
-        </td>
-    </tr>
-    {% endfor %}
+                        <button type="submit" class="btn btn-primary w-100">Crear Usuario</button>
+                    </form>
+                </div>
+            </div>
+        </div>
 
-</table>
+        <!-- Columna Creación Masiva Operarios -->
+        <div class="col-md-5 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">Generación Automática</h5>
+                </div>
+                <div class="card-body d-flex flex-column justify-content-center">
+                    <p class="text-muted mb-3">Genera cuentas de usuario automáticamente para todos los operarios que están en nómina pero aún no tienen acceso al sistema.</p>
+                    <form method="post" action="/usuarios/crear_operarios">
+                        <div class="mb-3">
+                            <label class="form-label">Password temporal por defecto</label>
+                            <input type="text" class="form-control" name="password_temporal" value="{{ password_temporal_default or '123456' }}" required>
+                        </div>
+                        <button type="submit" class="btn btn-outline-secondary w-100">Generar Cuentas Faltantes</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 
-</body>
-</html>
+    <div class="card shadow-sm">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">Directorio de Usuarios</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Usuario</th>
+                            <th>Rol</th>
+                            <th>Vinculado a</th>
+                            <th>WhatsApp</th>
+                            <th>¿Debe cambiar clave?</th>
+                            <th class="text-end">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in usuarios %}
+                        <tr>
+                            <td>{{ u[0] }}</td>
+                            <td class="fw-bold">{{ u[1] }}</td>
+                            <td>
+                                {% if u[2] == 'admin' %}
+                                    <span class="badge bg-danger">Admin</span>
+                                {% elif u[2] == 'jefe_tickets' %}
+                                    <span class="badge bg-info text-dark">Jefe Tickets</span>
+                                {% elif u[2] == 'supervisor' %}
+                                    <span class="badge bg-primary">Supervisor</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Operario</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ u[4] or '<span class="text-muted">N/A</span>'|safe }}</td>
+                            <td>{{ u[6] or '<span class="text-muted">-</span>'|safe }}</td>
+                            <td>
+                                {% if u[5] %}
+                                    <span class="badge bg-warning text-dark">Sí</span>
+                                {% else %}
+                                    <span class="badge bg-success">No</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if u[2] == "operario" %}
+                                <form method="post" action="/usuarios/reset_password/{{ u[0] }}" style="display:inline;">
+                                    <button type="submit" class="btn btn-sm btn-outline-warning" title="Resetear Clave">
+                                        🔑
+                                    </button>
+                                </form>
+                                {% endif %}
+                                <a href="/usuarios/editar/{{ u[0] }}" class="btn btn-sm btn-outline-primary" title="Editar Usuario">
+                                    ✏️
+                                </a>
+                                <a href="/usuarios/eliminar/{{ u[0] }}" class="btn btn-sm btn-outline-danger" title="Eliminar Usuario" onclick="return confirm('¿Seguro que deseas eliminar a este usuario?');">
+                                    🗑️
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

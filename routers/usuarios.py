@@ -210,3 +210,66 @@ def eliminar_usuario(request: Request, user_id: int):
     conn.close()
 
     return RedirectResponse("/usuarios", 303)
+
+
+@router.get("/usuarios/editar/{user_id}", response_class=HTMLResponse)
+def editar_usuario_form(request: Request, user_id: int):
+    if not require_admin(request):
+        return RedirectResponse("/admin", 303)
+
+    asegurar_schema_usuarios()
+    
+    conn = db()
+    c = conn.cursor()
+    
+    c.execute("SELECT id, username, role, operario_id, telefono FROM users WHERE id = %s", (user_id,))
+    usuario = c.fetchone()
+    
+    c.execute("SELECT id, nombre FROM operarios ORDER BY nombre")
+    operarios = c.fetchall()
+    conn.close()
+    
+    if not usuario:
+        return RedirectResponse("/usuarios", 303)
+
+    return templates.TemplateResponse(
+        request=request, name="usuario_editar.html", context={
+        "request": request,
+        "usuario": usuario,
+        "operarios": operarios
+    })
+
+
+@router.post("/usuarios/editar/{user_id}")
+def editar_usuario_post(
+    request: Request,
+    user_id: int,
+    role: str = Form(...),
+    operario_id: str = Form(""),
+    telefono: str = Form("")
+):
+    if not require_admin(request):
+        return RedirectResponse("/admin", 303)
+
+    asegurar_schema_usuarios()
+    
+    operario_id_valor = int(operario_id) if operario_id else None
+    if role != "operario":
+        operario_id_valor = None
+
+    conn = db()
+    c = conn.cursor()
+    c.execute(
+        """
+        UPDATE users
+        SET role = %s,
+            operario_id = %s,
+            telefono = %s
+        WHERE id = %s
+        """,
+        (role, operario_id_valor, telefono, user_id)
+    )
+    conn.commit()
+    conn.close()
+
+    return RedirectResponse("/usuarios", 303)

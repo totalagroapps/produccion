@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Usuario - {{ usuario[1] }}{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Editar Usuario: {{ usuario[1] }}</h5>
+                    <a href="/usuarios" class="btn btn-sm btn-light">Volver</a>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="/usuarios/editar/{{ usuario[0] }}">
+                        <div class="mb-3">
+                            <label class="form-label">Nombre de Usuario</label>
+                            <input type="text" class="form-control" value="{{ usuario[1] }}" disabled>
+                            <div class="form-text">El nombre de usuario no puede ser modificado.</div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Rol del Usuario</label>
+                                <select class="form-select" name="role">
+                                    <option value="admin" {% if usuario[2] == 'admin' %}selected{% endif %}>Admin</option>
+                                    <option value="supervisor" {% if usuario[2] == 'supervisor' %}selected{% endif %}>Supervisor</option>
+                                    <option value="jefe_tickets" {% if usuario[2] == 'jefe_tickets' %}selected{% endif %}>Jefe de Tickets</option>
+                                    <option value="operario" {% if usuario[2] == 'operario' %}selected{% endif %}>Operario</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Vincular a Operario</label>
+                                <select class="form-select" name="operario_id">
+                                    <option value="">Sin operario</option>
+                                    {% for op in operarios %}
+                                    <option value="{{ op[0] }}" {% if usuario[3] == op[0] %}selected{% endif %}>{{ op[1] }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">Obligatorio si el rol es "Operario".</div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Teléfono (WhatsApp)</label>
+                            <input type="text" class="form-control" name="telefono" value="{{ usuario[4] or '' }}" placeholder="Ej: +573123456789">
+                            <div class="form-text">A este número se le enviarán las notificaciones de los tickets asignados. (Asegúrate de incluir el indicativo +57 o el de tu país).</div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="/usuarios" class="btn btn-outline-secondary">Cancelar</a>
+                            <button type="submit" class="btn btn-success">Guardar Cambios</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
