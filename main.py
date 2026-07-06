@@ -68,10 +68,16 @@ def ruta_publica(path: str):
 
 
 def ruta_operario(path: str):
-    return path in {"/registro_web", "/registro_web/registro", "/cambiar_password"} or path.startswith("/tickets/mis_tickets") or path.startswith("/tickets/actualizar_estado")
+    return (path in {"/registro_web", "/registro_web/registro", "/cambiar_password"} 
+            or path.startswith("/tickets/mis_tickets") 
+            or path.startswith("/tickets/actualizar_estado")
+            or path.startswith("/tickets/") and "/actividades/" in path)
 
 def ruta_jefe_tickets(path: str):
-    return path.startswith("/tickets/admin") or path.startswith("/tickets/crear") or path.startswith("/tickets/eliminar")
+    return (path.startswith("/tickets/admin") 
+            or path.startswith("/tickets/crear") 
+            or path.startswith("/tickets/eliminar")
+            or path.startswith("/tickets/") and "/actividades/" in path)
 
 
 @app.middleware("http")
