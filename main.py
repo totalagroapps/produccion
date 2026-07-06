@@ -777,21 +777,23 @@ def admin_post(request: Request, user: str = Form(...), password: str = Form(...
             next_page = "/cambiar_password"
         else:
             next_page = request.query_params.get("next")
-    else:
-        next_page = "/admin"
+            
+        if not next_page or next_page == "None":
+            role = request.session.get("role")
+            if role == "admin":
+                next_page = "/"
+            elif role == "jefe_tickets":
+                next_page = "/tickets/admin"
+            elif role == "operario":
+                next_page = "/inicio_operario"
+            else:
+                next_page = "/"
 
-    if not next_page or next_page == "None":
-        role = request.session.get("role")
-        if role == "admin":
-            next_page = "/"
-        elif role == "jefe_tickets":
-            next_page = "/tickets/admin"
-        elif role == "operario":
-            next_page = "/inicio_operario"
-        else:
-            next_page = "/"
+        return RedirectResponse(next_page, status_code=303)
 
-    return RedirectResponse(next_page, status_code=303)
+    return templates.TemplateResponse(
+        request=request, name="login.html", context={"request": request, "error": "Usuario o contraseña incorrectos"}
+    )
 
 
 @app.get("/cambiar_password", response_class=HTMLResponse)
