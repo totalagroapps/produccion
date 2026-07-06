@@ -19,6 +19,7 @@ from routers.admin_tools import router as admin_tools_router
 from routers import planificador
 from routers import configuracion
 from routers import admin_panel
+from routers.tickets import router as tickets_router
 
 import os
 import pandas as pd  # type: ignore
@@ -67,7 +68,10 @@ def ruta_publica(path: str):
 
 
 def ruta_operario(path: str):
-    return path in {"/registro_web", "/registro_web/registro", "/cambiar_password"}
+    return path in {"/registro_web", "/registro_web/registro", "/cambiar_password"} or path.startswith("/tickets/mis_tickets") or path.startswith("/tickets/actualizar_estado")
+
+def ruta_jefe_tickets(path: str):
+    return path.startswith("/tickets/admin") or path.startswith("/tickets/crear") or path.startswith("/tickets/eliminar")
 
 
 @app.middleware("http")
@@ -93,6 +97,14 @@ async def proteger_rutas_administrativas(request: Request, call_next):
             {"detail": "Debe iniciar sesion como operario"},
             status_code=401,
         )
+
+    from auth import require_jefe_tickets
+    if ruta_jefe_tickets(path):
+        if require_jefe_tickets(request):
+            return await call_next(request)
+        if request.method in ("GET", "HEAD"):
+            return RedirectResponse("/admin", status_code=303)
+        return JSONResponse({"detail": "No autorizado"}, status_code=401)
 
     if ruta_publica(path) or (request.session.get("username") and request.session.get("role") == "admin"):
         return await call_next(request)
@@ -121,6 +133,7 @@ app.include_router(admin_tools_router)
 app.include_router(configuracion.router)
 app.include_router(admin_panel.router)
 app.include_router(planificador.router)
+app.include_router(tickets_router)
 
 
 # ================= CREAR TABLAS =================
@@ -217,6 +230,26 @@ def crear():
         role TEXT NOT NULL,
         operario_id INTEGER,
         debe_cambiar_password BOOLEAN DEFAULT FALSE
+    )""")
+
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS tickets(
+        id SERIAL PRIMARY KEY,
+        titulo TEXT NOT NULL,
+        descripcion TEXT,
+        estado TEXT DEFAULT 'PENDIENTE',
+        asignado_a INTEGER REFERENCES users(id),
+        creado_por INTEGER REFERENCES users(id),
+        fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )""")
+
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS ticket_adjuntos(
+        id SERIAL PRIMARY KEY,
+        ticket_id INTEGER REFERENCES tickets(id) ON DELETE CASCADE,
+        nombre_original TEXT,
+        ruta_archivo TEXT,
+        fecha_subida TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""")
 
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS operario_id INTEGER")

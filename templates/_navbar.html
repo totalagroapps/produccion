@@ -134,12 +134,17 @@
             <a href="/kpi">KPI</a>
             <a href="/bonos">Bonos</a>
             <a href="/planificador">Planificador</a>
+            <a class="admin-link" href="/tickets/admin">Tickets</a>
             <a class="admin-link" href="/usuarios">Usuarios</a>
             <a class="admin-link" href="/admin_tools">Herramientas</a>
             <a class="admin-link" href="/configuracion">Configuracion</a>
             <a class="logout-link" href="/logout">Salir</a>
+            {% elif request and request.session.get("role") == "jefe_tickets" %}
+            <a href="/tickets/admin">Panel de Tickets</a>
+            <a class="logout-link" href="/logout">Salir</a>
             {% elif request and request.session.get("role") == "operario" %}
             <a href="/registro_web">Registro Web</a>
+            <a href="/tickets/mis_tickets">Mis Tickets</a>
             <a class="logout-link" href="/logout">Salir</a>
             {% else %}
             {% endif %}

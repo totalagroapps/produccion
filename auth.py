@@ -21,6 +21,9 @@ def require_operario(request: Request):
         and bool(request.session.get("operario_id"))
     )
 
+def require_jefe_tickets(request: Request):
+    return bool(request.session.get("username")) and request.session.get("role") in ("admin", "jefe_tickets")
+
 def login_user(request: Request, username: str, password: str):
     conn = db()
     c = conn.cursor()
