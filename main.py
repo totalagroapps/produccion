@@ -740,6 +740,13 @@ def cerrar_orden(orden_id: int):
 
 @app.get("/admin", response_class=HTMLResponse)
 def admin(request: Request):
+    if request.session.get("username"):
+        role = request.session.get("role")
+        if role == "admin": return RedirectResponse("/", status_code=303)
+        elif role == "jefe_tickets": return RedirectResponse("/tickets/admin", status_code=303)
+        elif role == "operario": return RedirectResponse("/registro_web", status_code=303)
+        return RedirectResponse("/", status_code=303)
+        
     return templates.TemplateResponse(
         request=request, name="login.html", context={"request": request})
 
@@ -756,7 +763,15 @@ def admin_post(request: Request, user: str = Form(...), password: str = Form(...
         next_page = "/admin"
 
     if not next_page or next_page == "None":
-        next_page = "/"
+        role = request.session.get("role")
+        if role == "admin":
+            next_page = "/"
+        elif role == "jefe_tickets":
+            next_page = "/tickets/admin"
+        elif role == "operario":
+            next_page = "/registro_web"
+        else:
+            next_page = "/"
 
     return RedirectResponse(next_page, status_code=303)
 
