@@ -87,6 +87,16 @@
         background: #e2e8f0;
         border-color: #94a3b8;
     }
+
+    @media (max-width: 768px) {
+        .kanban-board {
+            flex-direction: column;
+            overflow-x: visible;
+        }
+        .kanban-column {
+            min-width: 100%;
+        }
+    }
     
     /* Prioridades */
     .prioridad-ALTA { border-left-color: #ef4444; }
