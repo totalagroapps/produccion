@@ -72,13 +72,18 @@ def ruta_operario(path: str):
             or path.startswith("/tickets/mis_tickets") 
             or path.startswith("/tickets/actualizar_estado")
             or path.startswith("/tickets/detalle")
-            or path.startswith("/tickets/add_nota"))
+            or path.startswith("/tickets/add_nota")
+            or path.startswith("/tickets/cerrar_operario"))
 
 def ruta_jefe_tickets(path: str):
     return (path.startswith("/tickets/admin") 
             or path.startswith("/tickets/crear") 
             or path.startswith("/tickets/eliminar")
             or path.startswith("/tickets/detalle")
+            or path.startswith("/tickets/kanban_update")
+            or path.startswith("/tickets/actualizar_vencimiento")
+            or path.startswith("/tickets/actualizar_tiempo")
+            or path.startswith("/tickets/dashboard")
             or path.startswith("/tickets/") and "/actividades/" in path)
 
 
