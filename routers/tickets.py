@@ -15,6 +15,18 @@ UPLOAD_DIR = "static/uploads/tickets"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 def _formato_ticket(t_row):
+    import datetime
+    from zoneinfo import ZoneInfo
+    
+    fecha_vencimiento = t_row[9] if len(t_row) > 9 else None
+    estado_vencimiento = "OK"
+    if fecha_vencimiento and t_row[3] not in ("CERRADO", "COMPLETADO"):
+        now = datetime.datetime.now(ZoneInfo("America/Bogota")).replace(tzinfo=None)
+        if now > fecha_vencimiento:
+            estado_vencimiento = "VENCIDO"
+        elif (fecha_vencimiento - now).total_seconds() < 86400: # menos de 24h
+            estado_vencimiento = "POR_VENCER"
+            
     return {
         "id": t_row[0],
         "consecutivo": f"TK-{t_row[0]:04d}",
@@ -25,7 +37,9 @@ def _formato_ticket(t_row):
         "asignado": t_row[5],
         "creador": t_row[6] if len(t_row) > 6 else None,
         "notas_operario": t_row[7] if len(t_row) > 7 else None,
-        "prioridad": t_row[8] if len(t_row) > 8 else 'MEDIA'
+        "prioridad": t_row[8] if len(t_row) > 8 else 'MEDIA',
+        "fecha_vencimiento": fecha_vencimiento,
+        "estado_vencimiento": estado_vencimiento
     }
 
 @router.get("/tickets/admin", response_class=HTMLResponse)
@@ -40,7 +54,7 @@ def panel_admin_tickets(request: Request):
     c.execute("""
         SELECT t.id, t.titulo, t.descripcion, t.estado, t.fecha_creacion, 
                u_asignado.username as asignado, u_creador.username as creador,
-               t.notas_operario, t.prioridad
+               t.notas_operario, t.prioridad, t.fecha_vencimiento
         FROM tickets t
         LEFT JOIN users u_asignado ON t.asignado_a = u_asignado.id
         LEFT JOIN users u_creador ON t.creado_por = u_creador.id
@@ -76,9 +90,11 @@ def mis_tickets(request: Request):
 
     # Obtener tickets (resumen)
     c.execute("""
-        SELECT DISTINCT t.id, t.titulo, t.descripcion, t.estado, t.fecha_creacion, u_creador.username as creador,
-               t.notas_operario, t.prioridad
+        SELECT DISTINCT t.id, t.titulo, t.descripcion, t.estado, t.fecha_creacion, 
+               u_asignado.username as asignado, u_creador.username as creador,
+               t.notas_operario, t.prioridad, t.fecha_vencimiento
         FROM tickets t
+        LEFT JOIN users u_asignado ON t.asignado_a = u_asignado.id
         LEFT JOIN users u_creador ON t.creado_por = u_creador.id
         LEFT JOIN ticket_actividades a ON t.id = a.ticket_id
         WHERE t.asignado_a = %s OR a.asignado_a = %s
@@ -128,7 +144,7 @@ def detalle_ticket(request: Request, ticket_id: int):
     c.execute("""
         SELECT t.id, t.titulo, t.descripcion, t.estado, t.fecha_creacion, 
                u_asignado.username as asignado, u_creador.username as creador,
-               t.notas_operario, t.prioridad, t.asignado_a, u_asignado.telefono
+               t.notas_operario, t.prioridad, t.fecha_vencimiento, t.asignado_a, u_asignado.telefono
         FROM tickets t
         LEFT JOIN users u_asignado ON t.asignado_a = u_asignado.id
         LEFT JOIN users u_creador ON t.creado_por = u_creador.id
@@ -140,8 +156,8 @@ def detalle_ticket(request: Request, ticket_id: int):
         raise HTTPException(status_code=404, detail="Ticket no encontrado")
 
     ticket = _formato_ticket(t_row)
-    ticket["id_asignado_principal"] = t_row[9]
-    ticket["telefono_asignado"] = t_row[10] if len(t_row) > 10 else None
+    ticket["id_asignado_principal"] = t_row[10] if len(t_row) > 10 else None
+    ticket["telefono_asignado"] = t_row[11] if len(t_row) > 11 else None
 
     # Adjuntos
     c.execute("""
@@ -196,6 +212,7 @@ def crear_ticket(
     descripcion: str = Form(""),
     asignado_a: int = Form(...),
     prioridad: str = Form("MEDIA"),
+    fecha_vencimiento: str = Form(""),
     archivos: list[UploadFile] = File(None)
 ):
     if not require_jefe_tickets(request):
@@ -208,12 +225,14 @@ def crear_ticket(
     row = c.fetchone()
     creado_por_id = row[0] if row else None
 
+    fv = fecha_vencimiento if fecha_vencimiento else None
+
     c.execute(
         """
-        INSERT INTO tickets (titulo, descripcion, estado, prioridad, asignado_a, creado_por)
-        VALUES (%s, %s, 'PENDIENTE', %s, %s, %s) RETURNING id
+        INSERT INTO tickets (titulo, descripcion, estado, prioridad, fecha_vencimiento, asignado_a, creado_por)
+        VALUES (%s, %s, 'PENDIENTE', %s, %s, %s, %s) RETURNING id
         """,
-        (titulo, descripcion, prioridad, asignado_a, creado_por_id)
+        (titulo, descripcion, prioridad, fv, asignado_a, creado_por_id)
     )
     ticket_id = c.fetchone()[0]
 
@@ -395,4 +414,17 @@ def completar_actividad(request: Request, actividad_id: int, estado: str = Form(
     
     if ticket_id:
         return RedirectResponse(f"/tickets/detalle/{ticket_id}", 303)
+
+@router.post("/tickets/actualizar_vencimiento/{ticket_id}")
+def actualizar_vencimiento(request: Request, ticket_id: int, fecha_vencimiento: str = Form("")):
+    if not require_jefe_tickets(request):
+        return RedirectResponse("/admin", 303)
+
+    conn = db()
+    c = conn.cursor()
+    fv = fecha_vencimiento if fecha_vencimiento else None
+    c.execute("UPDATE tickets SET fecha_vencimiento = %s WHERE id = %s", (fv, ticket_id))
+    conn.commit()
+    conn.close()
+    return RedirectResponse(f"/tickets/detalle/{ticket_id}", 303)
     return RedirectResponse("/tickets/admin", 303)

@@ -83,6 +83,20 @@
         margin-bottom: 5px;
         font-size: 15px;
     }
+    
+    .vencimiento-badge {
+        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-weight: bold;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        margin-top: 5px;
+    }
+    .vencimiento-OK { background: #f1f5f9; color: #64748b; }
+    .vencimiento-POR_VENCER { background: #fef3c7; color: #d97706; border: 1px solid #fcd34d; }
+    .vencimiento-VENCIDO { background: #fee2e2; color: #ef4444; border: 1px solid #fca5a5; }
     .card-meta {
         font-size: 12px;
         color: #64748b;
@@ -125,9 +139,16 @@
                 </select>
             </div>
         </div>
-        <div style="margin-top:10px;">
-            <label>Descripción:</label><br>
-            <textarea name="descripcion" rows="3" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;"></textarea>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-top:10px;">
+            <div style="flex: 2; min-width: 250px;">
+                <label>Descripción:</label><br>
+                <textarea name="descripcion" rows="3" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;"></textarea>
+            </div>
+            <div style="flex: 1; min-width: 200px;">
+                <label>Fecha Límite (Opcional):</label><br>
+                <input type="datetime-local" name="fecha_vencimiento" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
+            </div>
         </div>
         <div style="margin-top:10px; margin-bottom:15px;">
             <label>Adjuntar Archivos (PDFs, Fotos, etc):</label><br>
@@ -155,6 +176,11 @@
                     <span>👤 {{ t.asignado or 'Sin asignar' }}</span>
                     <span>📅 {{ t.fecha_creacion.strftime('%b %d') if t.fecha_creacion else '' }}</span>
                 </div>
+                {% if t.fecha_vencimiento %}
+                <div class="vencimiento-badge vencimiento-{{ t.estado_vencimiento }}">
+                    ⏳ Vence: {{ t.fecha_vencimiento.strftime('%b %d, %H:%M') }}
+                </div>
+                {% endif %}
                 <div class="card-actions">
                     <a href="/tickets/detalle/{{ t.id }}" class="btn" style="background:#f1f5f9; color:#334155; text-decoration:none; padding:4px 8px; font-size:12px;">Abrir</a>
                     <form method="post" action="/tickets/eliminar/{{ t.id }}" onsubmit="return confirm('¿Seguro que deseas eliminar este ticket?');" style="margin:0;">
@@ -181,6 +207,11 @@
                     <span>👤 {{ t.asignado or 'Sin asignar' }}</span>
                     <span>📅 {{ t.fecha_creacion.strftime('%b %d') if t.fecha_creacion else '' }}</span>
                 </div>
+                {% if t.fecha_vencimiento %}
+                <div class="vencimiento-badge vencimiento-{{ t.estado_vencimiento }}">
+                    ⏳ Vence: {{ t.fecha_vencimiento.strftime('%b %d, %H:%M') }}
+                </div>
+                {% endif %}
                 <div class="card-actions">
                     <a href="/tickets/detalle/{{ t.id }}" class="btn" style="background:#f1f5f9; color:#334155; text-decoration:none; padding:4px 8px; font-size:12px;">Abrir</a>
                 </div>
@@ -203,6 +234,11 @@
                 <div class="card-meta">
                     <span>👤 {{ t.asignado or 'Sin asignar' }}</span>
                 </div>
+                {% if t.fecha_vencimiento %}
+                <div class="vencimiento-badge vencimiento-OK" style="text-decoration:line-through;">
+                    ⏳ Vence: {{ t.fecha_vencimiento.strftime('%b %d, %H:%M') }}
+                </div>
+                {% endif %}
                 <div class="card-actions">
                     <a href="/tickets/detalle/{{ t.id }}" class="btn" style="background:#f1f5f9; color:#334155; text-decoration:none; padding:4px 8px; font-size:12px;">Abrir</a>
                 </div>

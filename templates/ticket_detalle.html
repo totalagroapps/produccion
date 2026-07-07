@@ -1,6 +1,21 @@
 {% include 'base.html' %}
 
 {% block content %}
+<style>
+    .vencimiento-badge {
+        font-size: 11px;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-weight: bold;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .vencimiento-OK { background: #f1f5f9; color: #64748b; }
+    .vencimiento-POR_VENCER { background: #fef3c7; color: #d97706; border: 1px solid #fcd34d; }
+    .vencimiento-VENCIDO { background: #fee2e2; color: #ef4444; border: 1px solid #fca5a5; }
+</style>
+
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
     <h2>{{ ticket.consecutivo }}: {{ ticket.titulo }}</h2>
     <div style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -31,7 +46,15 @@
                     {% elif ticket.prioridad == 'BAJA' %}background:#10b981;{% endif %}">
                         {{ ticket.prioridad }}
                     </span><br>
-                    <strong>Fecha:</strong> {{ ticket.fecha_creacion.strftime('%Y-%m-%d %H:%M') if ticket.fecha_creacion else '' }}
+                    </span><br>
+                    <strong>Fecha:</strong> {{ ticket.fecha_creacion.strftime('%Y-%m-%d %H:%M') if ticket.fecha_creacion else '' }}<br>
+                    
+                    {% if ticket.fecha_vencimiento %}
+                    <strong>Límite:</strong> 
+                    <span class="vencimiento-badge vencimiento-{{ ticket.estado_vencimiento }}" {% if ticket.estado == 'CERRADO' or ticket.estado == 'COMPLETADO' %}style="text-decoration:line-through;"{% endif %}>
+                        ⏳ {{ ticket.fecha_vencimiento.strftime('%Y-%m-%d %H:%M') }}
+                    </span>
+                    {% endif %}
                 </div>
                 <div>
                     <span style="padding:6px 12px; border-radius:16px; font-size:14px; font-weight:bold;
@@ -40,6 +63,14 @@
                     {% elif ticket.estado == 'COMPLETADO' %}background:#d1fae5; color:#065f46;{% endif %}">
                         {{ ticket.estado }}
                     </span>
+                    
+                    {% if es_jefe %}
+                    <form method="post" action="/tickets/actualizar_vencimiento/{{ ticket.id }}" style="margin-top: 15px; background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                        <label style="font-size: 12px; font-weight: bold; color: #475569;">Actualizar Fecha Límite:</label><br>
+                        <input type="datetime-local" name="fecha_vencimiento" style="padding: 4px; font-size: 12px; border: 1px solid #cbd5e1; border-radius: 4px; margin-top: 4px;" value="{{ ticket.fecha_vencimiento.strftime('%Y-%m-%dT%H:%M') if ticket.fecha_vencimiento else '' }}">
+                        <button type="submit" class="btn" style="padding: 4px 8px; font-size: 12px; background: #3b82f6; margin-top: 5px;">Guardar</button>
+                    </form>
+                    {% endif %}
                 </div>
             </div>
             
