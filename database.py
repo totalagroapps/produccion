@@ -18,12 +18,21 @@ except Exception as e:
     print("Error iniciando Connection Pool:", e)
     db_pool = None
 
+from contextvars import ContextVar
+
+_active_connections = ContextVar("active_connections", default=None)
+
 class PooledConnection:
     """Un wrapper que sobreescribe close() para devolver la conexión al pool en lugar de cerrarla"""
     def __init__(self, conn, pool_ref):
         self.conn = conn
         self.pool_ref = pool_ref
         self._closed = False
+        
+        # Registrar esta conexión si estamos dentro de un request
+        active = _active_connections.get()
+        if active is not None:
+            active.append(self)
         
     def cursor(self, *args, **kwargs):
         return self.conn.cursor(*args, **kwargs)

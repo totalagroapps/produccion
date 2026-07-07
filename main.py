@@ -87,6 +87,24 @@ def ruta_jefe_tickets(path: str):
             or path.startswith("/tickets/") and "/actividades/" in path)
 
 
+from database import _active_connections
+
+@app.middleware("http")
+async def db_connection_leak_middleware(request: Request, call_next):
+    token = _active_connections.set([])
+    try:
+        response = await call_next(request)
+        return response
+    finally:
+        conns = _active_connections.get()
+        if conns is not None:
+            for c in conns:
+                try:
+                    c.close()
+                except Exception:
+                    pass
+        _active_connections.reset(token)
+
 @app.middleware("http")
 async def proteger_rutas_administrativas(request: Request, call_next):
     path = request.url.path
@@ -171,14 +189,14 @@ def crear():
     c.execute("""
     CREATE TABLE IF NOT EXISTS procesos(
         id SERIAL PRIMARY KEY,
-        maquina_id INTEGER,
+        maquina_id INTEGER REFERENCES maquinas(id) ON DELETE CASCADE,
         nombre TEXT
     )""")
 
     c.execute("""
     CREATE TABLE IF NOT EXISTS actividades(
         id SERIAL PRIMARY KEY,
-        proceso_id INTEGER,
+        proceso_id INTEGER REFERENCES procesos(id) ON DELETE CASCADE,
         nombre TEXT
     )""")
 
@@ -191,7 +209,7 @@ def crear():
     c.execute("""
     CREATE TABLE IF NOT EXISTS ordenes(
         id SERIAL PRIMARY KEY,
-        maquina_id INTEGER,
+        maquina_id INTEGER REFERENCES maquinas(id) ON DELETE SET NULL,
         cantidad INTEGER,
         estado TEXT,
         porcentaje REAL DEFAULT 0,
@@ -201,8 +219,8 @@ def crear():
     c.execute("""
     CREATE TABLE IF NOT EXISTS orden_actividades(
         id SERIAL PRIMARY KEY,
-        orden_id INTEGER,
-        actividad_id INTEGER,
+        orden_id INTEGER REFERENCES ordenes(id) ON DELETE CASCADE,
+        actividad_id INTEGER REFERENCES actividades(id) ON DELETE CASCADE,
         cantidad_total INTEGER,
         cantidad_realizada INTEGER DEFAULT 0
     )""")
@@ -210,9 +228,9 @@ def crear():
     c.execute("""
     CREATE TABLE IF NOT EXISTS registros_produccion(
         id SERIAL PRIMARY KEY,
-        operario_id INTEGER,
-        orden_id INTEGER,
-        actividad_id INTEGER,
+        operario_id INTEGER REFERENCES operarios(id) ON DELETE SET NULL,
+        orden_id INTEGER REFERENCES ordenes(id) ON DELETE CASCADE,
+        actividad_id INTEGER REFERENCES actividades(id) ON DELETE CASCADE,
         cantidad INTEGER,
         inicio TEXT,
         fin TEXT,
@@ -222,8 +240,8 @@ def crear():
     c.execute("""
     CREATE TABLE IF NOT EXISTS bonos(
         id SERIAL PRIMARY KEY,
-        operario_id INTEGER,
-        actividad_id INTEGER,
+        operario_id INTEGER REFERENCES operarios(id) ON DELETE CASCADE,
+        actividad_id INTEGER REFERENCES actividades(id) ON DELETE CASCADE,
         unidades INTEGER,
         horas REAL,
         rendimiento REAL,
@@ -235,11 +253,28 @@ def crear():
     c.execute("""
     CREATE TABLE IF NOT EXISTS estandares_actividad(
         id SERIAL PRIMARY KEY,
-        actividad_id INTEGER,
+        actividad_id INTEGER REFERENCES actividades(id) ON DELETE CASCADE,
         unidades_por_hora REAL,
         costo_mo_unidad REAL,
         costo_mo_hora REAL
     )""")
+    
+    # Intentar añadir llaves foráneas a BDs existentes (ignorar si falla por huérfanos)
+    for alter_cmd in [
+        "ALTER TABLE procesos ADD CONSTRAINT fk_proc_maquina FOREIGN KEY (maquina_id) REFERENCES maquinas(id) ON DELETE CASCADE",
+        "ALTER TABLE actividades ADD CONSTRAINT fk_act_proceso FOREIGN KEY (proceso_id) REFERENCES procesos(id) ON DELETE CASCADE",
+        "ALTER TABLE ordenes ADD CONSTRAINT fk_ord_maquina FOREIGN KEY (maquina_id) REFERENCES maquinas(id) ON DELETE SET NULL",
+        "ALTER TABLE orden_actividades ADD CONSTRAINT fk_oa_orden FOREIGN KEY (orden_id) REFERENCES ordenes(id) ON DELETE CASCADE",
+        "ALTER TABLE registros_produccion ADD CONSTRAINT fk_reg_operario FOREIGN KEY (operario_id) REFERENCES operarios(id) ON DELETE SET NULL",
+        "ALTER TABLE registros_produccion ADD CONSTRAINT fk_reg_orden FOREIGN KEY (orden_id) REFERENCES ordenes(id) ON DELETE CASCADE",
+        "ALTER TABLE bonos ADD CONSTRAINT fk_bono_operario FOREIGN KEY (operario_id) REFERENCES operarios(id) ON DELETE CASCADE"
+    ]:
+        try:
+            c.execute(alter_cmd)
+        except Exception:
+            conn.rollback()
+        else:
+            conn.commit()
 
     c.execute("""
     CREATE TABLE IF NOT EXISTS users(
@@ -1327,7 +1362,9 @@ def crear_usuario(
             (username, hashed, role, operario_id_valor)
         )
         conn.commit()
-    except Exception:
+    except Exception as e:
+        import logging
+        logging.error(f"Error creando usuario: {e}", exc_info=True)
         conn.rollback()
     finally:
         conn.close()
