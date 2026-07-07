@@ -1,0 +1,112 @@
+{% include 'base.html' %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+    <h2>📊 Dashboard de Rendimiento de Tickets</h2>
+    <a href="/tickets/admin" class="btn" style="background:#6b7280; text-decoration:none;">Volver al Kanban</a>
+</div>
+
+<!-- Tarjetas de KPIs -->
+<div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:30px;">
+    <div style="flex:1; min-width:200px; background:white; padding:20px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid #3b82f6;">
+        <h4 style="margin:0; color:#64748b; font-size:14px;">Tickets Abiertos</h4>
+        <p style="margin:10px 0 0; font-size:28px; font-weight:bold; color:#1e293b;">{{ total_abiertos }}</p>
+    </div>
+    <div style="flex:1; min-width:200px; background:white; padding:20px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid #10b981;">
+        <h4 style="margin:0; color:#64748b; font-size:14px;">Tickets Cerrados</h4>
+        <p style="margin:10px 0 0; font-size:28px; font-weight:bold; color:#1e293b;">{{ total_cerrados }}</p>
+    </div>
+    <div style="flex:1; min-width:200px; background:white; padding:20px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid #f59e0b;">
+        <h4 style="margin:0; color:#64748b; font-size:14px;">Promedio de Resolución</h4>
+        <p style="margin:10px 0 0; font-size:28px; font-weight:bold; color:#1e293b;">
+            {% if tiempo_promedio >= 60 %}
+                {{ (tiempo_promedio / 60)|round(1) }} hrs
+            {% else %}
+                {{ tiempo_promedio }} min
+            {% endif %}
+        </p>
+    </div>
+    <div style="flex:1; min-width:200px; background:white; padding:20px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid #8b5cf6;">
+        <h4 style="margin:0; color:#64748b; font-size:14px;">Total Horas Invertidas</h4>
+        <p style="margin:10px 0 0; font-size:28px; font-weight:bold; color:#1e293b;">
+            {{ (total_minutos / 60)|round(1) }} hrs
+        </p>
+    </div>
+</div>
+
+<!-- Gráficas -->
+<div style="display:flex; gap:20px; flex-wrap:wrap;">
+    <!-- Gráfica de Barras -->
+    <div style="flex:2; min-width:300px; background:white; padding:20px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+        <h3 style="margin-top:0; color:#334155; border-bottom:1px solid #e2e8f0; padding-bottom:10px;">Productividad por Operario (Cerrados)</h3>
+        <canvas id="operariosChart"></canvas>
+    </div>
+
+    <!-- Gráfica de Pastel -->
+    <div style="flex:1; min-width:300px; background:white; padding:20px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+        <h3 style="margin-top:0; color:#334155; border-bottom:1px solid #e2e8f0; padding-bottom:10px;">Distribución por Prioridad</h3>
+        <canvas id="prioridadChart"></canvas>
+    </div>
+</div>
+
+<script>
+    // Datos inyectados desde Python (Jinja2)
+    const operariosLabels = {{ operarios_labels | tojson }};
+    const operariosCounts = {{ operarios_counts | tojson }};
+    
+    const prioridadesLabels = {{ prioridades_labels | tojson }};
+    const prioridadesCounts = {{ prioridades_counts | tojson }};
+
+    // Colores para el pastel de prioridad
+    const prioridadColors = prioridadesLabels.map(p => {
+        if (p === 'ALTA') return '#ef4444';
+        if (p === 'MEDIA') return '#f59e0b';
+        if (p === 'BAJA') return '#10b981';
+        return '#94a3b8';
+    });
+
+    // Gráfica Operarios
+    new Chart(document.getElementById('operariosChart'), {
+        type: 'bar',
+        data: {
+            labels: operariosLabels,
+            datasets: [{
+                label: 'Tickets Resueltos',
+                data: operariosCounts,
+                backgroundColor: '#3b82f6',
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1 }
+                }
+            }
+        }
+    });
+
+    // Gráfica Prioridades
+    new Chart(document.getElementById('prioridadChart'), {
+        type: 'doughnut',
+        data: {
+            labels: prioridadesLabels,
+            datasets: [{
+                data: prioridadesCounts,
+                backgroundColor: prioridadColors
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+</script>
+
+{% endblock %}

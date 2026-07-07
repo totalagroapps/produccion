@@ -39,7 +39,8 @@ def _formato_ticket(t_row):
         "notas_operario": t_row[7] if len(t_row) > 7 else None,
         "prioridad": t_row[8] if len(t_row) > 8 else 'MEDIA',
         "fecha_vencimiento": fecha_vencimiento,
-        "estado_vencimiento": estado_vencimiento
+        "estado_vencimiento": estado_vencimiento,
+        "minutos_invertidos": t_row[10] if len(t_row) > 10 else 0
     }
 
 @router.get("/tickets/admin", response_class=HTMLResponse)
@@ -54,7 +55,7 @@ def panel_admin_tickets(request: Request):
     c.execute("""
         SELECT t.id, t.titulo, t.descripcion, t.estado, t.fecha_creacion, 
                u_asignado.username as asignado, u_creador.username as creador,
-               t.notas_operario, t.prioridad, t.fecha_vencimiento
+               t.notas_operario, t.prioridad, t.fecha_vencimiento, t.minutos_invertidos
         FROM tickets t
         LEFT JOIN users u_asignado ON t.asignado_a = u_asignado.id
         LEFT JOIN users u_creador ON t.creado_por = u_creador.id
@@ -92,7 +93,7 @@ def mis_tickets(request: Request):
     c.execute("""
         SELECT DISTINCT t.id, t.titulo, t.descripcion, t.estado, t.fecha_creacion, 
                u_asignado.username as asignado, u_creador.username as creador,
-               t.notas_operario, t.prioridad, t.fecha_vencimiento
+               t.notas_operario, t.prioridad, t.fecha_vencimiento, t.minutos_invertidos
         FROM tickets t
         LEFT JOIN users u_asignado ON t.asignado_a = u_asignado.id
         LEFT JOIN users u_creador ON t.creado_por = u_creador.id
@@ -144,7 +145,7 @@ def detalle_ticket(request: Request, ticket_id: int):
     c.execute("""
         SELECT t.id, t.titulo, t.descripcion, t.estado, t.fecha_creacion, 
                u_asignado.username as asignado, u_creador.username as creador,
-               t.notas_operario, t.prioridad, t.fecha_vencimiento, t.asignado_a, u_asignado.telefono
+               t.notas_operario, t.prioridad, t.fecha_vencimiento, t.minutos_invertidos, t.asignado_a, u_asignado.telefono
         FROM tickets t
         LEFT JOIN users u_asignado ON t.asignado_a = u_asignado.id
         LEFT JOIN users u_creador ON t.creado_por = u_creador.id
@@ -156,8 +157,8 @@ def detalle_ticket(request: Request, ticket_id: int):
         raise HTTPException(status_code=404, detail="Ticket no encontrado")
 
     ticket = _formato_ticket(t_row)
-    ticket["id_asignado_principal"] = t_row[10] if len(t_row) > 10 else None
-    ticket["telefono_asignado"] = t_row[11] if len(t_row) > 11 else None
+    ticket["id_asignado_principal"] = t_row[11] if len(t_row) > 11 else None
+    ticket["telefono_asignado"] = t_row[12] if len(t_row) > 12 else None
 
     # Adjuntos
     c.execute("""
@@ -261,7 +262,7 @@ def crear_ticket(
 
 
 @router.post("/tickets/kanban_update/{ticket_id}")
-def kanban_update(request: Request, ticket_id: int, estado: str = Form(...)):
+def kanban_update(request: Request, ticket_id: int, estado: str = Form(...), minutos_invertidos: str = Form(None)):
     if not require_jefe_tickets(request):
         return RedirectResponse("/admin", 303)
 
@@ -271,7 +272,12 @@ def kanban_update(request: Request, ticket_id: int, estado: str = Form(...)):
 
     conn = db()
     c = conn.cursor()
-    c.execute("UPDATE tickets SET estado = %s WHERE id = %s", (estado, ticket_id))
+    
+    if estado == "CERRADO" and minutos_invertidos is not None and minutos_invertidos.isdigit():
+        c.execute("UPDATE tickets SET estado = %s, minutos_invertidos = %s WHERE id = %s", (estado, int(minutos_invertidos), ticket_id))
+    else:
+        c.execute("UPDATE tickets SET estado = %s WHERE id = %s", (estado, ticket_id))
+        
     conn.commit()
     conn.close()
     return {"status": "ok", "estado": estado}
@@ -427,4 +433,110 @@ def actualizar_vencimiento(request: Request, ticket_id: int, fecha_vencimiento: 
     conn.commit()
     conn.close()
     return RedirectResponse(f"/tickets/detalle/{ticket_id}", 303)
-    return RedirectResponse("/tickets/admin", 303)
+
+@router.post("/tickets/actualizar_tiempo/{ticket_id}")
+def actualizar_tiempo(request: Request, ticket_id: int, minutos_invertidos: int = Form(...)):
+    if not require_jefe_tickets(request):
+        return RedirectResponse("/admin", 303)
+
+    conn = db()
+    c = conn.cursor()
+    c.execute("UPDATE tickets SET minutos_invertidos = %s WHERE id = %s", (minutos_invertidos, ticket_id))
+    conn.commit()
+    conn.close()
+    return RedirectResponse(f"/tickets/detalle/{ticket_id}", 303)
+
+@router.get("/tickets/dashboard", response_class=HTMLResponse)
+def dashboard_tickets(request: Request):
+    if not require_jefe_tickets(request):
+        return RedirectResponse("/admin", 303)
+
+    conn = db()
+    c = conn.cursor()
+
+    # Total Abiertos vs Cerrados
+    c.execute("SELECT estado, COUNT(*) FROM tickets GROUP BY estado")
+    estados_data = c.fetchall()
+    
+    total_abiertos = sum([row[1] for row in estados_data if row[0] != 'CERRADO'])
+    total_cerrados = sum([row[1] for row in estados_data if row[0] == 'CERRADO'])
+
+    # Tiempo promedio de resolución
+    c.execute("SELECT AVG(minutos_invertidos), SUM(minutos_invertidos) FROM tickets WHERE estado = 'CERRADO' AND minutos_invertidos > 0")
+    tiempo_data = c.fetchone()
+    tiempo_promedio = int(tiempo_data[0]) if tiempo_data and tiempo_data[0] else 0
+    total_minutos = int(tiempo_data[1]) if tiempo_data and tiempo_data[1] else 0
+
+    # Tickets por operario (Cerrados)
+    c.execute("""
+        SELECT u.username, COUNT(t.id) 
+        FROM tickets t
+        JOIN users u ON t.asignado_a = u.id
+        WHERE t.estado = 'CERRADO'
+        GROUP BY u.username
+        ORDER BY COUNT(t.id) DESC
+    """)
+    operarios_data = c.fetchall()
+
+    # Prioridades
+    c.execute("SELECT prioridad, COUNT(*) FROM tickets GROUP BY prioridad")
+    prioridades_data = c.fetchall()
+
+    conn.close()
+
+    return templates.TemplateResponse(
+        request=request, name="tickets_dashboard.html", context={
+            "request": request,
+            "total_abiertos": total_abiertos,
+            "total_cerrados": total_cerrados,
+            "tiempo_promedio": tiempo_promedio,
+            "total_minutos": total_minutos,
+            "operarios_labels": [row[0] for row in operarios_data],
+            "operarios_counts": [row[1] for row in operarios_data],
+            "prioridades_labels": [row[0] for row in prioridades_data],
+            "prioridades_counts": [row[1] for row in prioridades_data]
+        }
+    )
+
+@router.post("/tickets/cerrar_operario/{ticket_id}")
+def cerrar_ticket_operario(request: Request, ticket_id: int):
+    # Solo el operario puede acceder a esto
+    if not require_operario(request):
+        return RedirectResponse("/admin", 303)
+
+    username = request.session.get("username")
+    conn = db()
+    c = conn.cursor()
+    c.execute("SELECT id FROM users WHERE username = %s", (username,))
+    row = c.fetchone()
+    user_id = row[0] if row else None
+
+    # Verificar que tiene acceso (asignado directamente o en una actividad)
+    c.execute("""
+        SELECT t.id, t.fecha_creacion FROM tickets t
+        LEFT JOIN ticket_actividades a ON t.id = a.ticket_id
+        WHERE t.id = %s AND (t.asignado_a = %s OR a.asignado_a = %s)
+    """, (ticket_id, user_id, user_id))
+    t_row = c.fetchone()
+    
+    if not t_row:
+        conn.close()
+        raise HTTPException(status_code=403, detail="No tienes acceso a este ticket.")
+
+    fecha_creacion = t_row[1]
+    
+    import datetime
+    from zoneinfo import ZoneInfo
+    now = datetime.datetime.now(ZoneInfo("America/Bogota")).replace(tzinfo=None)
+    
+    minutos_invertidos = 0
+    if fecha_creacion:
+        delta = now - fecha_creacion
+        minutos_invertidos = int(delta.total_seconds() / 60)
+
+    # Actualizar estado y minutos
+    c.execute("UPDATE tickets SET estado = 'CERRADO', minutos_invertidos = %s WHERE id = %s", (minutos_invertidos, ticket_id))
+    conn.commit()
+    conn.close()
+
+    return RedirectResponse(f"/tickets/detalle/{ticket_id}", 303)

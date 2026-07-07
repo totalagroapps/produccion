@@ -111,7 +111,10 @@
     }
 </style>
 
-<h2>Tablero de Tickets (Kanban)</h2>
+<div style="display:flex; justify-content:space-between; align-items:center;">
+    <h2>Tablero de Tickets (Kanban)</h2>
+    <a href="/tickets/dashboard" class="btn" style="background:#8b5cf6; text-decoration:none;">📊 Ver Dashboard</a>
+</div>
 
 <div style="background:white; padding:20px; border-radius:8px; margin-bottom:20px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
     <h3>➕ Crear Nuevo Ticket</h3>
@@ -311,6 +314,13 @@
                 // Llamar al backend para actualizar el estado silenciosamente
                 const formData = new FormData();
                 formData.append('estado', nuevoEstado);
+                
+                if (nuevoEstado === 'CERRADO') {
+                    const mins = prompt("El ticket se ha cerrado. ¿Cuántos MINUTOS en total tomó resolver este problema? (Deja en blanco si no sabes)");
+                    if (mins && !isNaN(mins)) {
+                        formData.append('minutos_invertidos', mins);
+                    }
+                }
 
                 fetch(`/tickets/kanban_update/${ticketId}`, {
                     method: 'POST',
