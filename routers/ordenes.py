@@ -34,6 +34,7 @@ def panel(request: Request):
         FROM ordenes o
         JOIN maquinas m ON m.id=o.maquina_id
         ORDER BY o.id DESC
+        LIMIT 100
     """)
     ordenes_sql = c.fetchall()
 

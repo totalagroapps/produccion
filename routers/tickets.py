@@ -59,6 +59,7 @@ def panel_admin_tickets(request: Request):
         FROM tickets t
         LEFT JOIN users u_asignado ON t.asignado_a = u_asignado.id
         LEFT JOIN users u_creador ON t.creado_por = u_creador.id
+        WHERE t.estado != 'CERRADO' OR t.fecha_creacion >= CURRENT_DATE - INTERVAL '30 days'
         ORDER BY t.fecha_creacion DESC
     """)
     tickets_rows = c.fetchall()
@@ -98,7 +99,8 @@ def mis_tickets(request: Request):
         LEFT JOIN users u_asignado ON t.asignado_a = u_asignado.id
         LEFT JOIN users u_creador ON t.creado_por = u_creador.id
         LEFT JOIN ticket_actividades a ON t.id = a.ticket_id
-        WHERE t.asignado_a = %s OR a.asignado_a = %s
+        WHERE (t.asignado_a = %s OR a.asignado_a = %s)
+          AND (t.estado != 'CERRADO' OR t.fecha_creacion >= CURRENT_DATE - INTERVAL '30 days')
         ORDER BY t.fecha_creacion DESC
     """, (user_id, user_id))
     tickets_rows = c.fetchall()
@@ -206,6 +208,15 @@ def detalle_ticket(request: Request, ticket_id: int):
         }
     )
 
+from pydantic import BaseModel, Field, ValidationError
+from fastapi.responses import JSONResponse
+
+class TicketCreate(BaseModel):
+    titulo: str = Field(..., min_length=3, max_length=150)
+    descripcion: str | None = None
+    asignado_a: int = Field(..., gt=0)
+    prioridad: str = Field(default="MEDIA", pattern="^(BAJA|MEDIA|ALTA)$")
+
 @router.post("/tickets/crear")
 def crear_ticket(
     request: Request,
@@ -218,6 +229,12 @@ def crear_ticket(
 ):
     if not require_jefe_tickets(request):
         return RedirectResponse("/admin", 303)
+
+    try:
+        TicketCreate(titulo=titulo, descripcion=descripcion, asignado_a=asignado_a, prioridad=prioridad)
+    except ValidationError as e:
+        return JSONResponse(status_code=400, content={"detail": "Datos inválidos en el formulario", "errores": e.errors()})
+
 
     creado_por_username = request.session.get("username")
     conn = db()

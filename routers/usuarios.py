@@ -76,6 +76,14 @@ def ver_usuarios(request: Request):
     })
 
 
+from pydantic import BaseModel, Field, ValidationError
+from fastapi.responses import JSONResponse
+
+class UsuarioCreate(BaseModel):
+    username: str = Field(..., min_length=3, max_length=50)
+    password: str = Field(..., min_length=4)
+    role: str = Field(..., pattern="^(admin|operario|jefe_tickets)$")
+
 @router.post("/usuarios/crear")
 def crear_usuario(
     request: Request,
@@ -89,6 +97,11 @@ def crear_usuario(
 
     if not require_admin(request):
         return RedirectResponse("/admin", 303)
+
+    try:
+        UsuarioCreate(username=username, password=password, role=role)
+    except ValidationError as e:
+        return JSONResponse(status_code=400, content={"detail": "Datos inválidos", "errores": e.errors()})
 
     asegurar_schema_usuarios()
 

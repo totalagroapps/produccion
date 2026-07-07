@@ -346,6 +346,16 @@ def crear():
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS debe_cambiar_password BOOLEAN DEFAULT FALSE")
     c.execute("ALTER TABLE tickets ADD COLUMN IF NOT EXISTS notas_operario TEXT")
 
+    # Índices para mejorar rendimiento (Fase 2)
+    c.execute("CREATE INDEX IF NOT EXISTS idx_tickets_estado ON tickets(estado)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_tickets_asignado ON tickets(asignado_a)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_tickets_creacion ON tickets(fecha_creacion)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_ordenes_estado ON ordenes(estado)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_ordenes_maquina ON ordenes(maquina_id)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_regprod_orden ON registros_produccion(orden_id)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_regprod_operario ON registros_produccion(operario_id)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)")
+
     # Crear admin inicial si no existe
     c.execute("SELECT * FROM users WHERE username = %s", ("admin",))
     existe = c.fetchone()
