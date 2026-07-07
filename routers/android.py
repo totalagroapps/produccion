@@ -143,8 +143,8 @@ def login_android(data: dict):
                COALESCE(u.debe_cambiar_password, FALSE)
         FROM users u
         LEFT JOIN operarios o ON o.id = u.operario_id
-        WHERE u.username = %s OR LOWER(o.nombre) = LOWER(%s)
-        ORDER BY CASE WHEN u.username = %s THEN 0 ELSE 1 END
+        WHERE LOWER(u.username) = LOWER(%s) OR LOWER(o.nombre) = LOWER(%s)
+        ORDER BY CASE WHEN LOWER(u.username) = LOWER(%s) THEN 0 ELSE 1 END
         LIMIT 1
     """, (username, username, username))
     row = c.fetchone()

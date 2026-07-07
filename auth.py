@@ -33,7 +33,7 @@ def login_user(request: Request, username: str, password: str):
                COALESCE(u.debe_cambiar_password, FALSE)
         FROM users u
         LEFT JOIN operarios o ON o.id = u.operario_id
-        WHERE u.username = %s
+        WHERE LOWER(u.username) = LOWER(%s)
     """, (username,))
     resultado = c.fetchone()
     conn.close()
