@@ -303,12 +303,21 @@ def actualizar_estandar(
     conn = db()
     c = conn.cursor()
     
-    # Se actualiza el estándar
-    c.execute("""
-        UPDATE estandares_actividad 
-        SET unidades_por_hora = %s 
-        WHERE actividad_id = %s
-    """, (nuevo_estandar, actividad_id))
+    # Primero verificamos si existe
+    c.execute("SELECT id FROM estandares_actividad WHERE actividad_id = %s", (actividad_id,))
+    existe = c.fetchone()
+    
+    if existe:
+        c.execute("""
+            UPDATE estandares_actividad 
+            SET unidades_por_hora = %s 
+            WHERE actividad_id = %s
+        """, (nuevo_estandar, actividad_id))
+    else:
+        c.execute("""
+            INSERT INTO estandares_actividad (actividad_id, unidades_por_hora, costo_mo_unidad, costo_mo_hora)
+            VALUES (%s, %s, 0, 0)
+        """, (actividad_id, nuevo_estandar))
     
     conn.commit()
     conn.close()
