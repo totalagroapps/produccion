@@ -437,12 +437,13 @@ def procesos_android(orden_id:int):
     c = conn.cursor()
 
     c.execute("""
-    SELECT DISTINCT p.id,p.nombre
-    FROM orden_actividades oa
-    JOIN actividades a ON a.id=oa.actividad_id
-    JOIN procesos p ON p.id=a.proceso_id
-    WHERE oa.orden_id=%s
-    """,(orden_id,))
+    SELECT DISTINCT p.id, p.nombre
+    FROM procesos p
+    LEFT JOIN actividades a ON a.proceso_id = p.id
+    LEFT JOIN orden_actividades oa ON oa.actividad_id = a.id AND oa.orden_id = %s
+    WHERE oa.orden_id = %s 
+       OR (UPPER(p.nombre) = 'OTROS' AND p.maquina_id = (SELECT maquina_id FROM ordenes WHERE id = %s))
+    """, (orden_id, orden_id, orden_id))
     rows = c.fetchall() or []
 
     conn.close()
