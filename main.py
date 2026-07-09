@@ -323,6 +323,17 @@ def crear():
     """)
 
     c.execute("""
+    CREATE TABLE IF NOT EXISTS bonos_operarios (
+        id SERIAL PRIMARY KEY,
+        bono_id INTEGER REFERENCES bonos(id) ON DELETE CASCADE,
+        operario_id INTEGER REFERENCES operarios(id) ON DELETE CASCADE,
+        monto_otorgado NUMERIC(10,2) DEFAULT 0,
+        fecha_asignacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )""")
+
+    conn.commit()
+
+    c.execute("""
     CREATE TABLE IF NOT EXISTS ticket_notas(
         id SERIAL PRIMARY KEY,
         ticket_id INTEGER REFERENCES tickets(id) ON DELETE CASCADE,

@@ -234,14 +234,69 @@ def guardar_registro_android(data: dict, operario_id: int):
 
     try:
         orden_id = campo_entero(data, "orden_id", "orden")
-        actividad_id = campo_entero(data, "actividad_id", "actividad")
+        # Ya no requerimos estrictamente actividad_id > 0
+        actividad_id = int(data.get("actividad_id") or data.get("actividad") or 0)
         cantidad = campo_entero(data, "cantidad")
         tiempo = int(data.get("tiempo") or 0)
     except ValueError:
         raise HTTPException(status_code=400, detail="Campos numericos invalidos")
 
+    actividad_nombre = data.get("actividad_nombre")
+
+    if actividad_id <= 0 and not actividad_nombre:
+        raise HTTPException(status_code=400, detail="Debe proporcionar un id de actividad o un nombre de actividad")
+
     conn = db()
     c = conn.cursor()
+
+    # --- LÓGICA DE ACTIVIDAD NUEVA ---
+    if actividad_id <= 0 and actividad_nombre:
+        actividad_nombre = actividad_nombre.strip().upper()
+        
+        # Verificar que la orden pertenece a la máquina APOYO
+        c.execute("""
+            SELECT m.nombre 
+            FROM ordenes o 
+            JOIN maquinas m ON m.id = o.maquina_id 
+            WHERE o.id = %s
+        """, (orden_id,))
+        row_maquina = c.fetchone()
+        if not row_maquina or 'APOYO' not in row_maquina[0].upper():
+            raise HTTPException(status_code=400, detail="Actividades personalizadas solo permitidas en maquina APOYO")
+
+        # Buscar el proceso "OTROS" de esta máquina/orden
+        c.execute("""
+            SELECT p.id 
+            FROM procesos p
+            JOIN ordenes o ON o.maquina_id = p.maquina_id
+            WHERE o.id = %s AND UPPER(p.nombre) = 'OTROS'
+        """, (orden_id,))
+        row_proceso = c.fetchone()
+        
+        if row_proceso:
+            proceso_id = row_proceso[0]
+        else:
+            # Si no existe un proceso "OTROS" para esta máquina, lo creamos
+            c.execute("SELECT maquina_id FROM ordenes WHERE id = %s", (orden_id,))
+            maquina_id = c.fetchone()[0]
+            c.execute("INSERT INTO procesos (maquina_id, nombre) VALUES (%s, 'OTROS') RETURNING id", (maquina_id,))
+            proceso_id = c.fetchone()[0]
+
+        # Verificar si la actividad genérica ya existe bajo ese proceso
+        c.execute("SELECT id FROM actividades WHERE proceso_id = %s AND UPPER(nombre) = %s", (proceso_id, actividad_nombre))
+        row_act = c.fetchone()
+        if row_act:
+            actividad_id = row_act[0]
+        else:
+            # Insertar nueva actividad
+            c.execute("INSERT INTO actividades (proceso_id, nombre) VALUES (%s, %s) RETURNING id", (proceso_id, actividad_nombre))
+            actividad_id = c.fetchone()[0]
+
+        # Verificar si la actividad ya está en orden_actividades
+        c.execute("SELECT 1 FROM orden_actividades WHERE orden_id = %s AND actividad_id = %s", (orden_id, actividad_id))
+        if not c.fetchone():
+            c.execute("INSERT INTO orden_actividades (orden_id, actividad_id, cantidad_total, cantidad_realizada) VALUES (%s, %s, 0, 0)", (orden_id, actividad_id))
+
 
     inicio = fecha_android(data.get("inicio"))
     fin = fecha_android(data.get("fin"))
