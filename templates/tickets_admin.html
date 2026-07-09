@@ -222,10 +222,10 @@
                     ⏳ Vence: {{ t.fecha_vencimiento.strftime('%b %d, %H:%M') }}
                 </div>
                 {% endif %}
-                <div class="card-actions">
-                    <a href="/tickets/detalle/{{ t.id }}" class="btn" style="background:#f1f5f9; color:#334155; text-decoration:none; padding:4px 8px; font-size:12px;">Abrir</a>
+                <div class="card-actions" style="display:flex; flex-direction:column; gap:6px;">
+                    <a href="/tickets/detalle/{{ t.id }}" class="btn" style="background:#3b82f6; color:#ffffff; text-decoration:none; padding:8px; font-size:12px; font-weight:bold; width:100%; text-align:center; border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">Abrir Ticket</a>
                     <form method="post" action="/tickets/eliminar/{{ t.id }}" onsubmit="return confirm('¿Seguro que deseas eliminar este ticket?');" style="margin:0;">
-                        <button type="submit" class="btn" style="background:transparent; color:#ef4444; border:1px solid #ef4444; padding:3px 8px; font-size:12px;">Eliminar</button>
+                        <button type="submit" class="btn" style="background:transparent; color:#ef4444; border:1px solid #ef4444; padding:3px 8px; font-size:12px; width:100%; border-radius:6px;">Eliminar</button>
                     </form>
                 </div>
             </div>
@@ -253,8 +253,8 @@
                     ⏳ Vence: {{ t.fecha_vencimiento.strftime('%b %d, %H:%M') }}
                 </div>
                 {% endif %}
-                <div class="card-actions">
-                    <a href="/tickets/detalle/{{ t.id }}" class="btn" style="background:#f1f5f9; color:#334155; text-decoration:none; padding:4px 8px; font-size:12px;">Abrir</a>
+                <div class="card-actions" style="display:flex; flex-direction:column; gap:6px;">
+                    <a href="/tickets/detalle/{{ t.id }}" class="btn" style="background:#3b82f6; color:#ffffff; text-decoration:none; padding:8px; font-size:12px; font-weight:bold; width:100%; text-align:center; border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">Abrir Ticket</a>
                 </div>
             </div>
             {% endfor %}
@@ -280,8 +280,8 @@
                     ⏳ Vence: {{ t.fecha_vencimiento.strftime('%b %d, %H:%M') }}
                 </div>
                 {% endif %}
-                <div class="card-actions">
-                    <a href="/tickets/detalle/{{ t.id }}" class="btn" style="background:#f1f5f9; color:#334155; text-decoration:none; padding:4px 8px; font-size:12px;">Abrir</a>
+                <div class="card-actions" style="display:flex; flex-direction:column; gap:6px;">
+                    <a href="/tickets/detalle/{{ t.id }}" class="btn" style="background:#3b82f6; color:#ffffff; text-decoration:none; padding:8px; font-size:12px; font-weight:bold; width:100%; text-align:center; border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">Abrir Ticket</a>
                 </div>
             </div>
             {% endfor %}

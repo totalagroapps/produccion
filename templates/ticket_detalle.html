@@ -32,7 +32,7 @@
 
 <div style="display:flex; flex-wrap:wrap; gap:20px;">
     <!-- Columna Izquierda: Detalles del Ticket -->
-    <div style="flex:2; min-width:300px; display:flex; flex-direction:column; gap:20px;">
+    <div style="flex:1; min-width:300px; display:flex; flex-direction:column; gap:20px;">
         
         <div style="background:white; padding:20px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:15px;">
@@ -128,21 +128,21 @@
             <div style="display:flex; flex-direction:column; gap:12px; margin-top:15px; max-height:400px; overflow-y:auto; padding-right:5px;">
                 {% if ticket.notas_operario %}
                 <!-- Nota Original / Migrada -->
-                <div style="background:#f3f4f6; padding:12px; border-radius:8px; border-left:4px solid #9ca3af;">
-                    <div style="display:flex; justify-content:space-between; font-size:11px; color:#6b7280; margin-bottom:4px;">
+                <div style="background:#f3f4f6; padding:16px; border-radius:8px; border-left:4px solid #9ca3af; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                    <div style="display:flex; justify-content:space-between; font-size:12px; color:#6b7280; margin-bottom:6px;">
                         <strong>Nota Inicial (Migrada)</strong>
                     </div>
-                    <div style="font-size:13px; color:#1f2937; white-space:pre-wrap;">{{ ticket.notas_operario }}</div>
+                    <div style="font-size:14px; color:#1f2937; white-space:pre-wrap; line-height:1.5;">{{ ticket.notas_operario }}</div>
                 </div>
                 {% endif %}
 
                 {% for n in ticket.notas %}
-                <div style="background:#f0fdf4; padding:12px; border-radius:8px; border-left:4px solid #10b981;">
-                    <div style="display:flex; justify-content:space-between; font-size:11px; color:#6b7280; margin-bottom:4px;">
+                <div style="background:#f0fdf4; padding:16px; border-radius:8px; border-left:4px solid #10b981; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                    <div style="display:flex; justify-content:space-between; font-size:12px; color:#6b7280; margin-bottom:6px;">
                         <strong>{{ n.autor or 'Desconocido' }}</strong>
                         <span>{{ n.fecha.strftime('%Y-%m-%d %H:%M') if n.fecha else '' }}</span>
                     </div>
-                    <div style="font-size:13px; color:#1f2937; white-space:pre-wrap;">{{ n.nota }}</div>
+                    <div style="font-size:14px; color:#1f2937; white-space:pre-wrap; line-height:1.5;">{{ n.nota }}</div>
                 </div>
                 {% else %}
                     {% if not ticket.notas_operario %}
