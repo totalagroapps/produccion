@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -185,7 +185,9 @@ Orden {{o.id}} — {{o.producto}} ({{o.cantidad}} uds)
 {% endif %}
 
 {% if o.estado == "CERRADA" %}
-<a href="/eliminar/{{o.id}}" onclick="return confirm('Eliminar orden?')">❌ Eliminar</a>
+<form action="/eliminar/{{o.id}}" method="POST" style="display:inline;" onsubmit="return confirm('¿Eliminar orden?')">
+    <button type="submit" style="background:none; border:none; color:red; cursor:pointer; text-decoration:underline; font-size:inherit; padding:0;">❌ Eliminar</button>
+</form>
 {% endif %}
 
 <hr>

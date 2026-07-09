@@ -21,7 +21,7 @@ def admin_tools_panel(request: Request):
 
 # ================= RESET METRICAS =================
 
-@router.get("/admin_tools/reset_metricas")
+@router.post("/admin_tools/reset_metricas")
 def reset_metricas(request: Request):
 
     if request.session.get("role") != "admin":
@@ -43,7 +43,7 @@ def reset_metricas(request: Request):
 
 # ================= BORRAR REGISTROS =================
 
-@router.get("/admin_tools/borrar_registros")
+@router.post("/admin_tools/borrar_registros")
 def borrar_registros(request: Request):
 
     if request.session.get("role") != "admin":

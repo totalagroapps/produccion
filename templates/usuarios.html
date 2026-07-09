@@ -157,9 +157,11 @@
                                 <a href="/usuarios/editar/{{ u[0] }}" class="btn btn-sm btn-outline-primary" title="Editar Usuario">
                                     ✏️
                                 </a>
-                                <a href="/usuarios/eliminar/{{ u[0] }}" class="btn btn-sm btn-outline-danger" title="Eliminar Usuario" onclick="return confirm('¿Seguro que deseas eliminar a este usuario?');">
-                                    🗑️
-                                </a>
+                                <form action="/usuarios/eliminar/{{ u[0] }}" method="POST" style="display:inline;" onsubmit="return confirm('¿Seguro que deseas eliminar a este usuario?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar Usuario">
+                                        🗑️
+                                    </button>
+                                </form>
                             </td>
                         </tr>
                         {% endfor %}

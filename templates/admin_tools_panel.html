@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -123,19 +123,17 @@
     <div class="card">
         <h3>🔄 Reset Métricas</h3>
         <p>Reinicia producción, porcentajes y estado de órdenes.</p>
-        <a class="btn danger" href="/admin_tools/reset_metricas"
-           onclick="return confirm('¿Seguro que deseas resetear métricas?')">
-           Ejecutar
-        </a>
+        <form action="/admin_tools/reset_metricas" method="POST" onsubmit="return confirm('¿Seguro que deseas resetear métricas?')">
+            <button type="submit" class="btn danger" style="border:none; cursor:pointer;">Ejecutar</button>
+        </form>
     </div>
 
     <div class="card">
         <h3>🗑 Borrar Registros</h3>
         <p>Elimina todos los registros de producción.</p>
-        <a class="btn danger" href="/admin_tools/borrar_registros"
-           onclick="return confirm('Esta acción es irreversible. ¿Continuar?')">
-           Ejecutar
-        </a>
+        <form action="/admin_tools/borrar_registros" method="POST" onsubmit="return confirm('Esta acción es irreversible. ¿Continuar?')">
+            <button type="submit" class="btn danger" style="border:none; cursor:pointer;">Ejecutar</button>
+        </form>
     </div>
 
     <div class="card">

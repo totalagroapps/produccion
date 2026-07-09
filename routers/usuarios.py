@@ -210,7 +210,7 @@ def reset_password_usuario(request: Request, user_id: int):
     return RedirectResponse("/usuarios?reset=1", 303)
 
 
-@router.get("/usuarios/eliminar/{user_id}")
+@router.post("/usuarios/eliminar/{user_id}")
 def eliminar_usuario(request: Request, user_id: int):
 
     if not require_admin(request):
@@ -218,6 +218,29 @@ def eliminar_usuario(request: Request, user_id: int):
 
     conn = db()
     c = conn.cursor()
+
+    # Obtener info del usuario a borrar
+    c.execute("SELECT username, role FROM users WHERE id = %s", (user_id,))
+    target_user = c.fetchone()
+    if not target_user:
+        conn.close()
+        return RedirectResponse("/usuarios", 303)
+        
+    target_username, target_role = target_user
+
+    # Regla 1: No auto-borrarse
+    if target_username == request.session.get("username"):
+        conn.close()
+        return RedirectResponse("/usuarios?error=No+puedes+eliminar+tu+propio+usuario", 303)
+
+    # Regla 2: No borrar al último admin
+    if target_role == "admin":
+        c.execute("SELECT COUNT(*) FROM users WHERE role = 'admin'")
+        admin_count = c.fetchone()[0]
+        if admin_count <= 1:
+            conn.close()
+            return RedirectResponse("/usuarios?error=No+puedes+eliminar+al+ultimo+administrador", 303)
+
     c.execute("DELETE FROM users WHERE id = %s", (user_id,))
     conn.commit()
     conn.close()

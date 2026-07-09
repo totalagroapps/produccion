@@ -854,7 +854,7 @@ def exportar_excel(periodo: str = "semanal", fecha: str = None):
 
 # ================= ELIMINAR ORDEN =================
 
-@app.get("/eliminar/{id}")
+@app.post("/eliminar/{id}")
 def eliminar(id: int):
 
     conn = db()
@@ -1080,15 +1080,6 @@ def actividades_android(orden: int, proceso: int):
     return rows
 
 
-@app.get("/limpiar_registros")
-def limpiar_registros():
-    conn = db()
-    c = conn.cursor()
-    c.execute("DELETE FROM registros_produccion")
-    conn.commit()
-    conn.close()
-    return {"ok": True}
-
 
 @app.get("/metricas", response_class=HTMLResponse)
 def metricas(request: Request):
@@ -1148,75 +1139,7 @@ async def importar_excel(
     return RedirectResponse("/", 303)
 
 
-# ================= RESETEAR BASE =================
 
-@app.get("/resetear_base")
-def resetear_base():
-
-    conn = db()
-    c = conn.cursor()
-
-    c.execute("DELETE FROM registros_produccion")
-    c.execute("DELETE FROM actividades")
-    c.execute("DELETE FROM procesos")
-    c.execute("DELETE FROM maquinas")
-    c.execute("DELETE FROM operarios")
-
-    conn.commit()
-    conn.close()
-
-    return RedirectResponse("/", status_code=303)
-
-
-@app.get("/reset_metricas")
-def reset_metricas():
-
-    conn = db()
-    c = conn.cursor()
-
-    c.execute("DELETE FROM registros_produccion")
-    c.execute("DELETE FROM bonos")
-    c.execute("UPDATE ordenes SET porcentaje=0, estado='ABIERTA', cerrado_en=NULL")
-    c.execute("UPDATE orden_actividades SET cantidad_realizada=0")
-
-    conn.commit()
-    conn.close()
-
-    return RedirectResponse("/", 303)
-
-
-@app.get("/borrar_registros")
-def borrar_registros():
-
-    conn = db()
-    c = conn.cursor()
-    c.execute("DELETE FROM registros_produccion")
-    conn.commit()
-    conn.close()
-    return {"ok": True}
-
-
-@app.get("/limpiar_excel")
-def limpiar_excel(request: Request):
-
-    if not require_admin(request):
-        return RedirectResponse("/admin", 303)
-
-    conn = db()
-    c = conn.cursor()
-
-    c.execute("DELETE FROM registros_produccion")
-    c.execute("DELETE FROM orden_actividades")
-    c.execute("DELETE FROM ordenes")
-    c.execute("DELETE FROM actividades")
-    c.execute("DELETE FROM procesos")
-    c.execute("DELETE FROM maquinas")
-    c.execute("DELETE FROM operarios")
-
-    conn.commit()
-    conn.close()
-
-    return RedirectResponse("/", 303)
 
 
 @app.get("/ver_actividades")
@@ -1467,19 +1390,6 @@ def crear_usuario(
     return RedirectResponse("/usuarios", status_code=303)
 
 
-@app.get("/usuarios/eliminar/{user_id}")
-def eliminar_usuario(request: Request, user_id: int):
-
-    if not require_admin(request):
-        return RedirectResponse("/admin", status_code=303)
-
-    conn = db()
-    c = conn.cursor()
-    c.execute("DELETE FROM users WHERE id = %s", (user_id,))
-    conn.commit()
-    conn.close()
-
-    return RedirectResponse("/usuarios", status_code=303)
 
 
 @app.get("/api/kardex/{referencia}")
