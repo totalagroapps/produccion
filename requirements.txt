@@ -12,4 +12,5 @@ bcrypt==3.2.2
 psycopg2-binary
 requests
 pytest
-httpxslowapi
+httpx
+slowapi
