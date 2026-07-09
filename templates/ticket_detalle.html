@@ -459,7 +459,12 @@
                 </div>
 
             </div>
-
+            {% else %}
+            <div class="glass-card">
+                <p style="color:#64748b; margin:0; font-size:14px;">Eres delegado en una sub-tarea. Solo puedes completar tu actividad inferior, pero no el estado general del ticket.</p>
+            </div>
+            {% endif %}
+        {% endif %}
         <!-- Checklists -->
         <div class="glass-card">
             <h4 style="border-bottom:1px solid rgba(203,213,225,0.5); padding-bottom:12px; margin-bottom:16px; margin-top:0;">Sub-tareas delegadas</h4>
