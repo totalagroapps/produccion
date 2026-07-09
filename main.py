@@ -270,6 +270,8 @@ def crear():
         costo_mo_hora REAL
     )""")
     
+    conn.commit()  # <-- FIX: Commit table creations before attempting ALTERS
+
     # Intentar añadir llaves foráneas a BDs existentes (ignorar si falla por huérfanos)
     for alter_cmd in [
         "ALTER TABLE procesos ADD CONSTRAINT fk_proc_maquina FOREIGN KEY (maquina_id) REFERENCES maquinas(id) ON DELETE CASCADE",
