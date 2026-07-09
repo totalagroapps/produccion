@@ -1,212 +1,459 @@
 {% include 'base.html' %}
 
 {% block content %}
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-    .vencimiento-badge {
-        font-size: 11px;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-weight: bold;
+    body {
+        font-family: 'DM Sans', sans-serif !important;
+        background: #f3f4f6 !important;
+    }
+    h1, h2, h3, h4, h5, h6 {
+        font-family: 'Sora', sans-serif;
+        color: #0f172a;
+        margin-top: 0;
+    }
+    .ticket-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    .ticket-title {
+        font-size: 24px;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .badge {
         display: inline-flex;
         align-items: center;
-        gap: 4px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
     }
-    .vencimiento-OK { background: #f1f5f9; color: #64748b; }
-    .vencimiento-POR_VENCER { background: #fef3c7; color: #d97706; border: 1px solid #fcd34d; }
-    .vencimiento-VENCIDO { background: #fee2e2; color: #ef4444; border: 1px solid #fca5a5; }
+    .badge-estado-PENDIENTE { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+    .badge-estado-EN_PROGRESO { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+    .badge-estado-CERRADO { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+
+    .badge-prioridad-ALTA { background: #fee2e2; color: #b91c1c; }
+    .badge-prioridad-MEDIA { background: #fef3c7; color: #b45309; }
+    .badge-prioridad-BAJA { background: #d1fae5; color: #047857; }
+    
+    .badge-vencimiento-OK { background: #f1f5f9; color: #64748b; }
+    .badge-vencimiento-POR_VENCER { background: #fef3c7; color: #d97706; border: 1px solid #fcd34d; }
+    .badge-vencimiento-VENCIDO { background: #fee2e2; color: #ef4444; border: 1px solid #fca5a5; }
+
+    .banner-vencido {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        color: #b91c1c;
+        padding: 12px 20px;
+        border-radius: 8px;
+        margin-bottom: 24px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-family: 'DM Sans', sans-serif;
+    }
+
+    .card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+        padding: 24px;
+        border: 1px solid #e2e8f0;
+        margin-bottom: 24px;
+    }
+
+    .btn-primary {
+        background: #10b981;
+        color: white;
+        border: none;
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-family: 'DM Sans', sans-serif;
+        cursor: pointer;
+        transition: 0.2s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+    .btn-primary:hover { background: #059669; }
+    .btn-primary:disabled { opacity:0.7; cursor:not-allowed; }
+
+    .btn-secondary {
+        background: white;
+        color: #334155;
+        border: 1px solid #cbd5e1;
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-family: 'DM Sans', sans-serif;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    .btn-secondary:hover { background: #f8fafc; border-color: #94a3b8; }
+
+    .btn-whatsapp { background: #25D366; color: white; border: none; }
+    .btn-whatsapp:hover { background: #1da851; color: white; }
+
+    .layout-grid {
+        display: grid;
+        grid-template-columns: 40% 60%;
+        gap: 24px;
+        align-items: start;
+    }
+    @media(max-width:900px) {
+        .layout-grid { grid-template-columns: 1fr; }
+    }
+
+    /* Timeline Styles */
+    .timeline {
+        padding-left: 10px;
+        margin-top: 20px;
+    }
+    .timeline-item {
+        position: relative;
+        padding-left: 36px;
+        margin-bottom: 20px;
+    }
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: 15px;
+        top: 32px;
+        bottom: -20px;
+        width: 2px;
+        background: #e2e8f0;
+    }
+    .timeline-item:last-child::before { display: none; }
+
+    .timeline-avatar {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 32px;
+        height: 32px;
+        background: #10b981;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 14px;
+        border: 2px solid white;
+        box-shadow: 0 0 0 2px #e2e8f0;
+        z-index: 1;
+    }
+
+    .timeline-content {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 16px;
+    }
+    .timeline-content-initial {
+        background: #f1f5f9;
+        border-color: #cbd5e1;
+    }
+    
+    .timeline-meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: #64748b;
+        margin-bottom: 8px;
+    }
+    .timeline-text {
+        font-size: 14px;
+        color: #1e293b;
+        line-height: 1.5;
+        white-space: pre-wrap;
+    }
+
+    /* Form Styles */
+    .form-group { margin-bottom: 16px; }
+    .form-group label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 6px;
+        color: #475569;
+        font-size: 13px;
+    }
+    .form-control {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 6px;
+        border: 1px solid #cbd5e1;
+        font-family: 'DM Sans', sans-serif;
+        font-size: 14px;
+        box-sizing: border-box;
+        transition: 0.2s;
+    }
+    .form-control:focus {
+        outline: none;
+        border-color: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+    
+    /* Toast */
+    .toast-container {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 9999;
+    }
+    .toast {
+        background: #10b981;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        margin-top: 10px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 500;
+        opacity: 0;
+        transform: translateY(20px);
+        transition: opacity 0.3s, transform 0.3s;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
 </style>
 
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-    <h2>{{ ticket.consecutivo }}: {{ ticket.titulo }}</h2>
-    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+<div class="toast-container" id="toastContainer"></div>
+
+{% if ticket.estado_vencimiento == 'VENCIDO' and ticket.estado != 'CERRADO' %}
+<div class="banner-vencido">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+    Este ticket se encuentra vencido desde el {{ ticket.fecha_vencimiento.strftime('%d de %b, %H:%M') }}
+</div>
+{% endif %}
+
+<div class="ticket-header">
+    <h2 class="ticket-title">
+        <span style="color:#64748b; font-weight:400;">{{ ticket.consecutivo }}</span> {{ ticket.titulo }}
+        <span class="badge badge-estado-{{ ticket.estado }}">{{ ticket.estado }}</span>
+    </h2>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
         {% if es_jefe and ticket.telefono_asignado %}
         {% set wpp_msg = "Hola, se te ha asignado el ticket " ~ ticket.consecutivo ~ ": " ~ ticket.titulo %}
-        <a href="https://api.whatsapp.com/send?phone={{ ticket.telefono_asignado | replace('+', '') | replace(' ', '') }}&text={{ wpp_msg | urlencode }}" target="_blank" class="btn" style="background:#25D366; text-decoration:none; display:flex; align-items:center; gap:6px;">
+        <a href="https://api.whatsapp.com/send?phone={{ ticket.telefono_asignado | replace('+', '') | replace(' ', '') }}&text={{ wpp_msg | urlencode }}" target="_blank" class="btn-secondary btn-whatsapp">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/></svg>
             Notificar
         </a>
         {% endif %}
-        <a href="javascript:history.back()" class="btn" style="background:#6b7280; text-decoration:none;">Volver</a>
+        <a href="javascript:history.back()" class="btn-secondary">Volver</a>
     </div>
 </div>
 
-<div style="display:flex; flex-wrap:wrap; gap:20px;">
-    <!-- Columna Izquierda: Detalles del Ticket -->
-    <div style="flex:1; min-width:300px; display:flex; flex-direction:column; gap:20px;">
+<div class="layout-grid">
+    <!-- Left Column: Detalles & Archivos -->
+    <div style="display:flex; flex-direction:column; gap:24px;">
         
-        <div style="background:white; padding:20px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:15px;">
+        <div class="card" style="margin-bottom:0;">
+            <h4 style="border-bottom:1px solid #e2e8f0; padding-bottom:12px; margin-bottom:16px;">Información General</h4>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:20px; font-size:14px;">
                 <div>
-                    <strong>Creado por:</strong> {{ ticket.creador or 'N/A' }}<br>
-                    <strong>Asignado a:</strong> {{ ticket.asignado or 'N/A' }}<br>
-                    <strong>Prioridad:</strong> 
-                    <span style="padding:2px 6px; border-radius:10px; font-size:11px; font-weight:bold; color:white;
-                    {% if ticket.prioridad == 'ALTA' %}background:#ef4444;
-                    {% elif ticket.prioridad == 'MEDIA' %}background:#f59e0b;
-                    {% elif ticket.prioridad == 'BAJA' %}background:#10b981;{% endif %}">
-                        {{ ticket.prioridad }}
-                    </span><br>
-                    </span><br>
-                    <strong>Fecha:</strong> {{ ticket.fecha_creacion.strftime('%Y-%m-%d %H:%M') if ticket.fecha_creacion else '' }}<br>
-                    
-                    {% if ticket.fecha_vencimiento %}
-                    <strong>Límite:</strong> 
-                    <span class="vencimiento-badge vencimiento-{{ ticket.estado_vencimiento }}" {% if ticket.estado == 'CERRADO' or ticket.estado == 'CERRADO' %}style="text-decoration:line-through;"{% endif %}>
-                        ⏳ {{ ticket.fecha_vencimiento.strftime('%Y-%m-%d %H:%M') }}
-                    </span><br>
-                    {% endif %}
-                    
-                    <strong>Tiempo Invertido:</strong> 
-                    <span style="font-weight:bold; color:#475569;">
-                        ⏱️ {{ ticket.minutos_invertidos }} minutos
-                    </span>
+                    <span style="color:#64748b; font-size:12px; display:block;">Creado por</span>
+                    <strong>{{ ticket.creador or 'N/A' }}</strong>
                 </div>
                 <div>
-                    <span style="padding:6px 12px; border-radius:16px; font-size:14px; font-weight:bold;
-                    {% if ticket.estado == 'PENDIENTE' %}background:#fef3c7; color:#92400e;
-                    {% elif ticket.estado == 'EN_PROGRESO' %}background:#dbeafe; color:#1e40af;
-                    {% elif ticket.estado == 'CERRADO' or ticket.estado == 'CERRADO' %}background:#d1fae5; color:#065f46;{% endif %}">
-                        {{ ticket.estado }}
+                    <span style="color:#64748b; font-size:12px; display:block;">Asignado a</span>
+                    <strong>{{ ticket.asignado or 'N/A' }}</strong>
+                </div>
+                <div>
+                    <span style="color:#64748b; font-size:12px; display:block;">Fecha Creación</span>
+                    <strong>{{ ticket.fecha_creacion.strftime('%Y-%m-%d %H:%M') if ticket.fecha_creacion else '' }}</strong>
+                </div>
+                <div>
+                    <span style="color:#64748b; font-size:12px; display:block;">Prioridad</span>
+                    <span class="badge badge-prioridad-{{ ticket.prioridad }}">{{ ticket.prioridad }}</span>
+                </div>
+                {% if ticket.fecha_vencimiento %}
+                <div>
+                    <span style="color:#64748b; font-size:12px; display:block;">Límite</span>
+                    <span class="badge badge-vencimiento-{{ ticket.estado_vencimiento }}" {% if ticket.estado == 'CERRADO' %}style="text-decoration:line-through;"{% endif %}>
+                        ⏳ {{ ticket.fecha_vencimiento.strftime('%Y-%m-%d %H:%M') }}
                     </span>
-                    
-                    {% if es_jefe %}
-                    <form method="post" action="/tickets/actualizar_vencimiento/{{ ticket.id }}" style="margin-top: 15px; background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0; margin-bottom: 10px;">
-                        <label style="font-size: 12px; font-weight: bold; color: #475569;">Actualizar Límite:</label><br>
-                        <input type="datetime-local" name="fecha_vencimiento" style="padding: 4px; font-size: 12px; border: 1px solid #cbd5e1; border-radius: 4px; margin-top: 4px;" value="{{ ticket.fecha_vencimiento.strftime('%Y-%m-%dT%H:%M') if ticket.fecha_vencimiento else '' }}">
-                        <button type="submit" class="btn" style="padding: 4px 8px; font-size: 12px; background: #3b82f6; margin-top: 5px;">Guardar</button>
-                    </form>
-
-                    <form method="post" action="/tickets/actualizar_tiempo/{{ ticket.id }}" style="background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0;">
-                        <label style="font-size: 12px; font-weight: bold; color: #475569;">Tiempo Invertido (Mins):</label><br>
-                        <input type="number" name="minutos_invertidos" style="padding: 4px; font-size: 12px; border: 1px solid #cbd5e1; border-radius: 4px; margin-top: 4px; width: 100px;" value="{{ ticket.minutos_invertidos }}">
-                        <button type="submit" class="btn" style="padding: 4px 8px; font-size: 12px; background: #3b82f6; margin-top: 5px;">Guardar</button>
-                    </form>
-                    {% else %}
-                        {% if ticket.estado != 'CERRADO' and ticket.estado != 'CERRADO' %}
-                        <form method="post" action="/tickets/cerrar_operario/{{ ticket.id }}" style="margin-top: 15px;" onsubmit="return confirm('¿Seguro que deseas dar este ticket por solucionado? El tiempo invertido se calculará automáticamente.')">
-                            <button type="submit" class="btn" style="background:#10b981; width:100%;">✅ Dar por Solucionado</button>
-                        </form>
-                        {% endif %}
-                    {% endif %}
+                </div>
+                {% endif %}
+                <div>
+                    <span style="color:#64748b; font-size:12px; display:block;">Tiempo Invertido</span>
+                    <strong>⏱️ {{ ticket.minutos_invertidos }} min</strong>
                 </div>
             </div>
-            
-            <h4 style="border-bottom:1px solid #eee; padding-bottom:8px;">Descripción</h4>
-            <p style="white-space:pre-wrap; color:#374151; font-size:14px;">{{ ticket.descripcion }}</p>
+
+            <h4 style="border-bottom:1px solid #e2e8f0; padding-bottom:12px; margin-bottom:16px;">Descripción</h4>
+            <p style="font-size:14px; color:#334155; line-height:1.6; white-space:pre-wrap; margin:0;">{{ ticket.descripcion }}</p>
         </div>
 
-        <!-- Archivos Adjuntos -->
-        <div style="background:white; padding:20px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
-            <h4 style="border-bottom:1px solid #eee; padding-bottom:8px; margin-top:0;">Archivos Adjuntos</h4>
+        <div class="card" style="margin-bottom:0;">
+            <h4 style="border-bottom:1px solid #e2e8f0; padding-bottom:12px; margin-bottom:16px;">Archivos Adjuntos</h4>
             {% if ticket.adjuntos %}
-            <ul style="padding-left:20px;">
+            <ul style="list-style:none; padding:0; margin:0;">
                 {% for adj in ticket.adjuntos %}
-                <li style="margin-bottom:8px;">
-                    <a href="{{ adj.ruta }}" target="_blank" style="color:#2563eb; text-decoration:none; font-weight:bold;">{{ adj.nombre }}</a>
-                    {% if adj.subido_por or adj.fecha %}
-                    <div style="font-size:11px; color:#6b7280; margin-top:2px;">
-                        Subido por: <strong>{{ adj.subido_por or 'Desconocido' }}</strong> 
-                        el {{ adj.fecha.strftime('%Y-%m-%d %H:%M') if adj.fecha else 'Desconocida' }}
+                <li style="margin-bottom:12px; padding:12px; border:1px solid #e2e8f0; border-radius:8px; background:#f8fafc;">
+                    <a href="{{ adj.ruta }}" target="_blank" style="color:#2563eb; text-decoration:none; font-weight:600; display:block; margin-bottom:4px;">📎 {{ adj.nombre }}</a>
+                    <div style="font-size:12px; color:#64748b;">
+                        Subido por {{ adj.subido_por or 'Desconocido' }} el {{ adj.fecha.strftime('%Y-%m-%d %H:%M') if adj.fecha else 'Desconocida' }}
                     </div>
-                    {% endif %}
                 </li>
                 {% endfor %}
             </ul>
             {% else %}
-            <p style="color:#9ca3af; font-size:13px;">No hay archivos adjuntos.</p>
+            <p style="color:#94a3b8; font-size:14px; margin:0;">No hay archivos adjuntos.</p>
             {% endif %}
         </div>
+
     </div>
 
-    <!-- Columna Derecha: Acciones, Notas, Actividades -->
-    <div style="flex:1; min-width:300px; display:flex; flex-direction:column; gap:20px;">
+    <!-- Right Column: Acciones & Timeline -->
+    <div style="display:flex; flex-direction:column; gap:24px;">
         
-        <!-- Historial de Notas -->
-        <div style="background:white; padding:20px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
-            <h4 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:8px;">Historial de Avances</h4>
-            
-            <div style="display:flex; flex-direction:column; gap:12px; margin-top:15px; max-height:400px; overflow-y:auto; padding-right:5px;">
-                {% if ticket.notas_operario %}
-                <!-- Nota Original / Migrada -->
-                <div style="background:#f3f4f6; padding:16px; border-radius:8px; border-left:4px solid #9ca3af; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                    <div style="display:flex; justify-content:space-between; font-size:12px; color:#6b7280; margin-bottom:6px;">
-                        <strong>Nota Inicial (Migrada)</strong>
+        <!-- Formulario Unificado -->
+        {% if ticket.estado == 'CERRADO' %}
+        <div class="card" style="background:#d1fae5; text-align:center; border-color:#a7f3d0; margin-bottom:0;">
+            <h3 style="color:#065f46; margin:0 0 8px;">Ticket Completado</h3>
+            <p style="color:#047857; margin:0; font-size:14px;">Este ticket ha sido cerrado y no admite más modificaciones directas.</p>
+        </div>
+        {% else %}
+            {% if ticket.id_asignado_principal == current_user_id or es_jefe %}
+            <div class="card" style="border-top:4px solid #10b981; margin-bottom:0;">
+                <h4 style="margin-top:0; margin-bottom:20px;">Actualizar Progreso</h4>
+                <form id="form-unificado" enctype="multipart/form-data" onsubmit="guardarCambiosUnificados(event)">
+                    
+                    {% if es_jefe %}
+                    <!-- Jefe puede editar todo -->
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+                        <div class="form-group">
+                            <label>Estado del Ticket</label>
+                            <select name="estado" class="form-control">
+                                <option value="PENDIENTE" {% if ticket.estado == 'PENDIENTE' %}selected{% endif %}>Pendiente</option>
+                                <option value="EN_PROGRESO" {% if ticket.estado == 'EN_PROGRESO' %}selected{% endif %}>En Progreso</option>
+                                <option value="CERRADO" {% if ticket.estado == 'CERRADO' %}selected{% endif %}>Cerrado (Completado)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Tiempo (min)</label>
+                            <input type="number" name="minutos_invertidos" class="form-control" value="{{ ticket.minutos_invertidos }}">
+                        </div>
                     </div>
-                    <div style="font-size:14px; color:#1f2937; white-space:pre-wrap; line-height:1.5;">{{ ticket.notas_operario }}</div>
+                    <div class="form-group">
+                        <label>Límite de Vencimiento</label>
+                        <input type="datetime-local" name="fecha_vencimiento" class="form-control" value="{{ ticket.fecha_vencimiento.strftime('%Y-%m-%dT%H:%M') if ticket.fecha_vencimiento else '' }}">
+                    </div>
+                    {% else %}
+                    <!-- Operario: Solo Estado (sin cerrado manual) -->
+                    <div class="form-group">
+                        <label>Estado del Ticket</label>
+                        <select name="estado" class="form-control">
+                            <option value="PENDIENTE" {% if ticket.estado == 'PENDIENTE' %}selected{% endif %}>Pendiente</option>
+                            <option value="EN_PROGRESO" {% if ticket.estado == 'EN_PROGRESO' %}selected{% endif %}>En Progreso</option>
+                        </select>
+                    </div>
+                    {% endif %}
+
+                    <div class="form-group">
+                        <label>Añadir Avance / Nota</label>
+                        <textarea name="notas_operario" rows="3" class="form-control" placeholder="Registra el progreso o novedades..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Subir Archivos</label>
+                        <input type="file" name="archivos" multiple class="form-control" style="padding:6px;">
+                    </div>
+
+                    <button type="submit" id="btn-guardar" class="btn-primary" style="width:100%;">
+                        Guardar Cambios
+                    </button>
+                </form>
+
+                {% if not es_jefe %}
+                <hr style="border:none; border-top:1px solid #e2e8f0; margin:24px 0;">
+                <form method="post" action="/tickets/cerrar_operario/{{ ticket.id }}" onsubmit="return confirm('¿Seguro que deseas dar este ticket por solucionado? El tiempo se calculará automáticamente.')">
+                    <button type="submit" class="btn-primary" style="background:#0ea5e9; width:100%;">✅ Dar por Solucionado (Cerrar)</button>
+                </form>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="card" style="margin-bottom:0;">
+                <p style="color:#64748b; margin:0; font-size:14px;">Eres delegado en una sub-tarea. Solo puedes completar tu actividad inferior, pero no el estado general del ticket.</p>
+            </div>
+            {% endif %}
+        {% endif %}
+
+        <!-- Timeline Historial -->
+        <div class="card" style="margin-bottom:0;">
+            <h4 style="border-bottom:1px solid #e2e8f0; padding-bottom:12px; margin-bottom:16px; margin-top:0;">Historial de Avances</h4>
+            
+            <div class="timeline" style="max-height: 450px; overflow-y: auto; padding-right: 10px;">
+                {% if ticket.notas_operario %}
+                <div class="timeline-item">
+                    <div class="timeline-avatar" style="background:#94a3b8;">
+                        O
+                    </div>
+                    <div class="timeline-content timeline-content-initial">
+                        <div class="timeline-meta">
+                            <strong>Nota Inicial (Migrada)</strong>
+                        </div>
+                        <div class="timeline-text">{{ ticket.notas_operario }}</div>
+                    </div>
                 </div>
                 {% endif %}
 
                 {% for n in ticket.notas %}
-                <div style="background:#f0fdf4; padding:16px; border-radius:8px; border-left:4px solid #10b981; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                    <div style="display:flex; justify-content:space-between; font-size:12px; color:#6b7280; margin-bottom:6px;">
-                        <strong>{{ n.autor or 'Desconocido' }}</strong>
-                        <span>{{ n.fecha.strftime('%Y-%m-%d %H:%M') if n.fecha else '' }}</span>
+                <div class="timeline-item">
+                    <div class="timeline-avatar">
+                        {{ (n.autor or 'D')[0]|upper }}
                     </div>
-                    <div style="font-size:14px; color:#1f2937; white-space:pre-wrap; line-height:1.5;">{{ n.nota }}</div>
+                    <div class="timeline-content">
+                        <div class="timeline-meta">
+                            <strong>{{ n.autor or 'Desconocido' }}</strong>
+                            <span>{{ n.fecha.strftime('%d %b, %H:%M') if n.fecha else '' }}</span>
+                        </div>
+                        <div class="timeline-text">{{ n.nota }}</div>
+                    </div>
                 </div>
                 {% else %}
                     {% if not ticket.notas_operario %}
-                    <p style="color:#9ca3af; font-size:13px; margin:0;">No hay avances registrados.</p>
+                    <p style="color:#94a3b8; font-size:14px; text-align:center; padding:20px 0;">No hay avances registrados aún.</p>
                     {% endif %}
                 {% endfor %}
             </div>
         </div>
 
-        <!-- Formulario de Actualización (Estado, Notas, Subir Archivos) -->
-        {% if ticket.estado == 'CERRADO' %}
-        <div style="background:#d1fae5; padding:20px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1); text-align:center; color:#065f46;">
-            <h3 style="margin:0 0 10px 0;">Ticket Cerrado</h3>
-            <p style="font-size:13px; margin:0;">El ticket se ha marcado como completado y ya no admite modificaciones.</p>
-        </div>
-        {% else %}
-            {% if ticket.id_asignado_principal == current_user_id or es_jefe %}
-            <div style="background:white; padding:20px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1); border-top:4px solid #3b82f6;">
-                <h4 style="margin-top:0; margin-bottom:15px;">Actualizar Progreso</h4>
-                <form method="post" action="/tickets/actualizar_estado/{{ ticket.id }}" enctype="multipart/form-data" style="display:flex; flex-direction:column; gap:12px;">
-                    <div>
-                        <label style="font-weight:bold; font-size:13px;">Estado:</label><br>
-                        <select name="estado" style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc; margin-top:4px;">
-                            <option value="PENDIENTE" {% if ticket.estado == 'PENDIENTE' %}selected{% endif %}>Pendiente</option>
-                            <option value="EN_PROGRESO" {% if ticket.estado == 'EN_PROGRESO' %}selected{% endif %}>En Progreso</option>
-                            <option value="CERRADO" {% if ticket.estado == 'CERRADO' %}selected{% endif %}>Completado</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label style="font-weight:bold; font-size:13px;">Añadir Avance / Nota:</label><br>
-                        <textarea name="notas_operario" rows="3" style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc; margin-top:4px;" placeholder="Escribe aquí los detalles del trabajo realizado..."></textarea>
-                    </div>
-                    <div>
-                        <label style="font-weight:bold; font-size:13px;">Subir más archivos:</label><br>
-                        <input type="file" name="archivos" multiple style="width:100%; padding:4px; margin-top:4px; font-size:12px;">
-                    </div>
-                    <button type="submit" class="btn" style="background:#2563eb; width:100%; margin-top:10px;">Guardar Cambios</button>
-                </form>
-            </div>
-            {% else %}
-            <!-- Es un operario delegado, solo puede ver notas -->
-            <div style="background:white; padding:20px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
-                <p style="font-size:13px; color:#6b7280; margin:0;">Eres delegado en una sub-tarea. Solo puedes completar tu actividad, pero no puedes cambiar el estado del ticket.</p>
-            </div>
-            {% endif %}
-        {% endif %}
-
-        <!-- Actividades / Checklists -->
-        <div style="background:white; padding:20px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
-            <h4 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:8px;">Sub-tareas (Actividades)</h4>
+        <!-- Checklists -->
+        <div class="card" style="margin-bottom:0;">
+            <h4 style="border-bottom:1px solid #e2e8f0; padding-bottom:12px; margin-bottom:16px; margin-top:0;">Sub-tareas delegadas</h4>
             
             {% if ticket.actividades %}
-            <ul style="list-style-type:none; padding-left:0; margin:10px 0;">
+            <ul style="list-style:none; padding:0; margin:0;">
                 {% for act in ticket.actividades %}
-                <li style="margin-bottom:8px; padding:10px; background:{% if act.id_asignado == current_user_id %}#eff6ff{% else %}#f9fafb{% endif %}; border-radius:6px; display:flex; align-items:flex-start; gap:10px; border:1px solid #e5e7eb;">
-                    <form method="post" action="/tickets/actividades/{{ act.id }}/completar" style="margin:0; margin-top:2px;">
+                <li style="margin-bottom:12px; padding:16px; border:1px solid #e2e8f0; border-radius:8px; display:flex; gap:12px; background:{% if act.id_asignado == current_user_id %}#f0fdf4{% else %}#f8fafc{% endif %};">
+                    <form method="post" action="/tickets/actividades/{{ act.id }}/completar" style="margin:0;">
                         <input type="hidden" name="estado" value="off">
-                        <input type="checkbox" name="estado" {% if act.estado == 'COMPLETADA' %}checked{% endif %} {% if ticket.estado == 'CERRADO' %}disabled{% else %}onchange="this.form.submit()"{% endif %} style="width:16px; height:16px; cursor:pointer;">
+                        <input type="checkbox" name="estado" {% if act.estado == 'COMPLETADA' %}checked{% endif %} {% if ticket.estado == 'CERRADO' %}disabled{% else %}onchange="this.form.submit()"{% endif %} style="width:18px; height:18px; cursor:pointer; accent-color:#10b981; margin-top:2px;">
                     </form>
-                    <div style="flex:1;">
-                        <span style="font-size:14px; {% if act.estado == 'COMPLETADA' %}text-decoration:line-through; color:#9ca3af;{% else %}color:#1f2937;{% endif %}">
-                            {{ act.descripcion }} 
-                        </span>
-                        <div style="color:#6b7280; font-size:11px; margin-top:4px;">
+                    <div>
+                        <div style="font-size:14px; {% if act.estado == 'COMPLETADA' %}text-decoration:line-through; color:#94a3b8;{% else %}color:#1e293b; font-weight:500;{% endif %}">
+                            {{ act.descripcion }}
+                        </div>
+                        <div style="font-size:12px; color:#64748b; margin-top:4px;">
                             Delegado a: <strong>{{ act.asignado_a or 'N/A' }}</strong>
                         </div>
                     </div>
@@ -214,22 +461,22 @@
                 {% endfor %}
             </ul>
             {% else %}
-            <p style="color:#9ca3af; font-size:13px; margin:10px 0;">No hay sub-tareas delegadas.</p>
+            <p style="color:#94a3b8; font-size:14px; margin-bottom:20px;">No hay sub-tareas delegadas.</p>
             {% endif %}
-            
+
             {% if ticket.estado != 'CERRADO' %}
-            <div style="margin-top:15px; padding-top:15px; border-top:1px dashed #e5e7eb;">
-                <strong style="font-size:13px; display:block; margin-bottom:8px;">Delegar nueva actividad:</strong>
-                <form method="post" action="/tickets/{{ ticket.id }}/actividades/crear" style="display:flex; flex-direction:column; gap:8px;">
-                    <input type="text" name="descripcion" placeholder="Descripción de la tarea..." required style="padding:8px; border:1px solid #ccc; border-radius:4px; font-size:13px;">
-                    <div style="display:flex; gap:8px;">
-                        <select name="asignado_a" required style="padding:8px; border-radius:4px; font-size:13px; flex:1; border:1px solid #ccc;">
-                            <option value="">- Asignar a -</option>
+            <div style="border-top:1px dashed #e2e8f0; padding-top:16px; margin-top:8px;">
+                <strong style="font-size:13px; color:#475569; display:block; margin-bottom:8px;">Delegar nueva actividad</strong>
+                <form method="post" action="/tickets/{{ ticket.id }}/actividades/crear" style="display:flex; flex-direction:column; gap:10px;">
+                    <input type="text" name="descripcion" class="form-control" placeholder="¿Qué se necesita hacer?" required>
+                    <div style="display:flex; gap:10px;">
+                        <select name="asignado_a" class="form-control" required>
+                            <option value="">-- Asignar a operario --</option>
                             {% for op in operarios %}
                             <option value="{{ op[0] }}">{{ op[1] }}</option>
                             {% endfor %}
                         </select>
-                        <button type="submit" class="btn" style="background:#10b981; padding:8px 12px; font-size:13px;">Añadir</button>
+                        <button type="submit" class="btn-secondary" style="white-space:nowrap;">Añadir</button>
                     </div>
                 </form>
             </div>
@@ -238,4 +485,66 @@
 
     </div>
 </div>
+
+<script>
+function showToast(msg) {
+    const t = document.createElement('div');
+    t.className = 'toast show';
+    t.innerHTML = '✅ ' + msg;
+    document.getElementById('toastContainer').appendChild(t);
+    setTimeout(() => {
+        t.classList.remove('show');
+        setTimeout(() => t.remove(), 300);
+    }, 3000);
+}
+
+async function guardarCambiosUnificados(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btn-guardar');
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Guardando...';
+
+    const form = e.target;
+    const formData = new FormData(form);
+    let reqs = [];
+    
+    // 1. Siempre mandamos el estado, notas y archivos
+    reqs.push(fetch('/tickets/actualizar_estado/{{ ticket.id }}', {
+        method: 'POST',
+        body: formData
+    }));
+
+    {% if es_jefe %}
+    // 2. Si es jefe, actualizar vencimiento
+    const fVenc = new FormData();
+    fVenc.append('fecha_vencimiento', formData.get('fecha_vencimiento'));
+    reqs.push(fetch('/tickets/actualizar_vencimiento/{{ ticket.id }}', {
+        method: 'POST',
+        body: fVenc
+    }));
+
+    // 3. Si es jefe, actualizar tiempo
+    const fTiempo = new FormData();
+    fTiempo.append('minutos_invertidos', formData.get('minutos_invertidos'));
+    reqs.push(fetch('/tickets/actualizar_tiempo/{{ ticket.id }}', {
+        method: 'POST',
+        body: fTiempo
+    }));
+    {% endif %}
+
+    try {
+        await Promise.all(reqs);
+        showToast('¡Cambios guardados con éxito!');
+        setTimeout(() => {
+            window.location.reload();
+        }, 1200);
+    } catch(err) {
+        console.error(err);
+        alert('Hubo un error al guardar.');
+        btn.disabled = false;
+        btn.innerHTML = 'Guardar Cambios';
+    }
+}
+</script>
+
 {% endblock %}
