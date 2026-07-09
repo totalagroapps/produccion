@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Request, Depends, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from auth import require_admin, require_operario
+from routers.android import guardar_registro_android
 from database import db, sincronizar_actividades_ordenes_abiertas
 from datetime import datetime
 from limiter import limiter
