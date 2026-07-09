@@ -8,6 +8,14 @@
         <h2>Administrar Usuarios</h2>
     </div>
 
+    <!-- Mensajes de error -->
+    {% if error %}
+    <div class="alert alert-danger alert-dismissible fade show">
+        <strong>Error:</strong> {{ error }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+
     <!-- Mensajes de éxito -->
     {% if request.query_params.get('creados') is not none %}
     <div class="alert alert-success alert-dismissible fade show">

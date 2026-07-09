@@ -44,7 +44,7 @@ def usuario_disponible(cursor, base: str) -> str:
 
 
 @router.get("/usuarios", response_class=HTMLResponse)
-def ver_usuarios(request: Request):
+def ver_usuarios(request: Request, error: str = None):
 
     if not require_admin(request):
         return RedirectResponse("/admin", 303)
@@ -72,6 +72,7 @@ def ver_usuarios(request: Request):
         "request": request,
         "usuarios": usuarios,
         "operarios": operarios,
+        "error": error,
         "password_temporal_default": PASSWORD_TEMPORAL_DEFAULT
     })
 
@@ -132,7 +133,8 @@ def crear_usuario(
     except Exception:
         conn.rollback()
         conn.close()
-        return "El usuario ya existe"
+        from urllib.parse import quote
+        return RedirectResponse(f"/usuarios?error={quote('El usuario ya existe')}", 303)
 
     conn.close()
     return RedirectResponse("/usuarios", 303)

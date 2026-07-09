@@ -1,5 +1,8 @@
 from fastapi import FastAPI, Request, Form, UploadFile, File, Depends  # type: ignore
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, FileResponse  # type: ignore
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from fastapi.templating import Jinja2Templates  # type: ignore
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.middleware.gzip import GZipMiddleware  # type: ignore
@@ -31,7 +34,10 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 ADMIN_USER = os.getenv("ADMIN_USER")
 ADMIN_PASS = os.getenv("ADMIN_PASS")
 
+from limiter import limiter
 app = FastAPI()
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -156,7 +162,14 @@ async def proteger_rutas_administrativas(request: Request, call_next):
     return JSONResponse({"detail": "No autorizado para esta accion"}, status_code=401)
 
 
-app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
+# Configurar SessionMiddleware con flags de seguridad
+app.add_middleware(
+    SessionMiddleware, 
+    secret_key=SECRET_KEY,
+    https_only=True,
+    same_site="lax",
+    max_age=86400  # 24 horas
+)
 app.add_middleware(GZipMiddleware, minimum_size=500)
 
 templates = Jinja2Templates(directory="templates")
@@ -271,6 +284,9 @@ def crear():
     )""")
     
     conn.commit()  # <-- FIX: Commit table creations before attempting ALTERS
+
+    c.execute("CREATE INDEX IF NOT EXISTS idx_regprod_operario_inicio ON registros_produccion(operario_id, inicio)")
+    conn.commit()
 
     # Intentar añadir llaves foráneas a BDs existentes (ignorar si falla por huérfanos)
     for alter_cmd in [
@@ -426,288 +442,6 @@ def sincronizar_actividades_ordenes_abiertas(cursor, orden_id=None):
 
 # ================= HOME =================
 
-@app.get("/", response_class=HTMLResponse)
-def home(request: Request):
-    if not require_admin(request):
-        return RedirectResponse("/admin", 303)
-
-    rango = request.query_params.get("rango", "hoy")
-    
-    # Determinar filtros de fecha (asumiendo PostgreSQL, casteamos el texto a timestamp)
-    if rango == 'ayer':
-        date_filter = "inicio::timestamp >= CURRENT_DATE - INTERVAL '1 day' AND inicio::timestamp < CURRENT_DATE"
-        prev_date_filter = "inicio::timestamp >= CURRENT_DATE - INTERVAL '2 days' AND inicio::timestamp < CURRENT_DATE - INTERVAL '1 day'"
-    elif rango == '7dias':
-        date_filter = "inicio::timestamp >= CURRENT_DATE - INTERVAL '7 days'"
-        prev_date_filter = "inicio::timestamp >= CURRENT_DATE - INTERVAL '14 days' AND inicio::timestamp < CURRENT_DATE - INTERVAL '7 days'"
-    elif rango == 'mes':
-        date_filter = "inicio::timestamp >= DATE_TRUNC('month', CURRENT_DATE)"
-        prev_date_filter = "inicio::timestamp >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month') AND inicio::timestamp < DATE_TRUNC('month', CURRENT_DATE)"
-    else: # hoy
-        rango = 'hoy'
-        date_filter = "inicio::timestamp >= CURRENT_DATE"
-        prev_date_filter = "inicio::timestamp >= CURRENT_DATE - INTERVAL '1 day' AND inicio::timestamp < CURRENT_DATE"
-
-    conn = db()
-    c = conn.cursor()
-
-    # 1. Órdenes en producción (en este periodo)
-    c.execute(f"SELECT COUNT(DISTINCT orden_id) FROM registros_produccion WHERE {date_filter}")
-    ordenes_activas = c.fetchone()[0] or 0
-    
-    c.execute(f"SELECT COUNT(DISTINCT orden_id) FROM registros_produccion WHERE {prev_date_filter}")
-    ordenes_prev = c.fetchone()[0] or 0
-    
-    tendencia_ordenes = 0
-    if ordenes_prev > 0:
-        tendencia_ordenes = round(((ordenes_activas - ordenes_prev) / ordenes_prev) * 100, 1)
-    else:
-        tendencia_ordenes = 100 if ordenes_activas > 0 else 0
-
-    # 2. Producción del periodo
-    c.execute(f"SELECT COALESCE(SUM(cantidad), 0) FROM registros_produccion WHERE {date_filter}")
-    produccion_hoy = c.fetchone()[0]
-
-    c.execute(f"SELECT COALESCE(SUM(cantidad), 0) FROM registros_produccion WHERE {prev_date_filter}")
-    produccion_prev = c.fetchone()[0]
-
-    tendencia_prod = 0
-    if produccion_prev > 0:
-        tendencia_prod = round(((produccion_hoy - produccion_prev) / produccion_prev) * 100, 1)
-    else:
-        tendencia_prod = 100 if produccion_hoy > 0 else 0
-
-    # 3. Avance Global de Órdenes Abiertas
-    c.execute("""
-        SELECT COALESCE(SUM(cantidad_realizada), 0), COALESCE(SUM(cantidad_total), 0)
-        FROM orden_actividades
-        WHERE orden_id IN (SELECT id FROM ordenes WHERE estado != 'CERRADA')
-    """)
-    row_avance = c.fetchone()
-    if row_avance and row_avance[1] > 0:
-        avance_promedio = round((row_avance[0] / row_avance[1]) * 100, 1)
-    else:
-        avance_promedio = 0
-
-    # 4. Tickets Abiertos (en lugar de Operarios Activos o como complemento)
-    c.execute("SELECT COUNT(*) FROM tickets WHERE estado != 'Cerrado'")
-    tickets_abiertos = c.fetchone()[0] or 0
-
-    # Gráfico: Últimos 7 días
-    c.execute("""
-        SELECT DATE(inicio::timestamp) as fecha, COALESCE(SUM(cantidad), 0)
-        FROM registros_produccion 
-        WHERE inicio::timestamp >= CURRENT_DATE - INTERVAL '6 days'
-        GROUP BY DATE(inicio::timestamp)
-        ORDER BY fecha
-    """)
-    chart_rows = c.fetchall()
-    # Preparar datos para Chart.js
-    fechas = [r[0].strftime('%d/%m') for r in chart_rows]
-    cantidades = [r[1] for r in chart_rows]
-
-    # Alertas y Notificaciones Contextuales
-    # Última orden
-    c.execute("""
-        SELECT o.id, m.nombre, o.cantidad
-        FROM registros_produccion rp
-        JOIN ordenes o ON o.id = rp.orden_id
-        JOIN maquinas m ON m.id = o.maquina_id
-        ORDER BY rp.fin DESC NULLS LAST
-        LIMIT 1
-    """)
-    ultima_orden = c.fetchone()
-    if ultima_orden:
-        ultima_orden = {"id": ultima_orden[0], "maquina": ultima_orden[1], "cantidad": ultima_orden[2]}
-
-    # Tickets recientes
-    c.execute("""
-        SELECT id, titulo, prioridad 
-        FROM tickets 
-        WHERE estado != 'Cerrado' 
-        ORDER BY CASE WHEN prioridad = 'Alta' THEN 1 ELSE 2 END, id DESC 
-        LIMIT 3
-    """)
-    tickets_recientes = [{"id": r[0], "titulo": r[1], "prioridad": r[2]} for r in c.fetchall()]
-
-    conn.close()
-
-    return templates.TemplateResponse(
-        request=request, name="home.html", context={
-        "request": request,
-        "rango": rango,
-        "ordenes_activas": ordenes_activas,
-        "tendencia_ordenes": tendencia_ordenes,
-        "produccion_hoy": produccion_hoy,
-        "tendencia_prod": tendencia_prod,
-        "avance_promedio": avance_promedio,
-        "tickets_abiertos": tickets_abiertos,
-        "chart_fechas": fechas,
-        "chart_cantidades": cantidades,
-        "ultima_orden": ultima_orden,
-        "tickets_recientes": tickets_recientes
-    })
-
-
-# ================= PANEL =================
-
-@app.get("/panel", response_class=HTMLResponse)
-def panel(request: Request):
-
-    if not require_admin(request):
-        return RedirectResponse("/admin", 303)
-
-    conn = db()
-    c = conn.cursor()
-    sincronizar_actividades_ordenes_abiertas(c)
-    conn.commit()
-
-    c.execute("SELECT id, nombre FROM maquinas")
-    maquinas = c.fetchall()
-
-    c.execute("""
-        SELECT o.id, m.nombre, o.cantidad, o.estado, o.cerrado_en
-        FROM ordenes o
-        JOIN maquinas m ON m.id = o.maquina_id
-        ORDER BY o.id DESC
-    """)
-    ordenes_sql = c.fetchall()
-
-    ordenes = []
-
-    for o in ordenes_sql:
-        oid = o[0]
-
-        c.execute("""
-            SELECT SUM(cantidad_realizada), SUM(cantidad_total)
-            FROM orden_actividades
-            WHERE orden_id = %s
-        """, (oid,))
-
-        row_pct = c.fetchone()
-
-        if row_pct and row_pct[1] and row_pct[1] > 0:
-            porcentaje_general = round((row_pct[0] / row_pct[1]) * 100, 2)
-        else:
-            porcentaje_general = 0
-
-        c.execute("""
-            SELECT
-                p.nombre,
-                a.nombre,
-                oa.cantidad_realizada,
-                oa.cantidad_total
-            FROM orden_actividades oa
-            JOIN actividades a ON a.id = oa.actividad_id
-            JOIN procesos p ON p.id = a.proceso_id
-            WHERE oa.orden_id = %s
-            ORDER BY p.id
-        """, (oid,))
-        acts = c.fetchall()
-
-        procesos = {}
-        for pr, act, real, total in acts:
-            if pr not in procesos:
-                procesos[pr] = []
-            pct = int((real/total)*100) if total else 0
-            procesos[pr].append({
-                "nombre": act,
-                "realizada": real,
-                "total": total,
-                "porcentaje": pct
-            })
-
-        ordenes.append({
-            "id": oid,
-            "producto": o[1],
-            "cantidad": o[2],
-            "estado": o[3],
-            "porcentaje": porcentaje_general,
-            "cerrado_en": o[4],
-            "procesos": [
-                {"nombre": k, "actividades": v}
-                for k, v in procesos.items()
-            ]
-        })
-
-    conn.close()
-
-    return templates.TemplateResponse(
-        request=request, name="panel.html", context={
-        "request": request,
-        "maquinas": maquinas,
-        "ordenes": ordenes
-    })
-
-
-# ================= METRICAS OPERARIOS =================
-
-@app.get("/metricas_operarios", response_class=HTMLResponse)
-def metricas_operarios(request: Request):
-
-    conn = db()
-    c = conn.cursor()
-
-    semanas = metricas_semanales(c)
-
-    conn.close()
-
-    return templates.TemplateResponse(
-        request=request, name="Metricas.html", context={
-        "request": request,
-        "semanas": semanas
-    })
-
-
-# ================= KPI DASHBOARD =================
-
-@app.get("/kpi", response_class=HTMLResponse)
-def kpi(request: Request):
-
-    if not require_admin(request):
-        return RedirectResponse("/admin", 303)
-
-    conn = db()
-    c = conn.cursor()
-
-    c.execute("""
-    SELECT o.nombre, COALESCE(SUM(r.cantidad), 0)
-    FROM registros_produccion r
-    JOIN operarios o ON o.id = r.operario_id
-    GROUP BY o.id, o.nombre
-    """)
-    por_operario = c.fetchall()
-
-    c.execute("""
-    SELECT o.nombre,
-           COALESCE(SUM(EXTRACT(EPOCH FROM (r.fin::timestamp - r.inicio::timestamp)) / 60.0), 0)
-    FROM registros_produccion r
-    JOIN operarios o ON o.id = r.operario_id
-    GROUP BY o.id, o.nombre
-    """)
-    minutos = c.fetchall()
-
-    c.execute("""
-    SELECT LEFT(inicio, 10), SUM(cantidad)
-    FROM registros_produccion
-    GROUP BY LEFT(inicio, 10)
-    ORDER BY LEFT(inicio, 10)
-    """)
-    diario = c.fetchall()
-
-    conn.close()
-
-    return templates.TemplateResponse(
-        request=request, name="kpi.html", context={
-        "request": request,
-        "por_operario": por_operario,
-        "minutos": minutos,
-        "diario": diario
-    })
-
-
-# ================= CREAR ORDEN DESDE PANEL =================
-
 @app.post("/crear_orden_web")
 def crear_orden_web(cantidad: int = Form(...), maquina: int = Form(...)):
 
@@ -755,15 +489,6 @@ def sincronizar_ordenes_abiertas_web(request: Request):
     conn.close()
 
     return RedirectResponse(f"/panel?sync={insertadas}", 303)
-
-
-@app.get("/inicio_operario", response_class=HTMLResponse)
-def inicio_operario(request: Request):
-    if request.session.get("role") != "operario":
-        return RedirectResponse("/admin", 303)
-    return templates.TemplateResponse(
-        request=request, name="inicio_operario.html", context={"request": request}
-    )
 
 
 @app.get("/registro_web", response_class=HTMLResponse)
@@ -922,6 +647,7 @@ def admin(request: Request):
 
 
 @app.post("/admin")
+@limiter.limit("5/minute")
 def admin_post(request: Request, user: str = Form(...), password: str = Form(...)):
 
     if login_user(request, user, password):
@@ -1005,93 +731,6 @@ def cambiar_password_web_post(
 def logout(request: Request):
     request.session.clear()
     return RedirectResponse("/admin", status_code=303)
-
-
-# ================= REGISTRO PRODUCCION ANDROID =================
-
-@app.post("/registro_android")
-def registro_android(data: dict, usuario=Depends(usuario_android_habilitado)):
-    return guardar_registro_android(data, usuario["operario_id"])
-
-
-# ================= IMPORTAR =================
-
-@app.get("/importar")
-def importar(request: Request):
-    return templates.TemplateResponse(
-        request=request, name="importar.html", context={"request": request})
-
-
-@app.get("/operarios")
-def operarios():
-    conn = db()
-    c = conn.cursor()
-    c.execute("SELECT id, nombre FROM operarios")
-    rows = c.fetchall()
-    conn.close()
-    return rows
-
-
-@app.get("/maquinas")
-def maquinas():
-    conn = db()
-    c = conn.cursor()
-    c.execute("SELECT id, nombre FROM maquinas")
-    rows = c.fetchall()
-    conn.close()
-    return rows
-
-
-@app.get("/ordenes")
-def ordenes_android():
-    conn = db()
-    c = conn.cursor()
-    sincronizar_actividades_ordenes_abiertas(c)
-    conn.commit()
-    c.execute("""
-    SELECT id, maquina_id, estado, porcentaje
-    FROM ordenes
-    WHERE estado != 'CERRADA'
-    """)
-    rows = c.fetchall()
-    conn.close()
-    return rows
-
-
-@app.get("/procesos/{orden_id}")
-def procesos_android(orden_id: int):
-    conn = db()
-    c = conn.cursor()
-    sincronizar_actividades_ordenes_abiertas(c, orden_id)
-    conn.commit()
-    c.execute("""
-    SELECT DISTINCT p.id, p.nombre
-    FROM orden_actividades oa
-    JOIN actividades a ON a.id = oa.actividad_id
-    JOIN procesos p ON p.id = a.proceso_id
-    WHERE oa.orden_id = %s
-    """, (orden_id,))
-    rows = c.fetchall()
-    conn.close()
-    return rows
-
-
-@app.get("/actividades/{orden}/{proceso}")
-def actividades_android(orden: int, proceso: int):
-    conn = db()
-    c = conn.cursor()
-    sincronizar_actividades_ordenes_abiertas(c, orden)
-    conn.commit()
-    c.execute("""
-    SELECT a.id, a.nombre
-    FROM orden_actividades oa
-    JOIN actividades a ON a.id = oa.actividad_id
-    WHERE oa.orden_id = %s AND a.proceso_id = %s
-    """, (orden, proceso))
-    rows = c.fetchall()
-    conn.close()
-    return rows
-
 
 
 @app.get("/metricas", response_class=HTMLResponse)

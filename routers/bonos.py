@@ -24,15 +24,18 @@ def calcular_detalles_operario(c, operario_id: int, operario_nombre: str, mes: i
             COALESCE(m.nombre, '') as maquina,
             SUM(r.cantidad) as unidades,
             SUM((EXTRACT(EPOCH FROM r.fin::timestamp) - EXTRACT(EPOCH FROM r.inicio::timestamp)) / 3600.0) as horas,
-            COUNT(r.id) as cantidad_registros
+            COUNT(r.id) as cantidad_registros,
+            e.unidades_por_hora as unidades_estandar,
+            e.costo_mo_unidad as costo_base
         FROM registros_produccion r
         JOIN actividades a ON a.id = r.actividad_id
+        LEFT JOIN estandares_actividad e ON e.actividad_id = a.id
         LEFT JOIN procesos p ON p.id = a.proceso_id
         LEFT JOIN maquinas m ON m.id = p.maquina_id
         WHERE r.operario_id = %s
         AND TO_CHAR(r.inicio::timestamp, 'MM') = %s
         AND TO_CHAR(r.inicio::timestamp, 'YYYY') = %s
-        GROUP BY a.id, a.nombre, m.nombre
+        GROUP BY a.id, a.nombre, m.nombre, e.unidades_por_hora, e.costo_mo_unidad
     """, (operario_id, f"{mes:02d}", str(anio)))
 
     rows = c.fetchall() or []
@@ -63,15 +66,8 @@ def calcular_detalles_operario(c, operario_id: int, operario_nombre: str, mes: i
         else:
             rendimiento_real = unidades / horas
 
-        c.execute("""
-            SELECT unidades_por_hora, costo_mo_unidad
-            FROM estandares_actividad
-            WHERE actividad_id = %s
-        """, (actividad_id,))
-        est = c.fetchone()
-
-        unidades_estandar = float(est[0]) if est and est[0] else 0
-        costo_base = float(est[1]) if est and est[1] else 0
+        unidades_estandar = float(row[6]) if len(row) > 6 and row[6] else 0
+        costo_base = float(row[7]) if len(row) > 7 and row[7] else 0
 
         eficiencia = rendimiento_real / unidades_estandar if unidades_estandar else 0
 

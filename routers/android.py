@@ -3,7 +3,8 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 from datetime import timedelta
 
-from fastapi import APIRouter, Header, HTTPException, Depends
+from fastapi import APIRouter, Header, HTTPException, Depends, Request
+from limiter import limiter
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
 from auth import hash_password, verify_password
@@ -127,7 +128,8 @@ def fecha_android(valor):
 
 
 @router.post("/android/login")
-def login_android(data: dict):
+@limiter.limit("5/minute")
+def login_android(request: Request, data: dict):
     asegurar_schema_android()
 
     username = str(data.get("username") or data.get("usuario") or "").strip()
