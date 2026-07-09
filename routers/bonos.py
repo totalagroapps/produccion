@@ -343,6 +343,19 @@ def registros_crudos(request: Request, operario_id: int, actividad_id: int, mes:
     c.execute("SELECT nombre FROM actividades WHERE id = %s", (actividad_id,))
     act_nombre = c.fetchone()[0]
     
+    # Obtener todas las actividades para el dropdown de edición
+    c.execute("""
+        SELECT a.id, p.nombre, a.nombre 
+        FROM actividades a 
+        JOIN procesos p ON p.id = a.proceso_id 
+        ORDER BY p.nombre, a.nombre
+    """)
+    todas_actividades = c.fetchall()
+    
+    # Comprobar si el mes está cerrado
+    c.execute("SELECT id FROM cierre_bonos WHERE mes = %s AND anio = %s", (mes, anio))
+    cerrado = c.fetchone() is not None
+    
     conn.close()
     
     return request.app.state.templates.TemplateResponse(
@@ -353,9 +366,47 @@ def registros_crudos(request: Request, operario_id: int, actividad_id: int, mes:
             "actividad": act_nombre,
             "mes": mes,
             "anio": anio,
-            "operario_id": operario_id
+            "operario_id": operario_id,
+            "actividad_id": actividad_id,
+            "todas_actividades": todas_actividades,
+            "cerrado": cerrado
         }
     )
+
+@router.post("/bonos/registros/editar")
+def editar_registro_crudo(
+    request: Request,
+    registro_id: int = Form(...),
+    nueva_actividad_id: int = Form(...),
+    nueva_cantidad: int = Form(...),
+    operario_id: int = Form(...),
+    actividad_id_actual: int = Form(...),
+    mes: int = Form(...),
+    anio: int = Form(...)
+):
+    if not request.session.get("role") == "admin":
+        return RedirectResponse("/admin", 303)
+
+    conn = db()
+    c = conn.cursor()
+
+    # Comprobar si el mes está cerrado (si lo está, no deberíamos dejar editar, pero por seguridad doble check)
+    c.execute("SELECT id FROM cierre_bonos WHERE mes = %s AND anio = %s", (mes, anio))
+    if c.fetchone():
+        conn.close()
+        return RedirectResponse(f"/bonos/registros?operario_id={operario_id}&actividad_id={actividad_id_actual}&mes={mes}&anio={anio}", 303)
+
+    c.execute("""
+        UPDATE registros_produccion
+        SET actividad_id = %s, cantidad = %s
+        WHERE id = %s
+    """, (nueva_actividad_id, nueva_cantidad, registro_id))
+    
+    conn.commit()
+    conn.close()
+
+    return RedirectResponse(f"/bonos/registros?operario_id={operario_id}&actividad_id={actividad_id_actual}&mes={mes}&anio={anio}", 303)
+
 
 
 # ================= EXPORTAR EXCEL =================

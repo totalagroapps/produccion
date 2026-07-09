@@ -34,6 +34,9 @@
             <th>Hora de Inicio</th>
             <th>Hora de Fin</th>
             <th>Cantidad Reportada</th>
+            {% if not cerrado %}
+            <th>Acciones (Corregir)</th>
+            {% endif %}
         </tr>
         {% for r in registros %}
         <tr>
@@ -41,10 +44,33 @@
             <td>{{ r[1] }}</td>
             <td>{{ r[2] if r[2] else 'En progreso' }}</td>
             <td><strong>{{ r[3] }}</strong> uds</td>
+            {% if not cerrado %}
+            <td>
+                <form action="/bonos/registros/editar" method="POST" style="display:flex; align-items:center; gap:5px;">
+                    <input type="hidden" name="registro_id" value="{{ r[0] }}">
+                    <input type="hidden" name="operario_id" value="{{ operario_id }}">
+                    <input type="hidden" name="actividad_id_actual" value="{{ actividad_id }}">
+                    <input type="hidden" name="mes" value="{{ mes }}">
+                    <input type="hidden" name="anio" value="{{ anio }}">
+                    
+                    <select name="nueva_actividad_id" style="width: 150px; padding: 4px; border: 1px solid #ccc; border-radius: 4px;">
+                        {% for a in todas_actividades %}
+                            <option value="{{ a[0] }}" {% if a[0] == actividad_id %}selected{% endif %}>
+                                {{ a[1] }} - {{ a[2] }}
+                            </option>
+                        {% endfor %}
+                    </select>
+
+                    <input type="number" name="nueva_cantidad" value="{{ r[3] }}" style="width: 70px; padding: 4px; border: 1px solid #ccc; border-radius: 4px;">
+                    
+                    <button type="submit" title="Guardar corrección" style="background:#f39c12; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">💾</button>
+                </form>
+            </td>
+            {% endif %}
         </tr>
         {% else %}
         <tr>
-            <td colspan="4" style="text-align:center;">No se encontraron registros crudos.</td>
+            <td colspan="{% if cerrado %}4{% else %}5{% endif %}" style="text-align:center;">No se encontraron registros crudos.</td>
         </tr>
         {% endfor %}
     </table>
