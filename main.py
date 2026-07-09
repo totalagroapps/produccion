@@ -413,35 +413,6 @@ def crear():
     conn.close()
 
 
-def sincronizar_actividades_ordenes_abiertas(cursor, orden_id=None):
-    """Agrega a orden_actividades las actividades nuevas de la maquina sin duplicar IDs."""
-    filtro_orden = "AND o.id = %s" if orden_id is not None else ""
-    params = (orden_id,) if orden_id is not None else ()
-
-    cursor.execute(f"""
-        INSERT INTO orden_actividades
-            (orden_id, actividad_id, cantidad_total, cantidad_realizada)
-        SELECT
-            o.id,
-            a.id,
-            o.cantidad,
-            0
-        FROM ordenes o
-        JOIN procesos p ON p.maquina_id = o.maquina_id
-        JOIN actividades a ON a.proceso_id = p.id
-        WHERE o.estado != 'CERRADA'
-        {filtro_orden}
-        AND NOT EXISTS (
-            SELECT 1
-            FROM orden_actividades oa
-            WHERE oa.orden_id = o.id
-            AND oa.actividad_id = a.id
-        )
-    """, params)
-
-    return cursor.rowcount or 0
-
-
 # ================= HOME =================
 
 @app.post("/crear_orden_web")
