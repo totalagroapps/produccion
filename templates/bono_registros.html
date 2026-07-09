@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registros Crudos</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f6f9; padding: 40px; margin:0;}
+        .card { background: white; padding: 25px; border-radius: 14px; box-shadow: 0 8px 25px rgba(0,0,0,0.05); max-width: 1000px; margin: auto; }
+        h2 { margin-top: 0; color: #333; }
+        .info { background: #e8f4f8; padding: 15px; border-radius: 8px; margin-bottom: 20px; color: #2c3e50; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { background: #2c3e50; color: white; padding: 12px; text-align: left; }
+        td { padding: 12px; border-bottom: 1px solid #eee; }
+        tr:hover { background: #f9f9f9; }
+        .btn-back { display: inline-block; margin-top: 20px; padding: 10px 15px; background: #95a5a6; color: white; text-decoration: none; border-radius: 6px; }
+        .btn-back:hover { background: #7f8c8d; }
+    </style>
+</head>
+<body>
+{% include '_navbar.html' %}
+
+<div class="card">
+    <h2>🔎 Registros Crudos que componen el cálculo</h2>
+    
+    <div class="info">
+        <strong>Operario:</strong> {{ operario }}<br>
+        <strong>Actividad:</strong> {{ actividad }}<br>
+        <strong>Periodo:</strong> Mes {{ mes }} del {{ anio }}
+    </div>
+
+    <table>
+        <tr>
+            <th>ID Registro</th>
+            <th>Hora de Inicio</th>
+            <th>Hora de Fin</th>
+            <th>Cantidad Reportada</th>
+        </tr>
+        {% for r in registros %}
+        <tr>
+            <td>#{{ r[0] }}</td>
+            <td>{{ r[1] }}</td>
+            <td>{{ r[2] if r[2] else 'En progreso' }}</td>
+            <td><strong>{{ r[3] }}</strong> uds</td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="4" style="text-align:center;">No se encontraron registros crudos.</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <a href="/bonos/detalle?operario_id={{ operario_id }}&mes={{ mes }}&anio={{ anio }}" class="btn-back">← Volver al Detalle del Bono</a>
+</div>
+
+</body>
+</html>

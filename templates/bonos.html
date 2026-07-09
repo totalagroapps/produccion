@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -119,43 +119,56 @@
 <div class="container">
 
     <div class="header">
-        <h2>💰 Bonos Mes {{mes}}/{{anio}}</h2>
-        <a class="btn btn-recalc" href="/bonos?mes={{mes}}&anio={{anio}}">🔄 Actualizar</a>
-        <a class="btn btn-home" href="/">🏠 Home</a>
+        <h2>💰 Bonos Mes {{mes}}/{{anio}} 
+            {% if cerrado %}
+                <span class="badge red" style="margin-left: 10px;">🔒 MES CERRADO</span>
+            {% else %}
+                <span class="badge green" style="margin-left: 10px;">🟢 MES ABIERTO</span>
+            {% endif %}
+        </h2>
+        
+        <div style="margin-top: 15px;">
+            {% if not cerrado %}
+                <a class="btn btn-recalc" href="/bonos?mes={{mes}}&anio={{anio}}">🔄 Recalcular</a>
+                <form action="/bonos/cerrar?mes={{mes}}&anio={{anio}}" method="POST" style="display:inline;" onsubmit="return confirm('¿Seguro que deseas cerrar el mes? Esto guardará los resultados de forma permanente.');">
+                    <button type="submit" class="btn" style="background:#8e44ad; border:none; cursor:pointer;">🔒 Cerrar Mes</button>
+                </form>
+            {% else %}
+                <form action="/bonos/reabrir?mes={{mes}}&anio={{anio}}" method="POST" style="display:inline;" onsubmit="return confirm('¿Seguro que deseas reabrir el mes? Si recalculas ahora podrías alterar bonos ya pagados.');">
+                    <button type="submit" class="btn" style="background:#e74c3c; border:none; cursor:pointer;">🔓 Reabrir Mes</button>
+                </form>
+            {% endif %}
+            
+            <a class="btn" style="background:#27ae60;" href="/bonos/exportar?mes={{mes}}&anio={{anio}}">📥 Exportar Excel</a>
+            <a class="btn btn-home" href="/">🏠 Home</a>
+        </div>
     </div>
 
     <table>
         <tr>
             <th>Operario</th>
-            <th>Eficiencia Productiva</th>
+            <th>Totales (Unds / Hrs)</th>
+            <th>Eficiencia Productiva Promedio</th>
             <th>Eficiencia Ocupación</th>
-            <th>% Bono</th>
-            <th>Total</th>
+            <th>Total Bono</th>
         </tr>
 
         {% for r in datos %}
         <tr>
             <td>
-                <a href="/bonos/detalle?nombre={{ r.nombre }}&mes={{mes}}&anio={{anio}}">
+                <a href="/bonos/detalle?operario_id={{ r.operario_id }}&mes={{mes}}&anio={{anio}}">
                     <strong>{{ r.nombre }}</strong>
                 </a>
+                {% if r.alertas %}
+                <span title="{{ ' | '.join(r.alertas) }}" style="cursor:help;">⚠️</span>
+                {% endif %}
             </td>
+
+            <td>{{ r.unidades }} / {{ r.horas }}h</td>
 
             <td>{{ r.eficiencia_productiva }}%</td>
 
             <td>{{ r.eficiencia_ocupacion }}%</td>
-
-            <td>
-                {% if r.porcentaje_bono == 4 %}
-                    <span class="badge green">4%</span>
-                {% elif r.porcentaje_bono == 3 %}
-                    <span class="badge yellow">3%</span>
-                {% elif r.porcentaje_bono == 2 %}
-                    <span class="badge red">2%</span>
-                {% else %}
-                    0%
-                {% endif %}
-            </td>
 
             <td>
                 <strong>

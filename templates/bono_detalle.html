@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -61,13 +61,26 @@ input {padding:8px;width:80px;}
 
 <div class="card">
 
-<h2>📊 {{nombre}} "” {{mes}}/{{anio}}</h2>
+<h2>📊 {{nombre}} - {{mes}}/{{anio}} 
+    {% if cerrado %}<span class="badge red">🔒 CERRADO</span>{% endif %}
+</h2>
 
-<h3>Total Bono Actual: 💰 ${{total_bono}}</h3>
+{% if alertas %}
+    <div style="background:#fff3cd; color:#856404; padding:15px; border-left: 5px solid #ffeeba; margin-bottom: 20px; border-radius: 4px;">
+        <strong>⚠️ Advertencias detectadas:</strong>
+        <ul>
+            {% for alerta in alertas %}
+                <li>{{ alerta }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endif %}
+
+<h3>Total Bono Actual: 💰 ${{ "{:,.0f}".format(total_bono).replace(",", ".") }}</h3>
 
 <table>
 <tr>
-<th>Maquina</th>
+<th>Máquina</th>
 <th>Actividad</th>
 <th>Unidades</th>
 <th>Horas</th>
@@ -75,6 +88,7 @@ input {padding:8px;width:80px;}
 <th>Eficiencia</th>
 <th>% Bono</th>
 <th>Valor</th>
+<th>Registros Crudos</th>
 </tr>
 
 {% for d in detalle %}
@@ -96,7 +110,12 @@ input {padding:8px;width:80px;}
 0%
 {% endif %}
 </td>
-<td><strong>${{d.bono}}</strong></td>
+<td><strong>${{ "{:,.0f}".format(d.bono).replace(",", ".") }}</strong></td>
+<td>
+    <a href="/bonos/registros?operario_id={{operario_id}}&actividad_id={{d.actividad_id}}&mes={{mes}}&anio={{anio}}" style="text-decoration:none;">
+        👁️ Ver ({{d.cantidad_registros}})
+    </a>
+</td>
 </tr>
 {% endfor %}
 </table>

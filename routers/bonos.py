@@ -1,179 +1,77 @@
-from fastapi import APIRouter, Request
+import json
+from fastapi import APIRouter, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from database import db
 from datetime import datetime
 
 router = APIRouter()
 
+# --- FUNCIONES DE CÁLCULO ---
 
-# ================= FUNCION CALCULO BONOS =================
-
-def bonos_mes(mes: int, anio: int):
-
-    conn = db()
-    c = conn.cursor()
-
-    # 🔥 CORRECCIÓN
-    c.execute("""
-        SELECT
-            o.id,
-            o.nombre,
-            SUM(r.cantidad) as unidades,
-            SUM((EXTRACT(EPOCH FROM r.fin::timestamp) - EXTRACT(EPOCH FROM r.inicio::timestamp)) / 3600.0) as horas,
-            COUNT(DISTINCT date(r.inicio)) as dias_trabajados
-        FROM registros_produccion r
-        JOIN operarios o ON o.id = r.operario_id
-        WHERE TO_CHAR(r.inicio::timestamp, 'MM') = %s
-        AND TO_CHAR(r.inicio::timestamp, 'YYYY') = %s
-        GROUP BY o.id, o.nombre
-    """, (f"{mes:02d}", str(anio)))
-
-    rows = c.fetchall() or []
-
-    resultado = []
-
-    for operario_id, nombre, unidades, horas, dias in rows:
-
-        horas = float(horas or 0)
-        unidades = float(unidades or 0)
-        dias = float(dias or 0)
-
-        if horas <= 0:
-            continue
-
-        horas_disponibles = (dias * 530) / 60
-        eficiencia_ocupacion = horas / horas_disponibles if horas_disponibles > 0 else 0
-
-        # 🔥 CORRECCIÓN
-        c.execute("""
-            SELECT AVG(e.unidades_por_hora),
-                   AVG(e.costo_mo_unidad)
-            FROM registros_produccion r
-            JOIN estandares_actividad e ON e.actividad_id = r.actividad_id
-            WHERE r.operario_id = %s
-            AND TO_CHAR(r.inicio::timestamp, 'MM') = %s
-            AND TO_CHAR(r.inicio::timestamp, 'YYYY') = %s
-        """, (operario_id, f"{mes:02d}", str(anio)))
-
-        est = c.fetchone()
-
-        if not est or not est[0]:
-            continue
-
-        unidades_estandar = float(est[0] or 0)
-        costo_base = float(est[1] or 0)
-
-        rendimiento_real = unidades / horas
-        eficiencia_productiva = rendimiento_real / unidades_estandar if unidades_estandar else 0
-
-        if eficiencia_productiva >= 1.10:
-            porcentaje = 0.04
-        elif eficiencia_productiva >= 1.00:
-            porcentaje = 0.03
-        elif eficiencia_productiva >= 0.90:
-            porcentaje = 0.02
-        else:
-            porcentaje = 0
-
-        bono_total = unidades * costo_base * porcentaje
-
-        resultado.append({
-            "nombre": nombre,
-            "eficiencia_productiva": round(eficiencia_productiva * 100, 2),
-            "eficiencia_ocupacion": round(eficiencia_ocupacion * 100, 2),
-            "porcentaje_bono": porcentaje * 100,
-            "bono_total": round(bono_total, 2)
-        })
-
-    conn.close()
-    return resultado
+def get_session_user_id(request: Request, c):
+    username = request.session.get("username")
+    if not username: return None
+    c.execute("SELECT id FROM users WHERE username = %s", (username,))
+    row = c.fetchone()
+    return row[0] if row else None
 
 
-# ================= PAGINA BONOS =================
-
-@router.get("/bonos", response_class=HTMLResponse)
-def bonos(request: Request):
-
-    if not request.session.get("role") == "admin":
-        return RedirectResponse("/admin", 303)
-
-    hoy = datetime.now()
-
-    mes = int(request.query_params.get("mes", hoy.month))
-    anio = int(request.query_params.get("anio", hoy.year))
-
-    datos = bonos_mes(mes, anio)
-
-    return request.app.state.templates.TemplateResponse(
-        request=request, name="bonos.html", context={
-            "request": request,
-            "datos": datos,
-            "mes": mes,
-            "anio": anio
-        }
-    )
-
-
-# ================= DETALLE BONO =================
-
-@router.get("/bonos/detalle", response_class=HTMLResponse)
-def detalle_bono(request: Request):
-
-    if not request.session.get("role") == "admin":
-        return RedirectResponse("/admin", 303)
-
-    nombre = request.query_params.get("nombre")
-    mes = int(request.query_params.get("mes"))
-    anio = int(request.query_params.get("anio"))
-
-    conn = db()
-    c = conn.cursor()
-
-    # 🔥 CORRECCIÓN
+def calcular_detalles_operario(c, operario_id: int, operario_nombre: str, mes: int, anio: int):
     c.execute("""
         SELECT 
-            a.id,
-            a.nombre,
+            a.id as actividad_id,
+            a.nombre as actividad,
             COALESCE(m.nombre, '') as maquina,
             SUM(r.cantidad) as unidades,
-            SUM((EXTRACT(EPOCH FROM r.fin::timestamp) - EXTRACT(EPOCH FROM r.inicio::timestamp)) / 3600.0) as horas
+            SUM((EXTRACT(EPOCH FROM r.fin::timestamp) - EXTRACT(EPOCH FROM r.inicio::timestamp)) / 3600.0) as horas,
+            COUNT(r.id) as cantidad_registros
         FROM registros_produccion r
-        JOIN operarios o ON o.id = r.operario_id
         JOIN actividades a ON a.id = r.actividad_id
         LEFT JOIN procesos p ON p.id = a.proceso_id
         LEFT JOIN maquinas m ON m.id = p.maquina_id
-        WHERE o.nombre = %s
+        WHERE r.operario_id = %s
         AND TO_CHAR(r.inicio::timestamp, 'MM') = %s
         AND TO_CHAR(r.inicio::timestamp, 'YYYY') = %s
         GROUP BY a.id, a.nombre, m.nombre
-    """, (nombre, f"{mes:02d}", str(anio)))
+    """, (operario_id, f"{mes:02d}", str(anio)))
 
     rows = c.fetchall() or []
-
     detalle = []
+    
+    total_unidades = 0
+    total_horas = 0
     total_bono = 0
+    total_registros = 0
+    alertas = []
 
-    for actividad_id, actividad, maquina, unidades, horas in rows:
+    for row in rows:
+        actividad_id = row[0]
+        actividad = row[1]
+        maquina = row[2]
+        unidades = float(row[3] or 0)
+        horas = float(row[4] or 0)
+        cantidad_registros = int(row[5] or 0)
 
-        horas = float(horas or 0)
-        unidades = float(unidades or 0)
+        total_unidades += unidades
+        total_horas += horas
+        total_registros += cantidad_registros
 
-        rendimiento_real = (unidades / horas) if horas > 0 else 0
+        if horas <= 0:
+            if horas < 0:
+                alertas.append(f"Registros con horas negativas en '{actividad}'.")
+            rendimiento_real = 0
+        else:
+            rendimiento_real = unidades / horas
 
-        # 🔥 CORRECCIÓN
         c.execute("""
             SELECT unidades_por_hora, costo_mo_unidad
             FROM estandares_actividad
             WHERE actividad_id = %s
         """, (actividad_id,))
-
         est = c.fetchone()
 
-        if not est:
-            continue
-
-        unidades_estandar = float(est[0] or 0)
-        costo_base = float(est[1] or 0)
+        unidades_estandar = float(est[0]) if est and est[0] else 0
+        costo_base = float(est[1]) if est and est[1] else 0
 
         eficiencia = rendimiento_real / unidades_estandar if unidades_estandar else 0
 
@@ -189,7 +87,11 @@ def detalle_bono(request: Request):
         bono = unidades * costo_base * porcentaje
         total_bono += bono
 
+        if eficiencia > 1.5 and horas > 0:
+            alertas.append(f"Eficiencia irreal (>150%) en '{actividad}'.")
+
         detalle.append({
+            "actividad_id": actividad_id,
             "maquina": maquina,
             "actividad": actividad,
             "unidades": unidades,
@@ -198,18 +100,268 @@ def detalle_bono(request: Request):
             "estandar": unidades_estandar,
             "eficiencia": round(eficiencia*100,2),
             "porcentaje": porcentaje*100,
-            "bono": round(bono,2)
+            "bono": round(bono,2),
+            "cantidad_registros": cantidad_registros
         })
 
+    c.execute("""
+        SELECT COUNT(DISTINCT date(r.inicio)) as dias_trabajados
+        FROM registros_produccion r
+        WHERE r.operario_id = %s
+        AND TO_CHAR(r.inicio::timestamp, 'MM') = %s
+        AND TO_CHAR(r.inicio::timestamp, 'YYYY') = %s
+    """, (operario_id, f"{mes:02d}", str(anio)))
+    dias_trabajados = float(c.fetchone()[0] or 0)
+    
+    horas_disponibles = (dias_trabajados * 530) / 60
+    eficiencia_ocupacion = total_horas / horas_disponibles if horas_disponibles > 0 else 0
+
+    if total_registros == 1:
+        alertas.append("Solo tiene 1 registro en el mes.")
+        
+    if eficiencia_ocupacion > 0 and eficiencia_ocupacion < 0.3 and total_bono > 0 and any(d["eficiencia"] > 100 for d in detalle):
+        alertas.append("Ocupación <30% pero gana bono. Posible error en hora de fin.")
+
+    eficiencia_productiva_global = sum([d["eficiencia"] * d["horas"] for d in detalle]) / total_horas if total_horas > 0 else 0
+
+    return {
+        "operario_id": operario_id,
+        "nombre": operario_nombre,
+        "unidades": round(total_unidades,2),
+        "horas": round(total_horas,2),
+        "dias_trabajados": int(dias_trabajados),
+        "eficiencia_ocupacion": round(eficiencia_ocupacion * 100, 2),
+        "eficiencia_productiva": round(eficiencia_productiva_global, 2),
+        "bono_total": round(total_bono, 2),
+        "alertas": alertas,
+        "detalle": detalle
+    }
+
+
+def obtener_bonos_mes(c, mes: int, anio: int):
+    # Verificar si está cerrado
+    c.execute("SELECT datos_json FROM cierre_bonos WHERE mes = %s AND anio = %s", (mes, anio))
+    cierre = c.fetchone()
+    if cierre:
+        return json.loads(cierre[0]), True
+
+    # Si no, calcular en vivo
+    c.execute("""
+        SELECT DISTINCT o.id, o.nombre
+        FROM registros_produccion r
+        JOIN operarios o ON o.id = r.operario_id
+        WHERE TO_CHAR(r.inicio::timestamp, 'MM') = %s
+        AND TO_CHAR(r.inicio::timestamp, 'YYYY') = %s
+    """, (f"{mes:02d}", str(anio)))
+    operarios = c.fetchall()
+    
+    resultado = []
+    for op_id, op_nombre in operarios:
+        calc = calcular_detalles_operario(c, op_id, op_nombre, mes, anio)
+        if calc["horas"] > 0 or len(calc["detalle"]) > 0:
+            resultado.append(calc)
+            
+    return resultado, False
+
+
+# ================= PÁGINA BONOS =================
+
+@router.get("/bonos", response_class=HTMLResponse)
+def bonos(request: Request):
+    if not request.session.get("role") == "admin":
+        return RedirectResponse("/admin", 303)
+
+    hoy = datetime.now()
+    mes = int(request.query_params.get("mes", hoy.month))
+    anio = int(request.query_params.get("anio", hoy.year))
+
+    conn = db()
+    c = conn.cursor()
+    datos, cerrado = obtener_bonos_mes(c, mes, anio)
     conn.close()
+
+    return request.app.state.templates.TemplateResponse(
+        request=request, name="bonos.html", context={
+            "request": request,
+            "datos": datos,
+            "mes": mes,
+            "anio": anio,
+            "cerrado": cerrado
+        }
+    )
+
+
+# ================= DETALLE BONO =================
+
+@router.get("/bonos/detalle", response_class=HTMLResponse)
+def detalle_bono(request: Request):
+    if not request.session.get("role") == "admin":
+        return RedirectResponse("/admin", 303)
+
+    operario_id_str = request.query_params.get("operario_id")
+    if not operario_id_str:
+        return RedirectResponse("/bonos", 303)
+        
+    operario_id = int(operario_id_str)
+    mes = int(request.query_params.get("mes"))
+    anio = int(request.query_params.get("anio"))
+
+    conn = db()
+    c = conn.cursor()
+    datos, cerrado = obtener_bonos_mes(c, mes, anio)
+    conn.close()
+
+    # Buscar el operario en los datos
+    op_data = next((d for d in datos if d["operario_id"] == operario_id), None)
+    if not op_data:
+        return RedirectResponse("/bonos", 303)
 
     return request.app.state.templates.TemplateResponse(
         request=request, name="bono_detalle.html", context={
             "request": request,
-            "nombre": nombre,
+            "nombre": op_data["nombre"],
+            "operario_id": operario_id,
             "mes": mes,
             "anio": anio,
-            "detalle": detalle,
-            "total_bono": round(total_bono,2)
+            "detalle": op_data["detalle"],
+            "total_bono": op_data["bono_total"],
+            "alertas": op_data["alertas"],
+            "cerrado": cerrado
         }
     )
+
+
+# ================= CERRAR/REABRIR MES =================
+
+@router.post("/bonos/cerrar")
+def cerrar_mes(request: Request, mes: int = Query(...), anio: int = Query(...)):
+    if not request.session.get("role") == "admin":
+        return RedirectResponse("/admin", 303)
+        
+    conn = db()
+    c = conn.cursor()
+    
+    # Calcular en vivo
+    c.execute("""
+        SELECT DISTINCT o.id, o.nombre
+        FROM registros_produccion r
+        JOIN operarios o ON o.id = r.operario_id
+        WHERE TO_CHAR(r.inicio::timestamp, 'MM') = %s
+        AND TO_CHAR(r.inicio::timestamp, 'YYYY') = %s
+    """, (f"{mes:02d}", str(anio)))
+    operarios = c.fetchall()
+    
+    resultado = []
+    for op_id, op_nombre in operarios:
+        calc = calcular_detalles_operario(c, op_id, op_nombre, mes, anio)
+        if calc["horas"] > 0 or len(calc["detalle"]) > 0:
+            resultado.append(calc)
+            
+    json_data = json.dumps(resultado)
+    user_id = get_session_user_id(request, c)
+    
+    c.execute("""
+        INSERT INTO cierre_bonos (mes, anio, datos_json, cerrado_por)
+        VALUES (%s, %s, %s, %s)
+        ON CONFLICT (mes, anio) DO UPDATE SET datos_json = EXCLUDED.datos_json, fecha_cierre = CURRENT_TIMESTAMP
+    """, (mes, anio, json_data, user_id))
+    
+    conn.commit()
+    conn.close()
+    return RedirectResponse(f"/bonos?mes={mes}&anio={anio}", 303)
+
+
+@router.post("/bonos/reabrir")
+def reabrir_mes(request: Request, mes: int = Query(...), anio: int = Query(...)):
+    if not request.session.get("role") == "admin":
+        return RedirectResponse("/admin", 303)
+        
+    conn = db()
+    c = conn.cursor()
+    c.execute("DELETE FROM cierre_bonos WHERE mes = %s AND anio = %s", (mes, anio))
+    conn.commit()
+    conn.close()
+    return RedirectResponse(f"/bonos?mes={mes}&anio={anio}", 303)
+
+
+# ================= VER REGISTROS CRUDOS =================
+
+@router.get("/bonos/registros", response_class=HTMLResponse)
+def registros_crudos(request: Request, operario_id: int, actividad_id: int, mes: int, anio: int):
+    if not request.session.get("role") == "admin":
+        return RedirectResponse("/admin", 303)
+        
+    conn = db()
+    c = conn.cursor()
+    
+    c.execute("""
+        SELECT r.id, r.inicio, r.fin, r.cantidad
+        FROM registros_produccion r
+        WHERE r.operario_id = %s AND r.actividad_id = %s
+        AND TO_CHAR(r.inicio::timestamp, 'MM') = %s
+        AND TO_CHAR(r.inicio::timestamp, 'YYYY') = %s
+        ORDER BY r.inicio DESC
+    """, (operario_id, actividad_id, f"{mes:02d}", str(anio)))
+    
+    registros = c.fetchall()
+    
+    c.execute("SELECT nombre FROM operarios WHERE id = %s", (operario_id,))
+    op_nombre = c.fetchone()[0]
+    
+    c.execute("SELECT nombre FROM actividades WHERE id = %s", (actividad_id,))
+    act_nombre = c.fetchone()[0]
+    
+    conn.close()
+    
+    return request.app.state.templates.TemplateResponse(
+        request=request, name="bono_registros.html", context={
+            "request": request,
+            "registros": registros,
+            "operario": op_nombre,
+            "actividad": act_nombre,
+            "mes": mes,
+            "anio": anio,
+            "operario_id": operario_id
+        }
+    )
+
+
+# ================= EXPORTAR EXCEL =================
+
+@router.get("/bonos/exportar")
+def exportar_bonos(request: Request, mes: int, anio: int):
+    import pandas as pd
+    import io
+    from fastapi.responses import StreamingResponse
+    
+    if not request.session.get("role") == "admin":
+        return RedirectResponse("/admin", 303)
+        
+    conn = db()
+    c = conn.cursor()
+    datos, _ = obtener_bonos_mes(c, mes, anio)
+    conn.close()
+    
+    flat_data = []
+    for op in datos:
+        flat_data.append({
+            "Operario": op["nombre"],
+            "Unidades Totales": op["unidades"],
+            "Horas Totales": op["horas"],
+            "Dias Trabajados": op["dias_trabajados"],
+            "Eficiencia Ocupacion %": op["eficiencia_ocupacion"],
+            "Bono Total $": op["bono_total"],
+            "Alertas": " | ".join(op["alertas"])
+        })
+        
+    df = pd.DataFrame(flat_data)
+    stream = io.BytesIO()
+    with pd.ExcelWriter(stream, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name=f"Bonos_{mes}_{anio}")
+        
+    stream.seek(0)
+    
+    headers = {
+        'Content-Disposition': f'attachment; filename="Bonos_{mes:02d}_{anio}.xlsx"'
+    }
+    return StreamingResponse(stream, headers=headers, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")

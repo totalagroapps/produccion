@@ -251,6 +251,17 @@ def crear():
     )""")
 
     c.execute("""
+    CREATE TABLE IF NOT EXISTS cierre_bonos(
+        id SERIAL PRIMARY KEY,
+        mes INTEGER,
+        anio INTEGER,
+        datos_json TEXT,
+        cerrado_por INTEGER REFERENCES users(id),
+        fecha_cierre TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(mes, anio)
+    )""")
+
+    c.execute("""
     CREATE TABLE IF NOT EXISTS estandares_actividad(
         id SERIAL PRIMARY KEY,
         actividad_id INTEGER REFERENCES actividades(id) ON DELETE CASCADE,
