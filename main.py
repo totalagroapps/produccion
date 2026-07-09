@@ -415,50 +415,124 @@ def sincronizar_actividades_ordenes_abiertas(cursor, orden_id=None):
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
-
     if not require_admin(request):
         return RedirectResponse("/admin", 303)
+
+    rango = request.query_params.get("rango", "hoy")
+    
+    # Determinar filtros de fecha (asumiendo PostgreSQL, casteamos el texto a timestamp)
+    if rango == 'ayer':
+        date_filter = "inicio::timestamp >= CURRENT_DATE - INTERVAL '1 day' AND inicio::timestamp < CURRENT_DATE"
+        prev_date_filter = "inicio::timestamp >= CURRENT_DATE - INTERVAL '2 days' AND inicio::timestamp < CURRENT_DATE - INTERVAL '1 day'"
+    elif rango == '7dias':
+        date_filter = "inicio::timestamp >= CURRENT_DATE - INTERVAL '7 days'"
+        prev_date_filter = "inicio::timestamp >= CURRENT_DATE - INTERVAL '14 days' AND inicio::timestamp < CURRENT_DATE - INTERVAL '7 days'"
+    elif rango == 'mes':
+        date_filter = "inicio::timestamp >= DATE_TRUNC('month', CURRENT_DATE)"
+        prev_date_filter = "inicio::timestamp >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month') AND inicio::timestamp < DATE_TRUNC('month', CURRENT_DATE)"
+    else: # hoy
+        rango = 'hoy'
+        date_filter = "inicio::timestamp >= CURRENT_DATE"
+        prev_date_filter = "inicio::timestamp >= CURRENT_DATE - INTERVAL '1 day' AND inicio::timestamp < CURRENT_DATE"
 
     conn = db()
     c = conn.cursor()
 
-    c.execute("SELECT COUNT(*) FROM ordenes WHERE estado='ABIERTA'")
-    ordenes_activas = c.fetchone()[0]
+    # 1. Órdenes en producción (en este periodo)
+    c.execute(f"SELECT COUNT(DISTINCT orden_id) FROM registros_produccion WHERE {date_filter}")
+    ordenes_activas = c.fetchone()[0] or 0
+    
+    c.execute(f"SELECT COUNT(DISTINCT orden_id) FROM registros_produccion WHERE {prev_date_filter}")
+    ordenes_prev = c.fetchone()[0] or 0
+    
+    tendencia_ordenes = 0
+    if ordenes_prev > 0:
+        tendencia_ordenes = round(((ordenes_activas - ordenes_prev) / ordenes_prev) * 100, 1)
+    else:
+        tendencia_ordenes = 100 if ordenes_activas > 0 else 0
 
-    c.execute("""
-        SELECT COALESCE(SUM(cantidad), 0)
-        FROM registros_produccion
-        WHERE inicio::date = CURRENT_DATE
-    """)
+    # 2. Producción del periodo
+    c.execute(f"SELECT COALESCE(SUM(cantidad), 0) FROM registros_produccion WHERE {date_filter}")
     produccion_hoy = c.fetchone()[0]
 
-    c.execute("""
-        SELECT COUNT(DISTINCT operario_id)
-        FROM registros_produccion
-        WHERE inicio::date = CURRENT_DATE
-    """)
-    operarios_activos = c.fetchone()[0] or 0
+    c.execute(f"SELECT COALESCE(SUM(cantidad), 0) FROM registros_produccion WHERE {prev_date_filter}")
+    produccion_prev = c.fetchone()[0]
 
+    tendencia_prod = 0
+    if produccion_prev > 0:
+        tendencia_prod = round(((produccion_hoy - produccion_prev) / produccion_prev) * 100, 1)
+    else:
+        tendencia_prod = 100 if produccion_hoy > 0 else 0
+
+    # 3. Avance Global de Órdenes Abiertas
     c.execute("""
-        SELECT SUM(cantidad_realizada), SUM(cantidad_total)
+        SELECT COALESCE(SUM(cantidad_realizada), 0), COALESCE(SUM(cantidad_total), 0)
         FROM orden_actividades
+        WHERE orden_id IN (SELECT id FROM ordenes WHERE estado != 'CERRADA')
     """)
-    row = c.fetchone()
-
-    if row and row[1] and row[1] > 0:
-        avance_promedio = round((row[0] / row[1]) * 100, 1)
+    row_avance = c.fetchone()
+    if row_avance and row_avance[1] > 0:
+        avance_promedio = round((row_avance[0] / row_avance[1]) * 100, 1)
     else:
         avance_promedio = 0
+
+    # 4. Tickets Abiertos (en lugar de Operarios Activos o como complemento)
+    c.execute("SELECT COUNT(*) FROM tickets WHERE estado != 'Cerrado'")
+    tickets_abiertos = c.fetchone()[0] or 0
+
+    # Gráfico: Últimos 7 días
+    c.execute("""
+        SELECT DATE(inicio::timestamp) as fecha, COALESCE(SUM(cantidad), 0)
+        FROM registros_produccion 
+        WHERE inicio::timestamp >= CURRENT_DATE - INTERVAL '6 days'
+        GROUP BY DATE(inicio::timestamp)
+        ORDER BY fecha
+    """)
+    chart_rows = c.fetchall()
+    # Preparar datos para Chart.js
+    fechas = [r[0].strftime('%d/%m') for r in chart_rows]
+    cantidades = [r[1] for r in chart_rows]
+
+    # Alertas y Notificaciones Contextuales
+    # Última orden
+    c.execute("""
+        SELECT o.id, m.nombre, o.cantidad
+        FROM registros_produccion rp
+        JOIN ordenes o ON o.id = rp.orden_id
+        JOIN maquinas m ON m.id = o.maquina_id
+        ORDER BY rp.fin DESC NULLS LAST
+        LIMIT 1
+    """)
+    ultima_orden = c.fetchone()
+    if ultima_orden:
+        ultima_orden = {"id": ultima_orden[0], "maquina": ultima_orden[1], "cantidad": ultima_orden[2]}
+
+    # Tickets recientes
+    c.execute("""
+        SELECT id, titulo, prioridad 
+        FROM tickets 
+        WHERE estado != 'Cerrado' 
+        ORDER BY CASE WHEN prioridad = 'Alta' THEN 1 ELSE 2 END, id DESC 
+        LIMIT 3
+    """)
+    tickets_recientes = [{"id": r[0], "titulo": r[1], "prioridad": r[2]} for r in c.fetchall()]
 
     conn.close()
 
     return templates.TemplateResponse(
         request=request, name="home.html", context={
         "request": request,
+        "rango": rango,
         "ordenes_activas": ordenes_activas,
+        "tendencia_ordenes": tendencia_ordenes,
         "produccion_hoy": produccion_hoy,
+        "tendencia_prod": tendencia_prod,
         "avance_promedio": avance_promedio,
-        "operarios_activos": operarios_activos
+        "tickets_abiertos": tickets_abiertos,
+        "chart_fechas": fechas,
+        "chart_cantidades": cantidades,
+        "ultima_orden": ultima_orden,
+        "tickets_recientes": tickets_recientes
     })
 
 
