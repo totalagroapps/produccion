@@ -284,6 +284,38 @@ def reabrir_mes(request: Request, mes: int = Query(...), anio: int = Query(...))
     return RedirectResponse(f"/bonos?mes={mes}&anio={anio}", 303)
 
 
+# ================= ACTUALIZAR ESTÁNDAR INLINE =================
+
+from fastapi import Form
+
+@router.post("/bonos/actualizar_estandar")
+def actualizar_estandar(
+    request: Request, 
+    actividad_id: int = Form(...), 
+    nuevo_estandar: float = Form(...),
+    operario_id: int = Form(...),
+    mes: int = Form(...),
+    anio: int = Form(...)
+):
+    if not request.session.get("role") == "admin":
+        return RedirectResponse("/admin", 303)
+        
+    conn = db()
+    c = conn.cursor()
+    
+    # Se actualiza el estándar
+    c.execute("""
+        UPDATE estandares_actividad 
+        SET unidades_por_hora = %s 
+        WHERE actividad_id = %s
+    """, (nuevo_estandar, actividad_id))
+    
+    conn.commit()
+    conn.close()
+    
+    return RedirectResponse(f"/bonos/detalle?operario_id={operario_id}&mes={mes}&anio={anio}", 303)
+
+
 # ================= VER REGISTROS CRUDOS =================
 
 @router.get("/bonos/registros", response_class=HTMLResponse)

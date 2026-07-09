@@ -84,6 +84,7 @@ input {padding:8px;width:80px;}
 <th>Actividad</th>
 <th>Unidades</th>
 <th>Horas</th>
+<th>Estándar (uds/h)</th>
 <th>Rendimiento</th>
 <th>Eficiencia</th>
 <th>% Bono</th>
@@ -97,6 +98,18 @@ input {padding:8px;width:80px;}
 <td>{{d.actividad}}</td>
 <td>{{d.unidades}}</td>
 <td>{{d.horas}}</td>
+<td>
+    <form action="/bonos/actualizar_estandar" method="POST" style="display:flex; align-items:center; justify-content:center; gap:5px;">
+        <input type="hidden" name="actividad_id" value="{{ d.actividad_id }}">
+        <input type="hidden" name="operario_id" value="{{ operario_id }}">
+        <input type="hidden" name="mes" value="{{ mes }}">
+        <input type="hidden" name="anio" value="{{ anio }}">
+        <input type="number" step="0.1" name="nuevo_estandar" value="{{ d.estandar }}" style="width: 70px; padding: 4px; border: 1px solid #ccc; border-radius: 4px;" {% if cerrado %}disabled{% endif %}>
+        {% if not cerrado %}
+        <button type="submit" title="Guardar estándar" style="background:#3498db; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">💾</button>
+        {% endif %}
+    </form>
+</td>
 <td>{{d.rendimiento}}</td>
 <td>{{d.eficiencia}}%</td>
 <td>
