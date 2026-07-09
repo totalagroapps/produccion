@@ -13,7 +13,8 @@ def enviar_whatsapp_background(telefono: str, mensaje: str):
     ULTRAMSG_INSTANCE = os.getenv("ULTRAMSG_INSTANCE", "")
     
     # Proveedor 2: CallMeBot
-    CALLMEBOT_APIKEY = os.getenv("CALLMEBOT_APIKEY", "")
+    # Soporte para múltiples jefes: Busca primero la llave específica del teléfono, si no, usa la global.
+    CALLMEBOT_APIKEY = os.getenv(f"CALLMEBOT_APIKEY_{telefono}") or os.getenv("CALLMEBOT_APIKEY", "")
     
     try:
         if ULTRAMSG_TOKEN and ULTRAMSG_INSTANCE:
