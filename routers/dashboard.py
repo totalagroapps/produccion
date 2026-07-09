@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, Depends, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
-from auth import require_admin
+from auth import require_admin, require_operario
 from database import db, sincronizar_actividades_ordenes_abiertas
 from datetime import datetime
 from limiter import limiter
