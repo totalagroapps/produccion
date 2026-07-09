@@ -13,6 +13,8 @@ from fastapi.staticfiles import StaticFiles  # type: ignore
 from dotenv import load_dotenv
 from auth import login_user, require_admin, require_operario, hash_password
 from database import db
+from apscheduler.schedulers.background import BackgroundScheduler
+from notificaciones import notificar_ausencias_operarios
 from routers.ordenes import router as ordenes_router
 from routers.usuarios import router as usuarios_router
 from routers.android import router as android_router, guardar_registro_android, usuario_android_habilitado
@@ -320,6 +322,7 @@ def crear():
     
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS telefono TEXT")
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS debe_cambiar_password BOOLEAN DEFAULT FALSE")
+    c.execute("ALTER TABLE operarios ADD COLUMN IF NOT EXISTS activo BOOLEAN DEFAULT TRUE")
 
     c.execute("""
     CREATE TABLE IF NOT EXISTS tickets(
@@ -411,6 +414,12 @@ def crear():
 
     conn.commit()
     conn.close()
+
+    # Start apscheduler
+    scheduler = BackgroundScheduler(timezone="America/Bogota")
+    scheduler.add_job(notificar_ausencias_operarios, 'cron', day_of_week='tue-fri', hour=7, minute=0)
+    scheduler.start()
+
 
 
 # ================= HOME =================

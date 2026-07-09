@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from auth import require_admin
 from database import db
 import pandas as pd
 
@@ -138,3 +139,13 @@ def eliminar_maquina(id: int):
 
     return {"mensaje": "maquina eliminada"}
 
+
+from notificaciones import notificar_ausencias_operarios
+
+@router.get("/internal/notificar_ausencias")
+def trigger_notificar_ausencias(request: Request):
+    if not require_admin(request):
+        return JSONResponse({"detail": "No autorizado"}, status_code=401)
+    
+    res = notificar_ausencias_operarios()
+    return JSONResponse(res)
