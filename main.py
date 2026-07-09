@@ -193,9 +193,14 @@ app.include_router(tickets_router)
 # ================= CREAR TABLAS =================
 
 @app.on_event("startup")
-def crear():
+def startup():
     conn = db()
     c = conn.cursor()
+    
+    # Fix ticket states from previous discrepancy
+    c.execute("UPDATE tickets SET estado = 'EN_PROGRESO' WHERE estado = 'EN PROGRESO'")
+    c.execute("UPDATE tickets SET estado = 'CERRADO' WHERE estado = 'COMPLETADO'")
+
 
     c.execute("""
     CREATE TABLE IF NOT EXISTS maquinas(

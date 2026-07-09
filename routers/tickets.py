@@ -20,7 +20,7 @@ def _formato_ticket(t_row):
     
     fecha_vencimiento = t_row[9] if len(t_row) > 9 else None
     estado_vencimiento = "OK"
-    if fecha_vencimiento and t_row[3] not in ("CERRADO", "COMPLETADO"):
+    if fecha_vencimiento and t_row[3] not in ("CERRADO", "CERRADO"):
         now = datetime.datetime.now(ZoneInfo("America/Bogota")).replace(tzinfo=None)
         if now > fecha_vencimiento:
             estado_vencimiento = "VENCIDO"
@@ -283,7 +283,7 @@ def kanban_update(request: Request, ticket_id: int, estado: str = Form(...), min
     if not require_jefe_tickets(request):
         return RedirectResponse("/admin", 303)
 
-    estados_validos = ["PENDIENTE", "EN PROGRESO", "CERRADO"]
+    estados_validos = ["PENDIENTE", "EN_PROGRESO", "CERRADO"]
     if estado not in estados_validos:
         raise HTTPException(status_code=400, detail="Estado no válido")
 
@@ -331,7 +331,7 @@ def actualizar_estado_ticket(
     if not require_operario(request):
         return RedirectResponse("/admin", 303)
 
-    if estado not in ('PENDIENTE', 'EN_PROGRESO', 'COMPLETADO'):
+    if estado not in ('PENDIENTE', 'EN_PROGRESO', 'CERRADO'):
         estado = 'PENDIENTE'
 
     username = request.session.get("username")
@@ -345,7 +345,7 @@ def actualizar_estado_ticket(
     c.execute("""
         UPDATE tickets 
         SET estado = %s
-        WHERE id = %s AND asignado_a = %s AND estado != 'COMPLETADO'
+        WHERE id = %s AND asignado_a = %s AND estado != 'CERRADO'
     """, (estado, ticket_id, user_id))
     
     # Si hubo modificación de estado válida (o era el mismo), procedemos. 
@@ -397,7 +397,7 @@ def crear_actividad(
     # Prevenir modificaciones en tickets cerrados
     c.execute("SELECT estado FROM tickets WHERE id = %s", (ticket_id,))
     t_estado = c.fetchone()
-    if t_estado and t_estado[0] != 'COMPLETADO':
+    if t_estado and t_estado[0] != 'CERRADO':
         c.execute(
             """
             INSERT INTO ticket_actividades (ticket_id, descripcion, asignado_a, creado_por)
@@ -415,7 +415,7 @@ def completar_actividad(request: Request, actividad_id: int, estado: str = Form(
     if not (require_jefe_tickets(request) or require_operario(request)):
         return RedirectResponse("/admin", 303)
 
-    nuevo_estado = "COMPLETADA" if estado == "on" else "PENDIENTE"
+    nuevo_estado = "CERRADA" if estado == "on" else "PENDIENTE"
     conn = db()
     c = conn.cursor()
 
@@ -429,7 +429,7 @@ def completar_actividad(request: Request, actividad_id: int, estado: str = Form(
     ticket_id = None
     if row:
         t_estado, ticket_id = row
-        if t_estado != 'COMPLETADO':
+        if t_estado != 'CERRADO':
             c.execute("UPDATE ticket_actividades SET estado = %s WHERE id = %s", (nuevo_estado, actividad_id))
             conn.commit()
 

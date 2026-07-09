@@ -48,7 +48,7 @@
             <span style="padding:4px 8px; border-radius:4px; font-size:12px; font-weight:bold;
             {% if t.estado == 'PENDIENTE' %}background:#fef3c7; color:#92400e;
             {% elif t.estado == 'EN_PROGRESO' %}background:#dbeafe; color:#1e40af;
-            {% elif t.estado == 'COMPLETADO' %}background:#d1fae5; color:#065f46;{% endif %}">
+            {% elif t.estado == 'CERRADO' %}background:#d1fae5; color:#065f46;{% endif %}">
                 {{ t.estado }}
             </span>
         </td>
@@ -56,7 +56,7 @@
         <td>
             <div style="font-size:12px; color:#475569;">Creado: {{ t.fecha_creacion.strftime('%Y-%m-%d %H:%M') if t.fecha_creacion else '' }}</div>
             {% if t.fecha_vencimiento %}
-            <div class="vencimiento-badge vencimiento-{{ t.estado_vencimiento }}" {% if t.estado == 'CERRADO' or t.estado == 'COMPLETADO' %}style="text-decoration:line-through;"{% endif %}>
+            <div class="vencimiento-badge vencimiento-{{ t.estado_vencimiento }}" {% if t.estado == 'CERRADO' or t.estado == 'CERRADO' %}style="text-decoration:line-through;"{% endif %}>
                 ⏳ Límite: {{ t.fecha_vencimiento.strftime('%Y-%m-%d %H:%M') }}
             </div>
             {% endif %}

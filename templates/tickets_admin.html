@@ -233,11 +233,11 @@
         </div>
     </div>
 
-    <!-- COLUMNA: EN PROGRESO -->
+    <!-- COLUMNA: EN_PROGRESO -->
     <div class="kanban-column" id="col-EN_PROGRESO">
         <h3>En Progreso <span style="background:#e2e8f0; padding:2px 8px; border-radius:10px; font-size:12px;" id="count-EN_PROGRESO">0</span></h3>
-        <div class="kanban-dropzone" data-estado="EN PROGRESO">
-            {% for t in tickets if t.estado == 'EN PROGRESO' %}
+        <div class="kanban-dropzone" data-estado="EN_PROGRESO">
+            {% for t in tickets if t.estado == 'EN_PROGRESO' %}
             <div class="kanban-card prioridad-{{ t.prioridad }}" draggable="true" data-id="{{ t.id }}">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                     <span style="font-size:11px; color:#94a3b8; font-weight:bold;">{{ t.consecutivo }}</span>
@@ -265,7 +265,7 @@
     <div class="kanban-column" id="col-CERRADO">
         <h3>Cerrados / Completados <span style="background:#e2e8f0; padding:2px 8px; border-radius:10px; font-size:12px;" id="count-CERRADO">0</span></h3>
         <div class="kanban-dropzone" data-estado="CERRADO">
-            {% for t in tickets if t.estado == 'CERRADO' or t.estado == 'COMPLETADO' %}
+            {% for t in tickets if t.estado == 'CERRADO' or t.estado == 'CERRADO' %}
             <div class="kanban-card prioridad-{{ t.prioridad }}" draggable="true" data-id="{{ t.id }}" style="opacity: 0.7;">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                     <span style="font-size:11px; color:#94a3b8; font-weight:bold; text-decoration:line-through;">{{ t.consecutivo }}</span>
@@ -294,7 +294,7 @@
     // Contador de tarjetas
     function updateCounts() {
         ['PENDIENTE', 'EN_PROGRESO', 'CERRADO'].forEach(id => {
-            const estadoName = id === 'EN_PROGRESO' ? 'EN PROGRESO' : id;
+            const estadoName = id === 'EN_PROGRESO' ? 'EN_PROGRESO' : id;
             const count = document.querySelector(`.kanban-dropzone[data-estado="${estadoName}"]`).children.length;
             document.getElementById(`count-${id}`).innerText = count;
         });

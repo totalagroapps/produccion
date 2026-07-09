@@ -51,7 +51,7 @@
                     
                     {% if ticket.fecha_vencimiento %}
                     <strong>Límite:</strong> 
-                    <span class="vencimiento-badge vencimiento-{{ ticket.estado_vencimiento }}" {% if ticket.estado == 'CERRADO' or ticket.estado == 'COMPLETADO' %}style="text-decoration:line-through;"{% endif %}>
+                    <span class="vencimiento-badge vencimiento-{{ ticket.estado_vencimiento }}" {% if ticket.estado == 'CERRADO' or ticket.estado == 'CERRADO' %}style="text-decoration:line-through;"{% endif %}>
                         ⏳ {{ ticket.fecha_vencimiento.strftime('%Y-%m-%d %H:%M') }}
                     </span><br>
                     {% endif %}
@@ -65,7 +65,7 @@
                     <span style="padding:6px 12px; border-radius:16px; font-size:14px; font-weight:bold;
                     {% if ticket.estado == 'PENDIENTE' %}background:#fef3c7; color:#92400e;
                     {% elif ticket.estado == 'EN_PROGRESO' %}background:#dbeafe; color:#1e40af;
-                    {% elif ticket.estado == 'COMPLETADO' or ticket.estado == 'CERRADO' %}background:#d1fae5; color:#065f46;{% endif %}">
+                    {% elif ticket.estado == 'CERRADO' or ticket.estado == 'CERRADO' %}background:#d1fae5; color:#065f46;{% endif %}">
                         {{ ticket.estado }}
                     </span>
                     
@@ -82,7 +82,7 @@
                         <button type="submit" class="btn" style="padding: 4px 8px; font-size: 12px; background: #3b82f6; margin-top: 5px;">Guardar</button>
                     </form>
                     {% else %}
-                        {% if ticket.estado != 'CERRADO' and ticket.estado != 'COMPLETADO' %}
+                        {% if ticket.estado != 'CERRADO' and ticket.estado != 'CERRADO' %}
                         <form method="post" action="/tickets/cerrar_operario/{{ ticket.id }}" style="margin-top: 15px;" onsubmit="return confirm('¿Seguro que deseas dar este ticket por solucionado? El tiempo invertido se calculará automáticamente.')">
                             <button type="submit" class="btn" style="background:#10b981; width:100%;">✅ Dar por Solucionado</button>
                         </form>
@@ -153,7 +153,7 @@
         </div>
 
         <!-- Formulario de Actualización (Estado, Notas, Subir Archivos) -->
-        {% if ticket.estado == 'COMPLETADO' %}
+        {% if ticket.estado == 'CERRADO' %}
         <div style="background:#d1fae5; padding:20px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1); text-align:center; color:#065f46;">
             <h3 style="margin:0 0 10px 0;">Ticket Cerrado</h3>
             <p style="font-size:13px; margin:0;">El ticket se ha marcado como completado y ya no admite modificaciones.</p>
@@ -168,7 +168,7 @@
                         <select name="estado" style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc; margin-top:4px;">
                             <option value="PENDIENTE" {% if ticket.estado == 'PENDIENTE' %}selected{% endif %}>Pendiente</option>
                             <option value="EN_PROGRESO" {% if ticket.estado == 'EN_PROGRESO' %}selected{% endif %}>En Progreso</option>
-                            <option value="COMPLETADO" {% if ticket.estado == 'COMPLETADO' %}selected{% endif %}>Completado</option>
+                            <option value="CERRADO" {% if ticket.estado == 'CERRADO' %}selected{% endif %}>Completado</option>
                         </select>
                     </div>
                     <div>
@@ -200,7 +200,7 @@
                 <li style="margin-bottom:8px; padding:10px; background:{% if act.id_asignado == current_user_id %}#eff6ff{% else %}#f9fafb{% endif %}; border-radius:6px; display:flex; align-items:flex-start; gap:10px; border:1px solid #e5e7eb;">
                     <form method="post" action="/tickets/actividades/{{ act.id }}/completar" style="margin:0; margin-top:2px;">
                         <input type="hidden" name="estado" value="off">
-                        <input type="checkbox" name="estado" {% if act.estado == 'COMPLETADA' %}checked{% endif %} {% if ticket.estado == 'COMPLETADO' %}disabled{% else %}onchange="this.form.submit()"{% endif %} style="width:16px; height:16px; cursor:pointer;">
+                        <input type="checkbox" name="estado" {% if act.estado == 'COMPLETADA' %}checked{% endif %} {% if ticket.estado == 'CERRADO' %}disabled{% else %}onchange="this.form.submit()"{% endif %} style="width:16px; height:16px; cursor:pointer;">
                     </form>
                     <div style="flex:1;">
                         <span style="font-size:14px; {% if act.estado == 'COMPLETADA' %}text-decoration:line-through; color:#9ca3af;{% else %}color:#1f2937;{% endif %}">
@@ -217,7 +217,7 @@
             <p style="color:#9ca3af; font-size:13px; margin:10px 0;">No hay sub-tareas delegadas.</p>
             {% endif %}
             
-            {% if ticket.estado != 'COMPLETADO' %}
+            {% if ticket.estado != 'CERRADO' %}
             <div style="margin-top:15px; padding-top:15px; border-top:1px dashed #e5e7eb;">
                 <strong style="font-size:13px; display:block; margin-bottom:8px;">Delegar nueva actividad:</strong>
                 <form method="post" action="/tickets/{{ ticket.id }}/actividades/crear" style="display:flex; flex-direction:column; gap:8px;">
