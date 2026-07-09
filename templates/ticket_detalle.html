@@ -354,34 +354,81 @@
         </div>
         {% else %}
             {% if ticket.id_asignado_principal == current_user_id or es_jefe %}
-            <div class="glass-card" style="border-top:4px solid #10b981;">
-                <h4 style="margin-top:0; margin-bottom:24px;">Actualizar Progreso</h4>
-                <form id="form-unificado" enctype="multipart/form-data" onsubmit="guardarCambiosUnificados(event)">
-                    
-                    {% if es_jefe %}
-                    <div class="form-group">
-                        <label>Estado del Ticket</label>
-                        <select name="estado" class="form-control">
-                            <option value="PENDIENTE" {% if ticket.estado == 'PENDIENTE' %}selected{% endif %}>Pendiente</option>
-                            <option value="EN_PROGRESO" {% if ticket.estado == 'EN_PROGRESO' %}selected{% endif %}>En Progreso</option>
-                            <option value="CERRADO" {% if ticket.estado == 'CERRADO' %}selected{% endif %}>Cerrado (Completado)</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Límite de Vencimiento (Opcional)</label>
-                        <input type="datetime-local" name="fecha_vencimiento" class="form-control" value="{{ ticket.fecha_vencimiento.strftime('%Y-%m-%dT%H:%M') if ticket.fecha_vencimiento else '' }}">
-                    </div>
-                    {% else %}
-                    <!-- Operario: Solo Estado -->
-                    <div class="form-group">
-                        <label>Estado del Ticket</label>
-                        <select name="estado" class="form-control">
-                            <option value="PENDIENTE" {% if ticket.estado == 'PENDIENTE' %}selected{% endif %}>Pendiente</option>
-                            <option value="EN_PROGRESO" {% if ticket.estado == 'EN_PROGRESO' %}selected{% endif %}>En Progreso</option>
-                        </select>
-                    </div>
-                    {% endif %}
+            <div class="glass-card" style="border-top:4px solid #10b981; padding: 0; overflow: hidden;">
+                
+                <div style="padding: 24px 24px 20px 24px;">
+                    <h4 style="margin-top:0; margin-bottom:20px;">Gestión y Avances del Ticket</h4>
+                    <form id="form-unificado" enctype="multipart/form-data" onsubmit="guardarCambiosUnificados(event)">
+                        
+                        <!-- Bloque 1: Controles de Estado -->
+                        <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                            {% if es_jefe %}
+                            <div class="form-group" style="flex: 1; min-width: 200px; margin-bottom: 0;">
+                                <label>Estado del Ticket</label>
+                                <select name="estado" class="form-control">
+                                    <option value="PENDIENTE" {% if ticket.estado == 'PENDIENTE' %}selected{% endif %}>Pendiente</option>
+                                    <option value="EN_PROGRESO" {% if ticket.estado == 'EN_PROGRESO' %}selected{% endif %}>En Progreso</option>
+                                    <option value="CERRADO" {% if ticket.estado == 'CERRADO' %}selected{% endif %}>Cerrado (Completado)</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="flex: 1; min-width: 200px; margin-bottom: 0;">
+                                <label>Límite de Vencimiento (Opcional)</label>
+                                <input type="datetime-local" name="fecha_vencimiento" class="form-control" value="{{ ticket.fecha_vencimiento.strftime('%Y-%m-%dT%H:%M') if ticket.fecha_vencimiento else '' }}">
+                            </div>
+                            {% else %}
+                            <!-- Operario: Solo Estado -->
+                            <div class="form-group" style="flex: 1; min-width: 200px; margin-bottom: 0;">
+                                <label>Estado del Ticket</label>
+                                <select name="estado" class="form-control">
+                                    <option value="PENDIENTE" {% if ticket.estado == 'PENDIENTE' %}selected{% endif %}>Pendiente</option>
+                                    <option value="EN_PROGRESO" {% if ticket.estado == 'EN_PROGRESO' %}selected{% endif %}>En Progreso</option>
+                                </select>
+                            </div>
+                            {% endif %}
+                        </div>
+                </div>
 
+                <!-- Bloque 2: Historial (Timeline) -->
+                <div style="background: rgba(248, 250, 252, 0.6); border-top: 1px solid rgba(203,213,225,0.4); border-bottom: 1px solid rgba(203,213,225,0.4); padding: 20px 24px;">
+                    <div class="timeline" style="max-height: 350px; overflow-y: auto; padding-right: 10px; margin-top: 0;">
+                        {% if ticket.notas_operario %}
+                        <div class="timeline-item">
+                            <div class="timeline-avatar" style="background:linear-gradient(135deg, #94a3b8, #64748b);">
+                                O
+                            </div>
+                            <div class="timeline-content timeline-content-initial">
+                                <div class="timeline-meta">
+                                    <strong>Nota Inicial (Migrada)</strong>
+                                </div>
+                                <div class="timeline-text">{{ ticket.notas_operario }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% for n in ticket.notas %}
+                        <div class="timeline-item">
+                            <div class="timeline-avatar" style="background:linear-gradient(135deg, #38bdf8, #2563eb);">
+                                {{ (n.autor or 'D')[0]|upper }}
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-meta">
+                                    <strong>{{ n.autor or 'Desconocido' }}</strong>
+                                    <span>{{ n.fecha.strftime('%d %b, %H:%M') if n.fecha else '' }}</span>
+                                </div>
+                                <div class="timeline-text">{{ n.nota }}</div>
+                            </div>
+                        </div>
+                        {% else %}
+                            {% if not ticket.notas_operario %}
+                            <p style="color:#94a3b8; font-size:14px; text-align:center; padding:10px 0; margin:0;">No hay avances registrados aún.</p>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Bloque 3: Redacción (Inputs) -->
+                <div style="padding: 20px 24px 24px 24px; background: rgba(255, 255, 255, 0.3);">
+                    
                     <div class="form-group">
                         <label>Añadir Avance / Nota</label>
                         <textarea name="notas_operario" rows="3" class="form-control" placeholder="Escribe aquí las novedades o avances del trabajo..."></textarea>
@@ -395,67 +442,23 @@
                     <button type="submit" id="btn-guardar" class="btn-primary" style="width:100%; font-size:15px; padding:14px;">
                         Guardar Avances
                     </button>
-                </form>
+                    </form> <!-- Cierre del form unificado -->
 
-                {% if not es_jefe %}
-                <div style="margin:24px 0; display:flex; align-items:center; text-align:center;">
-                    <div style="flex:1; height:1px; background:rgba(203,213,225,0.5);"></div>
-                    <span style="padding:0 10px; color:#94a3b8; font-size:12px; font-weight:600;">O FINALIZAR</span>
-                    <div style="flex:1; height:1px; background:rgba(203,213,225,0.5);"></div>
-                </div>
-                <form method="post" action="/tickets/cerrar_operario/{{ ticket.id }}" onsubmit="return confirm('¿Seguro que deseas dar este ticket por solucionado?')">
-                    <button type="submit" class="btn-primary" style="background:linear-gradient(135deg, #0ea5e9, #0284c7); width:100%; font-size:15px; padding:14px; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);">
-                        ✅ Dar por Solucionado (Cerrar Ticket)
-                    </button>
-                </form>
-                {% endif %}
-            </div>
-            {% else %}
-            <div class="glass-card">
-                <p style="color:#64748b; margin:0; font-size:14px;">Eres delegado en una sub-tarea. Solo puedes completar tu actividad inferior, pero no el estado general del ticket.</p>
-            </div>
-            {% endif %}
-        {% endif %}
-
-        <!-- Timeline Historial -->
-        <div class="glass-card">
-            <h4 style="border-bottom:1px solid rgba(203,213,225,0.5); padding-bottom:12px; margin-bottom:16px; margin-top:0;">Historial de Avances</h4>
-            
-            <div class="timeline" style="max-height: 500px; overflow-y: auto; padding-right: 10px;">
-                {% if ticket.notas_operario %}
-                <div class="timeline-item">
-                    <div class="timeline-avatar" style="background:linear-gradient(135deg, #94a3b8, #64748b);">
-                        O
+                    {% if not es_jefe %}
+                    <div style="margin:24px 0; display:flex; align-items:center; text-align:center;">
+                        <div style="flex:1; height:1px; background:rgba(203,213,225,0.5);"></div>
+                        <span style="padding:0 10px; color:#94a3b8; font-size:12px; font-weight:600;">O FINALIZAR</span>
+                        <div style="flex:1; height:1px; background:rgba(203,213,225,0.5);"></div>
                     </div>
-                    <div class="timeline-content timeline-content-initial">
-                        <div class="timeline-meta">
-                            <strong>Nota Inicial (Migrada)</strong>
-                        </div>
-                        <div class="timeline-text">{{ ticket.notas_operario }}</div>
-                    </div>
-                </div>
-                {% endif %}
-
-                {% for n in ticket.notas %}
-                <div class="timeline-item">
-                    <div class="timeline-avatar" style="background:linear-gradient(135deg, #38bdf8, #2563eb);">
-                        {{ (n.autor or 'D')[0]|upper }}
-                    </div>
-                    <div class="timeline-content">
-                        <div class="timeline-meta">
-                            <strong>{{ n.autor or 'Desconocido' }}</strong>
-                            <span>{{ n.fecha.strftime('%d %b, %H:%M') if n.fecha else '' }}</span>
-                        </div>
-                        <div class="timeline-text">{{ n.nota }}</div>
-                    </div>
-                </div>
-                {% else %}
-                    {% if not ticket.notas_operario %}
-                    <p style="color:#94a3b8; font-size:14px; text-align:center; padding:20px 0;">No hay avances registrados aún.</p>
+                    <form method="post" action="/tickets/cerrar_operario/{{ ticket.id }}" onsubmit="return confirm('¿Seguro que deseas dar este ticket por solucionado?')">
+                        <button type="submit" class="btn-primary" style="background:linear-gradient(135deg, #0ea5e9, #0284c7); width:100%; font-size:15px; padding:14px; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);">
+                            ✅ Dar por Solucionado (Cerrar Ticket)
+                        </button>
+                    </form>
                     {% endif %}
-                {% endfor %}
+                </div>
+
             </div>
-        </div>
 
         <!-- Checklists -->
         <div class="glass-card">
