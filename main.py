@@ -181,6 +181,8 @@ app.include_router(metricas_router)
 app.include_router(bonos_router)
 app.include_router(admin_tools_router)
 app.include_router(configuracion.router)
+from routers.dashboard import router as dashboard_router
+app.include_router(dashboard_router)
 app.include_router(admin_panel.router)
 app.include_router(planificador.router)
 app.include_router(tickets_router)
