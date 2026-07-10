@@ -1,167 +1,251 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Planificador de Produccion</title>
+{% include 'base.html' %}
+
+{% block content %}
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
 
 <style>
-*{box-sizing:border-box}
-body{font-family:Arial,Helvetica,sans-serif;background:#eef2f7;margin:0;color:#111827}
-.wrap{padding:18px;max-width:1500px;margin:0 auto}
-.hero{background:#0f172a;color:white;border-radius:8px;padding:18px;margin-bottom:14px;display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
-.hero h1{font-size:25px;margin:0 0 6px}
-.hero p{color:#cbd5e1;margin:0;line-height:1.45;max-width:900px}
-.hero-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-.btn{border:0;border-radius:6px;padding:10px 12px;cursor:pointer;font-weight:800;background:#111827;color:white}
-.btn:hover{filter:brightness(1.1)}
-.btn.primary{background:#16a34a}
-.btn.blue{background:#2563eb}
-.btn.light{background:#e2e8f0;color:#0f172a}
-.btn.danger{background:#dc2626}
-.controls{background:white;border:1px solid #dbe3ef;border-radius:8px;padding:14px;margin-bottom:14px;display:grid;grid-template-columns:1.2fr repeat(4,minmax(150px,1fr));gap:12px;align-items:end}
-.field label{display:block;font-size:11px;text-transform:uppercase;color:#64748b;font-weight:800;margin-bottom:6px}
-select,input[type=number]{width:100%;height:42px;border:1px solid #cbd5e1;border-radius:6px;padding:8px 10px;font-size:15px;background:white;color:#111827}
-.metrics{display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));gap:12px;margin-bottom:14px}
-.metric{background:white;border:1px solid #dbe3ef;border-radius:8px;padding:14px;min-height:94px}
-.metric span{display:block;font-size:11px;color:#64748b;font-weight:800;text-transform:uppercase;margin-bottom:7px}
-.metric strong{display:block;font-size:25px;color:#111827;line-height:1.08;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.metric small{display:block;color:#64748b;margin-top:5px;line-height:1.35}
-.workspace{display:grid;grid-template-columns:minmax(560px,1.1fr) minmax(430px,.9fr);gap:14px}
-.panel{background:white;border:1px solid #dbe3ef;border-radius:8px;overflow:hidden}
-.panel-head{padding:13px 15px;background:#1f2937;color:white;display:flex;align-items:center;justify-content:space-between;gap:10px}
-.panel-head h2{font-size:16px;margin:0}
-.panel-head small{color:#cbd5e1}
-.table-wrap{max-height:680px;overflow:auto}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th{background:#374151;color:white;text-align:left;padding:10px;position:sticky;top:0;z-index:2}
-td{padding:9px 10px;border-bottom:1px solid #e5e7eb;vertical-align:middle}
-tr:hover{background:#f8fafc}
-.activity-name strong{display:block;margin-bottom:2px}
-.muted{color:#64748b}
-.pre{font-size:12px;color:#475569;max-width:210px}
-.num-cell{width:122px}
-.stepper{display:grid;grid-template-columns:34px 54px 34px;gap:4px;align-items:center}
-.stepper button{height:34px;border:1px solid #cbd5e1;background:#f8fafc;border-radius:6px;font-weight:900;cursor:pointer}
-.stepper input{height:34px;text-align:center;padding:4px;border:1px solid #cbd5e1;border-radius:6px}
-.pill{display:inline-flex;align-items:center;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:800;white-space:nowrap}
-.ok{background:#dcfce7;color:#166534}
-.warn{background:#fef3c7;color:#92400e}
-.bad{background:#fee2e2;color:#991b1b}
-.info{background:#dbeafe;color:#1d4ed8}
-.bar-cell{min-width:110px}
-.mini-track{height:8px;background:#e5e7eb;border-radius:999px;overflow:hidden}
-.mini-bar{height:100%;background:#2563eb;border-radius:999px;width:0}
-.side{display:grid;gap:14px}
-.gantt{padding:14px 15px}
-.gantt-scale{height:26px;border-bottom:1px solid #e5e7eb;color:#64748b;font-size:12px;display:flex;justify-content:space-between;margin-bottom:10px}
-.gantt-row{display:grid;grid-template-columns:170px 1fr;gap:10px;align-items:center;margin-bottom:10px}
-.gantt-name{font-size:12px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.gantt-track{height:28px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;position:relative;overflow:hidden}
-.gantt-bar{height:100%;background:#2563eb;border-radius:5px;position:absolute;min-width:3px}
-.gantt-bar.bottleneck{background:#dc2626}
-.gantt-label{position:absolute;right:6px;top:6px;font-size:11px;color:#0f172a;font-weight:800}
-.cards{display:grid;gap:10px;padding:14px 15px}
-.rec{border:1px solid #e5e7eb;border-radius:8px;padding:11px 12px;background:#f8fafc;font-size:13px;line-height:1.4}
-.rec strong{display:block;margin-bottom:3px}
-.rec.bad{background:#fef2f2;border-color:#fecaca;color:#7f1d1d}
-.rec.warn{background:#fffbeb;border-color:#fde68a;color:#78350f}
-.rec.ok{background:#f0fdf4;border-color:#bbf7d0;color:#14532d}
-.empty{padding:18px;color:#64748b}
-.tabs{display:flex;gap:6px;padding:10px 10px 0;background:white}
-.tab{border:1px solid #cbd5e1;background:#f8fafc;color:#334155;border-radius:6px;padding:8px 10px;font-weight:800;cursor:pointer}
-.tab.active{background:#0f172a;color:white;border-color:#0f172a}
-.hidden{display:none}
-@media(max-width:1150px){
-  .controls,.metrics,.workspace{grid-template-columns:1fr}
-  .table-wrap{max-height:none}
+/* Reset & Typography */
+* { box-sizing: border-box; }
+body {
+    font-family: 'DM Sans', sans-serif;
+    background: linear-gradient(135deg, #e2e8f0 0%, #f1f5f9 100%);
+    background-attachment: fixed;
+    margin: 0;
+    color: #1e293b;
+    padding-bottom: 40px;
 }
-@media(max-width:700px){
-  .wrap{padding:10px}
-  .hero{border-radius:0;margin:-10px -10px 10px;padding:14px 12px;flex-direction:column}
-  .hero h1{font-size:21px}
-  .hero-actions{width:100%;display:grid;grid-template-columns:1fr 1fr}
-  .controls{grid-template-columns:1fr;border-radius:0;margin-left:-10px;margin-right:-10px}
-  .metrics{grid-template-columns:1fr 1fr;gap:8px}
-  .metric{padding:11px;min-height:82px}
-  .metric strong{font-size:21px}
-  .panel{border-radius:0;margin-left:-10px;margin-right:-10px;border-left:0;border-right:0}
-  .panel-head{padding:12px}
-  .table-wrap{overflow:visible}
-  table,thead,tbody,tr,td{display:block;width:100%}
-  thead{display:none}
-  tr{border-bottom:1px solid #e5e7eb;padding:10px 12px}
-  td{border:0;padding:5px 0}
-  td::before{content:attr(data-label);display:block;font-size:11px;text-transform:uppercase;color:#64748b;font-weight:800;margin-bottom:3px}
-  .num-cell{width:100%}
-  .stepper{grid-template-columns:42px 1fr 42px}
-  .stepper button,.stepper input{height:42px}
-  .gantt-row{grid-template-columns:1fr}
-  .metrics .metric:last-child{grid-column:span 2}
+h1, h2, h3, h4 { font-family: 'Sora', sans-serif; }
+
+.wrap { padding: 24px; max-width: 1500px; margin: 0 auto; }
+
+/* Glassmorphism Classes */
+.glass-panel {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+    border-radius: 16px;
+    overflow: hidden;
 }
-@media print{
-  .global-nav-shell,.hero-actions,.controls,.tabs,.btn{display:none!important}
-  body{background:white}
-  .wrap{max-width:none;padding:0}
-  .hero,.panel,.metric{break-inside:avoid}
-  .table-wrap{max-height:none;overflow:visible}
+
+/* Hero Section */
+.hero {
+    padding: 24px 32px;
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    align-items: center;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: white;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.2);
+}
+.hero h1 { font-size: 28px; margin: 0 0 8px; color: #f8fafc; }
+.hero p { color: #94a3b8; margin: 0; line-height: 1.5; max-width: 800px; font-size: 15px; }
+.hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+/* Buttons */
+.btn {
+    border: 0; border-radius: 8px; padding: 12px 20px; cursor: pointer;
+    font-weight: 700; font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s ease;
+    font-size: 14px;
+}
+.btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+.btn.primary { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; }
+.btn.blue { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; }
+.btn.light { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(4px); }
+.btn.light:hover { background: rgba(255,255,255,0.2); }
+.btn.danger { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; }
+.btn.outline { background: transparent; border: 1px solid #cbd5e1; color: #475569; }
+.btn.outline:hover { background: #f1f5f9; }
+
+/* Controls */
+.controls {
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    display: grid;
+    grid-template-columns: 1.2fr repeat(4, minmax(150px, 1fr));
+    gap: 16px;
+    align-items: end;
+}
+.field label { display: block; font-size: 12px; text-transform: uppercase; color: #64748b; font-weight: 700; margin-bottom: 8px; letter-spacing: 0.05em; }
+select, input[type=number] {
+    width: 100%; height: 44px;
+    border: 1px solid rgba(203, 213, 225, 0.6);
+    border-radius: 8px; padding: 8px 12px; font-size: 15px;
+    background: rgba(255, 255, 255, 0.8);
+    color: #1e293b; font-family: 'DM Sans', sans-serif;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+select:focus, input[type=number]:focus {
+    outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+/* Metrics */
+.metrics {
+    display: grid; grid-template-columns: repeat(5, minmax(150px, 1fr)); gap: 16px; margin-bottom: 24px;
+}
+.metric {
+    padding: 20px; text-align: left;
+    transition: transform 0.2s ease;
+}
+.metric:hover { transform: translateY(-4px); }
+.metric span { display: block; font-size: 12px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.05em; }
+.metric strong { display: block; font-size: 28px; color: #0f172a; line-height: 1.1; font-family: 'Sora', sans-serif; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.metric small { display: block; color: #94a3b8; margin-top: 6px; font-size: 13px; line-height: 1.4; }
+
+/* Workspace Layout */
+.workspace { display: grid; grid-template-columns: minmax(560px, 1.2fr) minmax(430px, 0.8fr); gap: 20px; }
+
+/* Panel generic */
+.panel-head {
+    padding: 16px 24px;
+    background: rgba(255, 255, 255, 0.4);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+.panel-head h2 { font-size: 18px; margin: 0; color: #0f172a; font-weight: 600; }
+.panel-head small { color: #64748b; font-weight: 500; font-size: 13px; }
+
+/* Table */
+.table-wrap { max-height: 650px; overflow: auto; }
+.table-wrap::-webkit-scrollbar { width: 8px; }
+.table-wrap::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th {
+    background: rgba(248, 250, 252, 0.9); backdrop-filter: blur(4px);
+    color: #475569; text-align: left; padding: 14px 20px; position: sticky; top: 0; z-index: 2;
+    font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.05em;
+    border-bottom: 2px solid rgba(226, 232, 240, 0.8);
+}
+td { padding: 14px 20px; border-bottom: 1px solid rgba(226, 232, 240, 0.6); vertical-align: middle; }
+tr:hover { background: rgba(255, 255, 255, 0.6); }
+.activity-name strong { display: block; margin-bottom: 4px; color: #0f172a; font-weight: 600; }
+.muted { color: #64748b; font-size: 13px; }
+.pre { font-size: 12px; color: #64748b; max-width: 210px; line-height: 1.4; }
+
+/* Stepper */
+.num-cell { width: 130px; }
+.stepper { display: grid; grid-template-columns: 36px 50px 36px; gap: 4px; align-items: center; }
+.stepper button {
+    height: 36px; border: 1px solid rgba(203, 213, 225, 0.6); background: rgba(248, 250, 252, 0.8);
+    border-radius: 8px; font-weight: 700; cursor: pointer; color: #475569; transition: all 0.2s;
+}
+.stepper button:hover { background: #e2e8f0; color: #0f172a; }
+.stepper input {
+    height: 36px; text-align: center; padding: 4px; border: 1px solid rgba(203, 213, 225, 0.6);
+    border-radius: 8px; font-weight: 600; color: #0f172a; background: rgba(255,255,255,0.8);
+}
+
+/* Pills */
+.pill { display: inline-flex; align-items: center; border-radius: 999px; padding: 6px 12px; font-size: 12px; font-weight: 700; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.05em; }
+.ok { background: #dcfce7; color: #166534; }
+.warn { background: #fef3c7; color: #92400e; }
+.bad { background: #fee2e2; color: #991b1b; }
+.info { background: #dbeafe; color: #1d4ed8; }
+
+/* Progress Mini Bar */
+.bar-cell { min-width: 120px; }
+.mini-track { height: 8px; background: rgba(226, 232, 240, 0.8); border-radius: 999px; overflow: hidden; }
+.mini-bar { height: 100%; background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%); border-radius: 999px; width: 0; transition: width 0.3s ease; }
+
+/* Sidebar */
+.side { display: grid; gap: 20px; }
+
+/* Gantt */
+.gantt { padding: 20px; }
+.gantt-scale { height: 30px; border-bottom: 2px solid rgba(226, 232, 240, 0.8); color: #64748b; font-size: 12px; display: flex; justify-content: space-between; margin-bottom: 16px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+.gantt-row { display: grid; grid-template-columns: 160px 1fr; gap: 16px; align-items: center; margin-bottom: 14px; }
+.gantt-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #334155; }
+.gantt-track { height: 32px; background: rgba(241, 245, 249, 0.6); border: 1px solid rgba(226, 232, 240, 0.8); border-radius: 8px; position: relative; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
+.gantt-bar { height: 100%; background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%); border-radius: 6px; position: absolute; min-width: 3px; box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3); transition: all 0.3s ease; }
+.gantt-bar.bottleneck { background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%); box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3); }
+.gantt-label { position: absolute; right: 8px; top: 8px; font-size: 11px; color: #fff; font-weight: 700; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+
+/* Recommendations */
+.cards { display: grid; gap: 12px; padding: 20px; }
+.rec { border: 1px solid rgba(226, 232, 240, 0.8); border-radius: 12px; padding: 14px 16px; background: rgba(255, 255, 255, 0.7); font-size: 14px; line-height: 1.5; box-shadow: 0 4px 12px rgba(0,0,0,0.02); backdrop-filter: blur(8px); }
+.rec strong { display: block; margin-bottom: 6px; font-size: 15px; font-weight: 700; }
+.rec.bad { background: rgba(254, 242, 242, 0.8); border-color: rgba(254, 202, 202, 0.6); color: #991b1b; }
+.rec.warn { background: rgba(255, 251, 235, 0.8); border-color: rgba(253, 230, 138, 0.6); color: #92400e; }
+.rec.ok { background: rgba(240, 253, 244, 0.8); border-color: rgba(187, 247, 208, 0.6); color: #166534; }
+
+/* Tabs */
+.tabs { display: flex; gap: 8px; padding: 12px 24px 0; background: transparent; border-bottom: 2px solid rgba(203, 213, 225, 0.5); margin-bottom: 20px; }
+.tab { border: none; background: transparent; color: #64748b; padding: 10px 16px; font-weight: 700; cursor: pointer; border-bottom: 3px solid transparent; font-size: 14px; transition: all 0.2s; font-family: 'DM Sans', sans-serif; }
+.tab:hover { color: #0f172a; }
+.tab.active { color: #3b82f6; border-bottom-color: #3b82f6; }
+.hidden { display: none !important; }
+.empty { padding: 40px; text-align: center; color: #64748b; font-size: 15px; }
+
+/* Network Diagram */
+#network-container {
+    width: 100%;
+    height: 600px;
+    background: transparent;
+}
+.node-popup {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(203, 213, 225, 0.8);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 200px;
+}
+
+/* Responsive */
+@media(max-width: 1150px) {
+  .controls, .metrics, .workspace { grid-template-columns: 1fr; }
+  .table-wrap { max-height: none; }
+}
+@media(max-width: 768px) {
+  .wrap { padding: 12px; }
+  .hero { flex-direction: column; align-items: stretch; text-align: center; padding: 20px; }
+  .hero-actions { justify-content: center; width: 100%; display: grid; grid-template-columns: 1fr 1fr; }
+  .controls { grid-template-columns: 1fr; }
+  .metrics { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .table-wrap { overflow: visible; }
+  table, thead, tbody, tr, td { display: block; width: 100%; }
+  thead { display: none; }
+  tr { border-bottom: 1px solid rgba(226, 232, 240, 0.8); padding: 16px; background: rgba(255,255,255,0.4); border-radius: 8px; margin-bottom: 12px; }
+  td { border: 0; padding: 6px 0; display: flex; justify-content: space-between; align-items: center; }
+  td::before { content: attr(data-label); font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 700; margin-right: 12px; }
+  .num-cell, .bar-cell { width: auto; max-width: 150px; }
+  .metrics .metric:last-child { grid-column: span 2; }
+}
+@media print {
+  body { background: white; }
+  .global-nav-shell, .hero-actions, .controls, .tabs, .btn { display: none !important; }
+  .wrap { padding: 0; max-width: none; }
+  .glass-panel { border: 1px solid #ccc; box-shadow: none; background: white; page-break-inside: avoid; margin-bottom: 20px; }
 }
 </style>
-
-<style>
-/* Base Responsive Styles */
-@media (max-width: 768px) {
-    .container {
-        padding: 15px !important;
-    }
-    .card, .box, .panel {
-        padding: 12px !important;
-        margin-bottom: 15px !important;
-    }
-    .grid {
-        grid-template-columns: 1fr !important;
-    }
-    input, select, button, textarea {
-        width: 100% !important;
-        box-sizing: border-box !important;
-        margin-bottom: 8px !important;
-    }
-    table {
-        display: block !important;
-        width: 100% !important;
-        overflow-x: auto !important;
-        white-space: nowrap !important;
-    }
-    th, td {
-        padding: 8px !important;
-        font-size: 13px !important;
-    }
-    h2, h3 {
-        font-size: 1.2rem !important;
-    }
-}
-</style>
-
-</head>
-
-<body>
-{% include '_navbar.html' %}
 
 <div class="wrap">
   <section class="hero">
     <div>
-      <h1>Planificador de capacidad</h1>
-      <p>Simula cuanto tarda una produccion, reparte operarios, detecta cuellos de botella y revisa el cronograma respetando precedencias entre actividades.</p>
+      <h1>Planificador de Capacidad</h1>
+      <p>Simula cuánto tarda una producción, reparte operarios, detecta cuellos de botella y revisa el cronograma respetando precedencias entre actividades.</p>
     </div>
     <div class="hero-actions">
-      <button class="btn primary" type="button" id="btnOptimizar">Distribuir operarios</button>
-      <button class="btn light" type="button" id="btnPrint">Imprimir</button>
+      <button class="btn primary" type="button" id="btnOptimizar">⚡ Distribuir Operarios</button>
+      <button class="btn light" type="button" id="btnPrint">🖨️ Imprimir Plan</button>
     </div>
   </section>
 
-  <div class="controls">
+  <div class="glass-panel controls">
     <div class="field">
-      <label>Maquina</label>
+      <label>Máquina de Producción</label>
       <select id="maquinaSelect">
         {% for m in maquinas %}
         <option value="{{m[0]}}" {% if m[0] == maquina_id %}selected{% endif %}>{{m[1]}}</option>
@@ -169,54 +253,57 @@ tr:hover{background:#f8fafc}
       </select>
     </div>
     <div class="field">
-      <label>Cantidad objetivo</label>
+      <label>Cantidad Objetivo</label>
       <input id="cantidadObjetivo" type="number" min="1" step="1" value="10">
     </div>
     <div class="field">
-      <label>Jornada minutos/dia</label>
+      <label>Jornada (Minutos/Día)</label>
       <input id="jornadaMinutos" type="number" min="1" step="5" value="530">
     </div>
     <div class="field">
-      <label>Operarios disponibles</label>
+      <label>Operarios Disponibles</label>
       <input id="operariosDisponibles" type="number" min="1" step="1" value="{{ operarios|length if operarios else 1 }}">
     </div>
     <div class="field">
-      <label>Acciones rapidas</label>
-      <button class="btn" type="button" id="btnReset">Reiniciar escenario</button>
+      <label>Acciones Rápidas</label>
+      <button class="btn outline" type="button" id="btnReset" style="width: 100%;">🔄 Reiniciar</button>
     </div>
   </div>
 
   <div class="metrics">
-    <div class="metric"><span>Tiempo total</span><strong id="metFlujo">0 h</strong><small>flujo completo con precedencias</small></div>
-    <div class="metric"><span>Dias estimados</span><strong id="metDias">0</strong><small id="metJornada">jornada 530 min/dia</small></div>
-    <div class="metric"><span>Capacidad dia</span><strong id="metCapacidad">0</strong><small>unidades terminadas por dia</small></div>
-    <div class="metric"><span>Operarios usados</span><strong id="metOperarios">0</strong><small id="metOperariosSub">0 disponibles</small></div>
-    <div class="metric"><span>Cuello de botella</span><strong id="metCuello">-</strong><small id="metCuelloSub">sin datos</small></div>
+    <div class="glass-panel metric"><span>Tiempo de Flujo Total</span><strong id="metFlujo">0 h</strong><small>Flujo completo con precedencias</small></div>
+    <div class="glass-panel metric"><span>Días Estimados</span><strong id="metDias">0</strong><small id="metJornada">Jornada 530 min/día</small></div>
+    <div class="glass-panel metric"><span>Capacidad Diaria</span><strong id="metCapacidad">0</strong><small>Unidades terminadas por día</small></div>
+    <div class="glass-panel metric"><span>Operarios Usados</span><strong id="metOperarios">0</strong><small id="metOperariosSub">0 disponibles</small></div>
+    <div class="glass-panel metric" style="background: linear-gradient(135deg, rgba(254, 242, 242, 0.8), rgba(254, 226, 226, 0.8)); border-color: rgba(254, 202, 202, 0.8);">
+        <span style="color: #991b1b;">Cuello de Botella</span><strong id="metCuello" style="color: #7f1d1d;">-</strong><small id="metCuelloSub" style="color: #991b1b;">Sin datos</small>
+    </div>
   </div>
 
   <div class="tabs">
-    <button class="tab active" type="button" data-view="todo">Todo</button>
-    <button class="tab" type="button" data-view="tabla">Tabla</button>
-    <button class="tab" type="button" data-view="gantt">Cronograma</button>
+    <button class="tab active" type="button" data-view="todo">Vista Completa</button>
+    <button class="tab" type="button" data-view="tabla">Solo Tabla</button>
+    <button class="tab" type="button" data-view="gantt">Solo Cronograma</button>
+    <button class="tab" type="button" data-view="red">Mapa de Red</button>
   </div>
 
   <div class="workspace">
-    <div class="panel view-tabla">
+    <div class="glass-panel view-tabla">
       <div class="panel-head">
-        <h2>Actividades y carga</h2>
-        <small id="panelResumen">0 actividades</small>
+        <h2>Actividades y Carga de Trabajo</h2>
+        <small id="panelResumen">0 actividades listadas</small>
       </div>
       {% if actividades and actividades|length > 0 %}
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>Actividad</th>
-              <th>Precedencia</th>
-              <th>Std/h</th>
-              <th>Ops</th>
-              <th>Tiempo</th>
-              <th>Uso</th>
+              <th>Actividad / Proceso</th>
+              <th>Depende De</th>
+              <th>Estándar/h</th>
+              <th>Operarios</th>
+              <th>Tiempo Estimado</th>
+              <th>Uso %</th>
               <th>Estado</th>
             </tr>
           </thead>
@@ -227,11 +314,11 @@ tr:hover{background:#f8fafc}
                 <strong>{{a.nombre}}</strong>
                 <span class="muted">{{a.proceso}}</span>
               </td>
-              <td data-label="Precedencia" class="pre">
+              <td data-label="Depende De" class="pre">
                 {% if a.predecesoras_nombres and a.predecesoras_nombres|length > 0 %}
                   {{a.predecesoras_nombres|join(", ")}}
                 {% else %}
-                  Puede iniciar primero
+                  <span style="color: #10b981; font-weight: 600;">Puede iniciar primero</span>
                 {% endif %}
               </td>
               <td data-label="Std/h">{{"%.2f"|format(a.unidades_hora) if a.unidades_hora else "-"}}</td>
@@ -242,37 +329,60 @@ tr:hover{background:#f8fafc}
                   <button type="button" data-step="1" data-target="ops_{{a.id}}">+</button>
                 </div>
               </td>
-              <td data-label="Tiempo" id="duracion_{{a.id}}">-</td>
+              <td data-label="Tiempo Estimado" id="duracion_{{a.id}}" style="font-weight: 600; color: #334155;">-</td>
               <td data-label="Uso" class="bar-cell">
                 <div class="mini-track"><div class="mini-bar" id="uso_{{a.id}}"></div></div>
               </td>
-              <td data-label="Estado" id="estado_{{a.id}}"><span class="pill warn">pendiente</span></td>
+              <td data-label="Estado" id="estado_{{a.id}}"><span class="pill warn">Pendiente</span></td>
             </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
       {% else %}
-      <div class="empty">No hay actividades para esta maquina.</div>
+      <div class="empty">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" style="margin-bottom: 12px;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+        <br>No hay actividades configuradas para esta máquina.
+      </div>
       {% endif %}
     </div>
 
+    <!-- Network View (starts hidden, or spans whole width if selected) -->
+    <div class="glass-panel view-red hidden" style="position: relative; grid-column: 1 / -1;">
+      <div class="panel-head">
+        <h2>Mapa de Red de Precedencias</h2>
+        <small>Arrastra los nodos para acomodarlos y hazles clic para asignar operarios</small>
+      </div>
+      <div id="network-container"></div>
+      
+      <div id="node-popup" class="node-popup">
+        <h3 id="popup-title" style="margin:0; font-size:15px; color:#0f172a;"></h3>
+        <p id="popup-desc" style="margin:0; font-size:12px; color:#64748b;"></p>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+            <button type="button" id="popup-minus" class="btn outline" style="padding:6px 12px;">-</button>
+            <span id="popup-ops" style="font-weight:700; font-size:18px;">0</span>
+            <button type="button" id="popup-plus" class="btn primary" style="padding:6px 12px;">+</button>
+        </div>
+        <button type="button" id="popup-close" class="btn light" style="margin-top:4px; color:#475569; border-color:#cbd5e1;">Cerrar</button>
+      </div>
+    </div>
+
     <div class="side view-gantt">
-      <div class="panel">
+      <div class="glass-panel">
         <div class="panel-head">
-          <h2>Cronograma simulado</h2>
+          <h2>Cronograma Simulado</h2>
           <small id="escalaMax">0 h</small>
         </div>
         <div class="gantt">
-          <div class="gantt-scale"><span>Inicio</span><span id="escalaDias">0 dias</span></div>
+          <div class="gantt-scale"><span>Inicio (Hora 0)</span><span id="escalaDias">0 días</span></div>
           <div id="ganttRows"></div>
         </div>
       </div>
 
-      <div class="panel">
+      <div class="glass-panel">
         <div class="panel-head">
-          <h2>Recomendaciones</h2>
-          <small>acciones sugeridas</small>
+          <h2>Recomendaciones del Sistema</h2>
+          <small>Acciones sugeridas en tiempo real</small>
         </div>
         <div class="cards" id="recomendaciones"></div>
       </div>
@@ -374,10 +484,155 @@ function simular(opsById){
   return {lista, alertas, bloqueados, tiempoFlujo, cuello, cantidad};
 }
 
+// NETWORK DIAGRAM LOGIC
+let network = null;
+let networkData = { nodes: new vis.DataSet(), edges: new vis.DataSet() };
+let activeNodeId = null;
+
+function initNetwork() {
+    const container = document.getElementById("network-container");
+    const options = {
+        nodes: {
+            shape: 'box',
+            margin: 12,
+            borderWidth: 2,
+            font: { face: 'DM Sans', size: 14, color: '#1e293b', multi: 'html' },
+            shadow: true,
+            borderWidthSelected: 3
+        },
+        edges: {
+            arrows: { to: { enabled: true, scaleFactor: 0.7 } },
+            color: { color: '#94a3b8', highlight: '#3b82f6' },
+            smooth: { type: 'cubicBezier', forceDirection: 'horizontal', roundness: 0.4 }
+        },
+        layout: {
+            hierarchical: {
+                direction: 'LR',
+                sortMethod: 'directed',
+                nodeSpacing: 180,
+                levelSeparation: 220
+            }
+        },
+        physics: {
+            hierarchicalRepulsion: { nodeDistance: 150 },
+            stabilization: { iterations: 100 }
+        }
+    };
+    network = new vis.Network(container, networkData, options);
+
+    network.on("click", function (params) {
+        if (params.nodes.length > 0) {
+            const nodeId = params.nodes[0];
+            const evt = params.event.srcEvent;
+            
+            const rect = container.getBoundingClientRect();
+            let x = evt.clientX - rect.left + 20;
+            let y = evt.clientY - rect.top + 20;
+            
+            showPopup(nodeId, x, y);
+        } else {
+            hidePopup();
+        }
+    });
+}
+
+function showPopup(nodeId, x, y) {
+    activeNodeId = nodeId;
+    const act = byId.get(nodeId);
+    if (!act) return;
+    
+    document.getElementById("popup-title").textContent = act.nombre;
+    const ops = num("ops_" + nodeId, 0);
+    document.getElementById("popup-ops").textContent = ops;
+    document.getElementById("popup-desc").textContent = `Std: ${act.unidades_hora || '-'} /h`;
+    
+    const popup = document.getElementById("node-popup");
+    popup.style.display = "flex";
+    popup.style.left = x + "px";
+    popup.style.top = y + "px";
+}
+
+function hidePopup() {
+    document.getElementById("node-popup").style.display = "none";
+    activeNodeId = null;
+}
+
+document.getElementById("popup-minus").addEventListener("click", () => {
+    if (activeNodeId) {
+        const input = document.getElementById("ops_" + activeNodeId);
+        if(input) {
+            input.value = Math.max(0, Math.floor(Number(input.value || 0) - 1));
+            document.getElementById("popup-ops").textContent = input.value;
+            calcular();
+        }
+    }
+});
+
+document.getElementById("popup-plus").addEventListener("click", () => {
+    if (activeNodeId) {
+        const input = document.getElementById("ops_" + activeNodeId);
+        if(input) {
+            input.value = Math.max(0, Math.floor(Number(input.value || 0) + 1));
+            document.getElementById("popup-ops").textContent = input.value;
+            calcular();
+        }
+    }
+});
+
+document.getElementById("popup-close").addEventListener("click", hidePopup);
+
+function updateNetwork(resultado) {
+    if (!network) initNetwork();
+    
+    const nodes = [];
+    const edges = [];
+
+    actividades.forEach(a => {
+        if (a.predecesoras && a.predecesoras.length > 0) {
+            a.predecesoras.forEach(pId => {
+                edges.push({ from: pId, to: a.id });
+            });
+        }
+    });
+
+    resultado.lista.concat(resultado.bloqueados).forEach(r => {
+        let color = { background: 'rgba(248, 250, 252, 0.9)', border: '#cbd5e1' };
+        let fontColor = '#1e293b';
+
+        if (r.bloqueado) {
+            color = { background: 'rgba(254, 226, 226, 0.9)', border: '#f87171' };
+            fontColor = '#991b1b';
+        } else if (resultado.cuello && resultado.cuello.id === r.id) {
+            color = { background: 'rgba(254, 243, 199, 0.9)', border: '#f59e0b' };
+            fontColor = '#92400e';
+        } else if (r.ops > 0) {
+            color = { background: 'rgba(220, 252, 231, 0.9)', border: '#34d399' };
+            fontColor = '#166534';
+        }
+
+        const label = `<b>${r.nombre}</b>\nOps: ${r.ops} | Dur: ${r.bloqueado ? 'BLOQUEADO' : fmtHoras(r.duracion)}`;
+
+        nodes.push({
+            id: r.id,
+            label: label,
+            color: color,
+            font: { color: fontColor }
+        });
+    });
+
+    networkData.nodes.update(nodes);
+    
+    if (networkData.edges.length === 0 && edges.length > 0) {
+        networkData.edges.add(edges);
+    }
+}
+// END NETWORK DIAGRAM LOGIC
+
 function calcular(){
   const ops = getOpsMap();
   const resultado = simular(ops);
   render(resultado);
+  updateNetwork(resultado); // Trigger network refresh
   guardarEscenario();
 }
 
@@ -389,14 +644,14 @@ function render(resultado){
   const operariosUsados = resultado.lista.reduce((sum, r) => sum + (r.ops || 0), 0);
   const operariosDisponibles = Math.max(1, Math.floor(num("operariosDisponibles", operarios.length || 1)));
 
-  document.getElementById("metFlujo").textContent = resultado.bloqueados.length ? "bloqueado" : fmtHoras(resultado.tiempoFlujo);
+  document.getElementById("metFlujo").textContent = resultado.bloqueados.length ? "Bloqueado" : fmtHoras(resultado.tiempoFlujo);
   document.getElementById("metDias").textContent = resultado.bloqueados.length ? "-" : fmtDias(dias);
-  document.getElementById("metJornada").textContent = `jornada ${minutosPorDia} min/dia`;
+  document.getElementById("metJornada").textContent = `jornada ${minutosPorDia} min/día`;
   document.getElementById("metCapacidad").textContent = resultado.bloqueados.length ? "-" : capacidadDia.toFixed(1);
   document.getElementById("metOperarios").textContent = operariosUsados;
   document.getElementById("metOperariosSub").textContent = `${operariosDisponibles} disponibles`;
   document.getElementById("metCuello").textContent = resultado.cuello ? resultado.cuello.nombre : "-";
-  document.getElementById("metCuelloSub").textContent = resultado.cuello ? fmtHoras(resultado.cuello.duracion) : "sin datos";
+  document.getElementById("metCuelloSub").textContent = resultado.cuello ? fmtHoras(resultado.cuello.duracion) : "Sin datos";
   document.getElementById("panelResumen").textContent = `${actividades.length} actividades`;
 
   const maxDuracion = Math.max(...resultado.lista.filter(r => Number.isFinite(r.duracion)).map(r => r.duracion), 1);
@@ -407,10 +662,10 @@ function render(resultado){
     if(duracion) duracion.textContent = r.bloqueado ? "-" : fmtHoras(r.duracion);
     if(uso) uso.style.width = (Number.isFinite(r.duracion) ? Math.max(4, (r.duracion / maxDuracion) * 100) : 0) + "%";
 
-    if(r.bloqueado) setEstado(r.id, "bad", "bloqueado");
-    else if(resultado.cuello && resultado.cuello.id === r.id) setEstado(r.id, "bad", "cuello");
-    else if(r.inicio > 0) setEstado(r.id, "warn", "espera");
-    else setEstado(r.id, "ok", "inicio");
+    if(r.bloqueado) setEstado(r.id, "bad", "Bloqueado");
+    else if(resultado.cuello && resultado.cuello.id === r.id) setEstado(r.id, "bad", "Cuello");
+    else if(r.inicio > 0) setEstado(r.id, "warn", "Espera");
+    else setEstado(r.id, "ok", "Inicio");
   });
 
   renderGantt(resultado, dias);
@@ -420,8 +675,8 @@ function render(resultado){
 function renderGantt(resultado, dias){
   const cont = document.getElementById("ganttRows");
   const escala = Math.max(resultado.tiempoFlujo, 1);
-  document.getElementById("escalaMax").textContent = resultado.bloqueados.length ? "bloqueado" : fmtHoras(resultado.tiempoFlujo);
-  document.getElementById("escalaDias").textContent = resultado.bloqueados.length ? "-" : `${fmtDias(dias)} dias`;
+  document.getElementById("escalaMax").textContent = resultado.bloqueados.length ? "Bloqueado" : fmtHoras(resultado.tiempoFlujo);
+  document.getElementById("escalaDias").textContent = resultado.bloqueados.length ? "-" : `${fmtDias(dias)} días`;
   cont.innerHTML = "";
 
   resultado.lista
@@ -432,7 +687,7 @@ function renderGantt(resultado, dias){
       row.className = "gantt-row";
 
       if(!Number.isFinite(r.fin)){
-        row.innerHTML = `<div class="gantt-name">${r.nombre}</div><div class="gantt-track"><span class="gantt-label">bloqueado</span></div>`;
+        row.innerHTML = `<div class="gantt-name">${r.nombre}</div><div class="gantt-track"><span class="gantt-label" style="color: #64748b; text-shadow: none;">bloqueado</span></div>`;
       } else {
         const left = (r.inicio / escala) * 100;
         const width = Math.max((r.duracion / escala) * 100, r.duracion > 0 ? 2 : 0);
@@ -441,7 +696,7 @@ function renderGantt(resultado, dias){
           <div class="gantt-name" title="${r.nombre}">${r.nombre}</div>
           <div class="gantt-track" title="${fmtHoras(r.inicio)} a ${fmtHoras(r.fin)}">
             <div class="${clase}" style="left:${left}%;width:${width}%"></div>
-            <span class="gantt-label">${fmtHoras(r.duracion)}</span>
+            <span class="gantt-label" style="${r.duracion/escala < 0.1 ? 'color:#1e293b; text-shadow:none; right:-40px;' : ''}">${fmtHoras(r.duracion)}</span>
           </div>
         `;
       }
@@ -457,19 +712,19 @@ function renderRecomendaciones(resultado, operariosUsados, operariosDisponibles)
   resultado.alertas.forEach(a => recs.push(a));
 
   if(resultado.bloqueados.length > 0){
-    recs.push({tipo:"bad", titulo:"Plan bloqueado", texto:`${resultado.bloqueados.length} actividad(es) necesitan estandar u operarios.`});
+    recs.push({tipo:"bad", titulo:"Plan Bloqueado", texto:`${resultado.bloqueados.length} actividad(es) necesitan estándar u operarios para poder avanzar.`});
   } else if(resultado.cuello){
-    recs.push({tipo:"warn", titulo:"Cuello de botella", texto:`${resultado.cuello.nombre} consume ${fmtHoras(resultado.cuello.duracion)}. Agregar operarios ahi suele mejorar el flujo.`});
+    recs.push({tipo:"warn", titulo:"⚠️ Cuello de Botella Detectado", texto:`La actividad <strong>${resultado.cuello.nombre}</strong> consume ${fmtHoras(resultado.cuello.duracion)}. Agregar más operarios a esta actividad es la forma más rápida de mejorar todo el flujo.`});
   }
 
   if(operariosUsados > operariosDisponibles){
-    recs.push({tipo:"warn", titulo:"Mas operarios que disponibilidad", texto:`El escenario usa ${operariosUsados}, pero indicaste ${operariosDisponibles} disponibles.`});
+    recs.push({tipo:"warn", titulo:"Operarios Insuficientes", texto:`El escenario actual requiere ${operariosUsados} operarios, pero solo has indicado ${operariosDisponibles} disponibles.`});
   } else {
-    recs.push({tipo:"ok", titulo:"Disponibilidad", texto:`Usa ${operariosUsados} de ${operariosDisponibles} operarios disponibles.`});
+    recs.push({tipo:"ok", titulo:"Disponibilidad de Personal", texto:`El escenario utiliza ${operariosUsados} de los ${operariosDisponibles} operarios disponibles en la jornada.`});
   }
 
   if(recs.length === 0){
-    recs.push({tipo:"ok", titulo:"Simulacion lista", texto:"El plan no tiene bloqueos y respeta las precedencias."});
+    recs.push({tipo:"ok", titulo:"✓ Simulación Óptima", texto:"El plan fluye sin bloqueos y respeta perfectamente todas las precedencias establecidas."});
   }
 
   cont.innerHTML = recs.map(r => `<div class="rec ${r.tipo}"><strong>${r.titulo}</strong>${r.texto}</div>`).join("");
@@ -565,13 +820,22 @@ document.querySelectorAll(".tab").forEach(tab => {
     document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
     tab.classList.add("active");
     const view = tab.dataset.view;
-    document.querySelector(".view-tabla").classList.toggle("hidden", view === "gantt");
-    document.querySelector(".view-gantt").classList.toggle("hidden", view === "tabla");
+    
+    document.querySelector(".view-tabla").classList.toggle("hidden", view !== "todo" && view !== "tabla");
+    document.querySelector(".view-gantt").classList.toggle("hidden", view !== "todo" && view !== "gantt");
+    
+    const redView = document.querySelector(".view-red");
+    if(view === "red") {
+        redView.classList.remove("hidden");
+        // Forzar redibujado para que ocupe todo el ancho
+        if(network) network.fit();
+    } else {
+        redView.classList.add("hidden");
+    }
   });
 });
 
 cargarEscenario();
 calcular();
 </script>
-</body>
-</html>
+{% endblock %}
