@@ -516,9 +516,73 @@ function initNetwork() {
         physics: {
             hierarchicalRepulsion: { nodeDistance: 150 },
             stabilization: { iterations: 100 }
+        },
+        manipulation: {
+            enabled: true,
+            addEdge: function (data, callback) {
+                if (data.from !== data.to) {
+                    saveDependency(data.to, data.from, callback, data);
+                }
+            },
+            deleteEdge: function (data, callback) {
+                const edgeIds = data.edges;
+                if(edgeIds.length > 0) {
+                    const edge = networkData.edges.get(edgeIds[0]);
+                    removeDependency(edge.to, edge.from, callback, data);
+                }
+            }
         }
     };
     network = new vis.Network(container, networkData, options);
+
+async function saveDependency(actividad_id, predecesora_id, callback, data) {
+    try {
+        const formData = new FormData();
+        formData.append("actividad_id", actividad_id);
+        formData.append("predecesora_id", predecesora_id);
+        
+        const resp = await fetch("/api/planificador/dependencia/add", {
+            method: "POST",
+            body: formData
+        });
+        
+        if (resp.ok) {
+            callback(data);
+            const act = byId.get(actividad_id);
+            if(act) {
+                if(!act.predecesoras) act.predecesoras = [];
+                act.predecesoras.push(predecesora_id);
+            }
+            calcular();
+        } else {
+            alert("Error al guardar dependencia");
+        }
+    } catch(e) { console.error(e); }
+}
+
+async function removeDependency(actividad_id, predecesora_id, callback, data) {
+    try {
+        const formData = new FormData();
+        formData.append("actividad_id", actividad_id);
+        formData.append("predecesora_id", predecesora_id);
+        
+        const resp = await fetch("/api/planificador/dependencia/remove", {
+            method: "POST",
+            body: formData
+        });
+        
+        if (resp.ok) {
+            callback(data);
+            const act = byId.get(actividad_id);
+            if(act && act.predecesoras) {
+                act.predecesoras = act.predecesoras.filter(p => p !== predecesora_id);
+            }
+            calcular();
+        } else {
+            alert("Error al eliminar dependencia");
+        }
+    } catch(e) { console.error(e); }
+}
 
     network.on("click", function (params) {
         if (params.nodes.length > 0) {

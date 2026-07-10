@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from database import db
 import unicodedata
@@ -64,47 +64,30 @@ def cargar_datos_planificador(maquina_id: int | None):
                 p.nombre,
                 a.id,
                 a.nombre,
-                COALESCE(AVG(ea.unidades_por_hora), 0)
+                COALESCE(AVG(ea.unidades_por_hora), 0),
+                ARRAY_AGG(ad.predecesora_id) FILTER (WHERE ad.predecesora_id IS NOT NULL),
+                ARRAY_AGG(ap.nombre) FILTER (WHERE ad.predecesora_id IS NOT NULL)
             FROM actividades a
             JOIN procesos p ON a.proceso_id = p.id
             LEFT JOIN estandares_actividad ea ON ea.actividad_id = a.id
+            LEFT JOIN actividad_dependencias ad ON ad.actividad_id = a.id
+            LEFT JOIN actividades ap ON ap.id = ad.predecesora_id
             WHERE p.maquina_id = %s
             GROUP BY p.id, p.nombre, a.id, a.nombre
             ORDER BY p.id, a.id
         """, (maquina_id,))
 
         rows = cursor.fetchall() or []
-        normalizados = [
-            {
+
+        for row in rows:
+            actividades.append({
+                "proceso_id": row[0],
+                "proceso": row[1],
                 "id": row[2],
                 "nombre": row[3],
-                "normalizado": normalizar(row[3]),
-            }
-            for row in rows
-        ]
-
-        for proceso_id, proceso, actividad_id, actividad, unidades_hora in rows:
-            pred_patrones = nombres_predecesores(actividad)
-            pred_ids = []
-            pred_nombres = []
-
-            for patron in pred_patrones:
-                for item in normalizados:
-                    if item["id"] == actividad_id:
-                        continue
-
-                    if patron in item["normalizado"]:
-                        pred_ids.append(item["id"])
-                        pred_nombres.append(item["nombre"])
-
-            actividades.append({
-                "proceso_id": proceso_id,
-                "proceso": proceso,
-                "id": actividad_id,
-                "nombre": actividad,
-                "unidades_hora": float(unidades_hora or 0),
-                "predecesoras": pred_ids,
-                "predecesoras_nombres": pred_nombres,
+                "unidades_hora": float(row[4] or 0),
+                "predecesoras": row[5] or [],
+                "predecesoras_nombres": row[6] or [],
             })
 
     conn.close()
@@ -139,3 +122,64 @@ async def calcular_produccion(
     maquina_id: int = Form(...),
 ):
     return RedirectResponse(f"/planificador?maquina_id={maquina_id}", status_code=303)
+
+
+@router.post("/api/planificador/dependencia/add")
+async def add_dependencia(actividad_id: int = Form(...), predecesora_id: int = Form(...)):
+    conn = db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("INSERT INTO actividad_dependencias (actividad_id, predecesora_id) VALUES (%s, %s) ON CONFLICT DO NOTHING", (actividad_id, predecesora_id))
+        conn.commit()
+    finally:
+        conn.close()
+    return JSONResponse({"status": "ok"})
+
+@router.post("/api/planificador/dependencia/remove")
+async def remove_dependencia(actividad_id: int = Form(...), predecesora_id: int = Form(...)):
+    conn = db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("DELETE FROM actividad_dependencias WHERE actividad_id = %s AND predecesora_id = %s", (actividad_id, predecesora_id))
+        conn.commit()
+    finally:
+        conn.close()
+    return JSONResponse({"status": "ok"})
+
+@router.get("/planificador/setup_db")
+async def setup_db():
+    conn = db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS actividad_dependencias (
+            actividad_id INTEGER NOT NULL,
+            predecesora_id INTEGER NOT NULL,
+            PRIMARY KEY (actividad_id, predecesora_id),
+            CONSTRAINT fk_act_dep_act FOREIGN KEY (actividad_id) REFERENCES actividades(id) ON DELETE CASCADE,
+            CONSTRAINT fk_act_dep_pred FOREIGN KEY (predecesora_id) REFERENCES actividades(id) ON DELETE CASCADE
+        );
+        """)
+        
+        cursor.execute("SELECT id, nombre FROM actividades")
+        todas = cursor.fetchall() or []
+        normalizados = [{"id": r[0], "nombre": r[1], "normalizado": normalizar(r[1])} for r in todas]
+        
+        for item in normalizados:
+            act_id = item["id"]
+            patrones = nombres_predecesores(item["nombre"])
+            for patron in patrones:
+                for pred in normalizados:
+                    if pred["id"] != act_id and patron in pred["normalizado"]:
+                        cursor.execute(
+                            "INSERT INTO actividad_dependencias (actividad_id, predecesora_id) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                            (act_id, pred["id"])
+                        )
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        return HTMLResponse(f"Error: {e}")
+    finally:
+        conn.close()
+        
+    return RedirectResponse("/planificador", status_code=303)
