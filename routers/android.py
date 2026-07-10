@@ -8,7 +8,7 @@ from limiter import limiter
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
 from auth import hash_password, verify_password
-from database import db
+from database import db, sincronizar_actividades_ordenes_abiertas
 
 router = APIRouter()
 
@@ -437,6 +437,10 @@ def ordenes_android():
 def procesos_android(orden_id:int):
     conn = db()
     c = conn.cursor()
+
+    # Sincronizar automáticamente cualquier actividad nueva añadida a la máquina
+    sincronizar_actividades_ordenes_abiertas(c, orden_id)
+    conn.commit()
 
     c.execute("""
     SELECT DISTINCT p.id, p.nombre
