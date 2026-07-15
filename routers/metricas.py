@@ -129,7 +129,7 @@ def metricas_semanales(cursor):
             COALESCE(SUM(r.cantidad), 0) AS unidades,
             COALESCE(SUM(EXTRACT(EPOCH FROM (r.fin::timestamp - r.inicio::timestamp))), 0) AS segundos,
             COUNT(r.id) AS operaciones,
-            COALESCE(SUM(CASE WHEN e.unidades_por_hora > 0 THEN (r.cantidad::numeric / e.unidades_por_hora) * 3600 ELSE 0 END), 0) AS segundos_estandar
+            COALESCE(SUM(CASE WHEN e.unidades_por_hora > 0 THEN (r.cantidad::numeric / e.unidades_por_hora::numeric) * 3600 ELSE 0 END), 0) AS segundos_estandar
         FROM registros_produccion r
         JOIN operarios op ON op.id = r.operario_id
         JOIN actividades a ON a.id = r.actividad_id
@@ -182,7 +182,7 @@ def metricas_semanales(cursor):
             r.inicio,
             r.fin,
             ROUND((EXTRACT(EPOCH FROM (r.fin::timestamp - r.inicio::timestamp)) / 3600.0)::numeric, 2) AS horas,
-            CASE WHEN e.unidades_por_hora > 0 THEN ROUND((r.cantidad::numeric / e.unidades_por_hora), 2) ELSE 0 END AS horas_estandar
+            CASE WHEN e.unidades_por_hora > 0 THEN ROUND((r.cantidad::numeric / e.unidades_por_hora::numeric), 2) ELSE 0 END AS horas_estandar
         FROM registros_produccion r
         JOIN operarios op ON op.id = r.operario_id
         JOIN actividades a ON a.id = r.actividad_id
@@ -302,7 +302,7 @@ def _crear_excel_metricas(cursor, filtro):
             r.inicio,
             r.fin,
             ROUND((EXTRACT(EPOCH FROM (r.fin::timestamp - r.inicio::timestamp)) / 3600.0)::numeric, 2) AS horas,
-            CASE WHEN e.unidades_por_hora > 0 THEN ROUND((r.cantidad::numeric / e.unidades_por_hora), 2) ELSE 0 END AS horas_estandar
+            CASE WHEN e.unidades_por_hora > 0 THEN ROUND((r.cantidad::numeric / e.unidades_por_hora::numeric), 2) ELSE 0 END AS horas_estandar
         FROM registros_produccion r
         JOIN operarios op ON op.id = r.operario_id
         JOIN actividades a ON a.id = r.actividad_id
