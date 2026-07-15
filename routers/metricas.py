@@ -108,8 +108,10 @@ def _asegurar_semana(semanas, semana_inicio):
             "total": {
                 "unidades": 0,
                 "segundos": 0,
+                "segundos_estandar": 0,
                 "horas": 0,
                 "productividad": 0,
+                "eficiencia": 0,
                 "operaciones": 0,
             },
             "operarios": [],
@@ -126,9 +128,11 @@ def metricas_semanales(cursor):
             op.nombre,
             COALESCE(SUM(r.cantidad), 0) AS unidades,
             COALESCE(SUM(EXTRACT(EPOCH FROM (r.fin::timestamp - r.inicio::timestamp))), 0) AS segundos,
-            COUNT(r.id) AS operaciones
+            COUNT(r.id) AS operaciones,
+            COALESCE(SUM(CASE WHEN a.unidades_hora > 0 THEN (r.cantidad::numeric / a.unidades_hora) * 3600 ELSE 0 END), 0) AS segundos_estandar
         FROM registros_produccion r
         JOIN operarios op ON op.id = r.operario_id
+        JOIN actividades a ON a.id = r.actividad_id
         GROUP BY DATE_TRUNC('week', r.inicio::timestamp)::date, op.id, op.nombre
         ORDER BY semana_inicio DESC, unidades DESC, op.nombre
     """)
@@ -137,18 +141,24 @@ def metricas_semanales(cursor):
     semanas = OrderedDict()
     operarios_por_semana = {}
 
-    for semana_inicio, nombre, unidades, segundos, operaciones in resumen:
+    for semana_inicio, nombre, unidades, segundos, operaciones, segundos_estandar in resumen:
         semana = _asegurar_semana(semanas, semana_inicio)
         segundos = float(segundos or 0)
+        segundos_estandar = float(segundos_estandar or 0)
         unidades = int(unidades or 0)
         operaciones = int(operaciones or 0)
         horas = round(segundos / 3600, 2) if segundos else 0
+        horas_estandar = round(segundos_estandar / 3600, 2) if segundos_estandar else 0
         productividad = round(unidades / horas, 2) if horas else 0
+        eficiencia = round((horas_estandar / horas) * 100, 1) if horas else 0
+        utilizacion = round((horas / 48) * 100, 1)
 
         operario_data = {
             "nombre": nombre,
             "unidades": unidades,
             "horas": horas,
+            "eficiencia": eficiencia,
+            "utilizacion": utilizacion,
             "productividad": productividad,
             "operaciones": operaciones,
             "registros": [],
@@ -159,6 +169,7 @@ def metricas_semanales(cursor):
 
         semana["total"]["unidades"] += unidades
         semana["total"]["segundos"] += segundos
+        semana["total"]["segundos_estandar"] += segundos_estandar
         semana["total"]["operaciones"] += operaciones
 
     cursor.execute("""
@@ -169,7 +180,8 @@ def metricas_semanales(cursor):
             r.cantidad,
             r.inicio,
             r.fin,
-            ROUND((EXTRACT(EPOCH FROM (r.fin::timestamp - r.inicio::timestamp)) / 3600.0)::numeric, 2) AS horas
+            ROUND((EXTRACT(EPOCH FROM (r.fin::timestamp - r.inicio::timestamp)) / 3600.0)::numeric, 2) AS horas,
+            CASE WHEN a.unidades_hora > 0 THEN ROUND((r.cantidad::numeric / a.unidades_hora), 2) ELSE 0 END AS horas_estandar
         FROM registros_produccion r
         JOIN operarios op ON op.id = r.operario_id
         JOIN actividades a ON a.id = r.actividad_id
@@ -178,15 +190,19 @@ def metricas_semanales(cursor):
 
     detalle = cursor.fetchall()
 
-    for semana_inicio, operario, actividad, cantidad, inicio, fin, horas in detalle:
+    for semana_inicio, operario, actividad, cantidad, inicio, fin, horas, horas_estandar in detalle:
         semana = _asegurar_semana(semanas, semana_inicio)
+        horas = float(horas or 0)
+        horas_estandar = float(horas_estandar or 0)
+        
         registro = {
             "operario": operario,
             "actividad": actividad,
             "cantidad": cantidad,
             "inicio": inicio,
             "fin": fin,
-            "horas": float(horas or 0),
+            "horas": horas,
+            "eficiencia": round((horas_estandar / horas) * 100, 1) if horas > 0 else 0
         }
 
         semana["detalle"].append(registro)
@@ -197,8 +213,12 @@ def metricas_semanales(cursor):
 
     for semana in semanas.values():
         segundos = semana["total"]["segundos"]
+        segundos_estandar = semana["total"]["segundos_estandar"]
         horas = round(segundos / 3600, 2) if segundos else 0
+        horas_estandar = round(segundos_estandar / 3600, 2) if segundos_estandar else 0
+        
         semana["total"]["horas"] = horas
+        semana["total"]["eficiencia"] = round((horas_estandar / horas) * 100, 1) if horas else 0
         semana["total"]["productividad"] = (
             round(semana["total"]["unidades"] / horas, 2) if horas else 0
         )
@@ -279,7 +299,8 @@ def _crear_excel_metricas(cursor, filtro):
             r.cantidad,
             r.inicio,
             r.fin,
-            ROUND((EXTRACT(EPOCH FROM (r.fin::timestamp - r.inicio::timestamp)) / 3600.0)::numeric, 2) AS horas
+            ROUND((EXTRACT(EPOCH FROM (r.fin::timestamp - r.inicio::timestamp)) / 3600.0)::numeric, 2) AS horas,
+            CASE WHEN a.unidades_hora > 0 THEN ROUND((r.cantidad::numeric / a.unidades_hora), 2) ELSE 0 END AS horas_estandar
         FROM registros_produccion r
         JOIN operarios op ON op.id = r.operario_id
         JOIN actividades a ON a.id = r.actividad_id
@@ -331,13 +352,15 @@ def _crear_excel_metricas(cursor, filtro):
     ws_detalle = wb.create_sheet("Registros")
     _agregar_fila(
         ws_detalle,
-        ["ID", "Fecha", "Operario", "Maquina", "Orden", "Proceso", "Actividad", "Cantidad", "Inicio", "Fin", "Horas", "Unid/Hora"],
+        ["ID", "Fecha", "Operario", "Maquina", "Orden", "Proceso", "Actividad", "Cantidad", "Inicio", "Fin", "Horas", "Unid/Hora", "Eficiencia %"],
         bold=True,
     )
-    for registro_id, fecha, operario, maquina, orden_id, proceso, actividad, cantidad, inicio_reg, fin_reg, horas in registros:
+    for registro_id, fecha, operario, maquina, orden_id, proceso, actividad, cantidad, inicio_reg, fin_reg, horas, horas_estandar in registros:
         horas = float(horas or 0)
+        horas_estandar = float(horas_estandar or 0)
         cantidad = int(cantidad or 0)
         productividad = round(cantidad / horas, 2) if horas else 0
+        eficiencia = round((horas_estandar / horas) * 100, 1) if horas > 0 else 0
         ws_detalle.append([
             registro_id,
             fecha,
@@ -351,6 +374,7 @@ def _crear_excel_metricas(cursor, filtro):
             fin_reg,
             horas,
             productividad,
+            eficiencia,
         ])
 
     for sheet in wb.worksheets:
