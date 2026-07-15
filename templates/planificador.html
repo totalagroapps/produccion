@@ -836,20 +836,30 @@ function optimizar(){
   const productivas = actividades.filter(a => Number(a.unidades_hora || 0) > 0);
   const ops = new Map(actividades.map(a => [a.id, 0]));
 
-  // 1. Asignar 1 operario a todas las actividades productivas (para que la simulación no se bloquee)
+  // 1. Asignar 1 operario a todas las actividades productivas (mínimo para no bloquear)
   productivas.forEach(a => ops.set(a.id, 1));
-  let usados = productivas.length;
+  
+  let resultado = simular(ops);
+  let pico = calcularPicoOperarios(resultado.lista);
 
-  // 2. Si todavía nos quedan operarios disponibles, asignarlos de a uno al cuello de botella actual
-  while(usados < disponibles && productivas.length > 0){
-    const resultado = simular(ops);
-    
-    // Si no hay cuello de botella o está bloqueado, no podemos optimizar más
+  // 2. Distribuir el resto basándonos en el PICO SIMULTÁNEO real, no en la suma absoluta
+  while(pico < disponibles && productivas.length > 0){
     if(!resultado.cuello || resultado.bloqueados.length > 0) break;
     
     const idCuello = resultado.cuello.id;
     ops.set(idCuello, (ops.get(idCuello) || 0) + 1);
-    usados += 1;
+    
+    const nuevoResultado = simular(ops);
+    const nuevoPico = calcularPicoOperarios(nuevoResultado.lista);
+    
+    // Si agregar este operario hace que el pico supere lo disponible, revertir y terminar
+    if(nuevoPico > disponibles) {
+        ops.set(idCuello, ops.get(idCuello) - 1);
+        break;
+    }
+    
+    resultado = nuevoResultado;
+    pico = nuevoPico;
   }
 
   setOpsMap(ops);
