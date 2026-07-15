@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, Form, Request, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from database import db
@@ -59,21 +59,28 @@ def cargar_datos_planificador(maquina_id: int | None):
 
     if maquina_id:
         cursor.execute("""
-            SELECT
-                p.id,
-                p.nombre,
-                a.id,
-                a.nombre,
-                COALESCE(AVG(ea.unidades_por_hora), 0),
-                ARRAY_AGG(ad.predecesora_id) FILTER (WHERE ad.predecesora_id IS NOT NULL),
-                ARRAY_AGG(ap.nombre) FILTER (WHERE ad.predecesora_id IS NOT NULL)
+            WITH promedios AS (
+                SELECT actividad_id, AVG(unidades_por_hora) AS unidades_hora
+                FROM estandares_actividad
+                GROUP BY actividad_id
+            ),
+            deps AS (
+                SELECT ad.actividad_id,
+                       ARRAY_AGG(ad.predecesora_id) AS predecesora_ids,
+                       ARRAY_AGG(ap.nombre) AS predecesora_nombres
+                FROM actividad_dependencias ad
+                JOIN actividades ap ON ap.id = ad.predecesora_id
+                GROUP BY ad.actividad_id
+            )
+            SELECT p.id, p.nombre, a.id, a.nombre,
+                   COALESCE(pr.unidades_hora, 0),
+                   COALESCE(d.predecesora_ids, ARRAY[]::int[]),
+                   COALESCE(d.predecesora_nombres, ARRAY[]::text[])
             FROM actividades a
             JOIN procesos p ON a.proceso_id = p.id
-            LEFT JOIN estandares_actividad ea ON ea.actividad_id = a.id
-            LEFT JOIN actividad_dependencias ad ON ad.actividad_id = a.id
-            LEFT JOIN actividades ap ON ap.id = ad.predecesora_id
+            LEFT JOIN promedios pr ON pr.actividad_id = a.id
+            LEFT JOIN deps d ON d.actividad_id = a.id
             WHERE p.maquina_id = %s
-            GROUP BY p.id, p.nombre, a.id, a.nombre
             ORDER BY p.id, a.id
         """, (maquina_id,))
 
@@ -117,20 +124,30 @@ async def planificador(request: Request, maquina_id: int | None = None):
     )
 
 
-@router.post("/calcular-produccion", response_class=HTMLResponse)
-async def calcular_produccion(
-    maquina_id: int = Form(...),
-):
-    return RedirectResponse(f"/planificador?maquina_id={maquina_id}", status_code=303)
-
 
 @router.post("/api/planificador/dependencia/add")
 async def add_dependencia(actividad_id: int = Form(...), predecesora_id: int = Form(...)):
     conn = db()
     cursor = conn.cursor()
     try:
+        cursor.execute("""
+            WITH RECURSIVE ancestros AS (
+                SELECT predecesora_id FROM actividad_dependencias WHERE actividad_id = %s
+                UNION ALL
+                SELECT ad.predecesora_id FROM actividad_dependencias ad
+                INNER JOIN ancestros a ON a.predecesora_id = ad.actividad_id
+            )
+            SELECT 1 FROM ancestros WHERE predecesora_id = %s LIMIT 1;
+        """, (predecesora_id, actividad_id))
+        
+        if cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Ciclo de dependencias detectado")
+            
         cursor.execute("INSERT INTO actividad_dependencias (actividad_id, predecesora_id) VALUES (%s, %s) ON CONFLICT DO NOTHING", (actividad_id, predecesora_id))
         conn.commit()
+    except HTTPException:
+        conn.rollback()
+        raise
     finally:
         conn.close()
     return JSONResponse({"status": "ok"})
@@ -161,16 +178,20 @@ async def setup_db():
         );
         """)
         
-        cursor.execute("SELECT id, nombre FROM actividades")
+        cursor.execute("""
+            SELECT a.id, a.nombre, p.maquina_id 
+            FROM actividades a 
+            JOIN procesos p ON a.proceso_id = p.id
+        """)
         todas = cursor.fetchall() or []
-        normalizados = [{"id": r[0], "nombre": r[1], "normalizado": normalizar(r[1])} for r in todas]
+        normalizados = [{"id": r[0], "nombre": r[1], "maquina_id": r[2], "normalizado": normalizar(r[1])} for r in todas]
         
         for item in normalizados:
             act_id = item["id"]
             patrones = nombres_predecesores(item["nombre"])
             for patron in patrones:
                 for pred in normalizados:
-                    if pred["id"] != act_id and patron in pred["normalizado"]:
+                    if pred["maquina_id"] == item["maquina_id"] and pred["id"] != act_id and patron in pred["normalizado"]:
                         cursor.execute(
                             "INSERT INTO actividad_dependencias (actividad_id, predecesora_id) VALUES (%s, %s) ON CONFLICT DO NOTHING",
                             (act_id, pred["id"])

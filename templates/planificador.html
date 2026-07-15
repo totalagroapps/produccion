@@ -479,9 +479,40 @@ function simular(opsById){
   const finitos = lista.filter(r => Number.isFinite(r.fin));
   const bloqueados = lista.filter(r => !Number.isFinite(r.fin));
   const tiempoFlujo = finitos.length ? Math.max(...finitos.map(r => r.fin)) : 0;
-  const cuello = finitos.length ? finitos.reduce((max, r) => r.duracion > max.duracion ? r : max, finitos[0]) : null;
+  
+  const rutaCritica = calcularRutaCritica(finitos, tiempoFlujo);
+  const cuello = rutaCritica.length ? rutaCritica.reduce((max, r) => r.duracion > max.duracion ? r : max, rutaCritica[0]) : null;
 
-  return {lista, alertas, bloqueados, tiempoFlujo, cuello, cantidad};
+  return {lista, alertas, bloqueados, tiempoFlujo, cuello, cantidad, rutaCritica};
+}
+
+function calcularRutaCritica(lista, tiempoFlujo){
+  const porId = new Map(lista.map(r => [r.id, r]));
+  let actual = lista.find(r => Number.isFinite(r.fin) && Math.abs(r.fin - tiempoFlujo) < 1e-9);
+  const ruta = [];
+  while(actual){
+    ruta.push(actual);
+    const deps = (actual.predecesoras || []).map(id => porId.get(id)).filter(Boolean);
+    if(deps.length === 0) break;
+    actual = deps.reduce((max, d) => (d.fin > max.fin ? d : max), deps[0]);
+  }
+  return ruta;
+}
+
+function calcularPicoOperarios(lista){
+  const eventos = [];
+  lista.forEach(r => {
+    if(!Number.isFinite(r.inicio) || !Number.isFinite(r.fin) || r.ops <= 0) return;
+    eventos.push([r.inicio, r.ops]);
+    eventos.push([r.fin, -r.ops]);
+  });
+  eventos.sort((a,b) => a[0] - b[0] || a[1] - b[1]);
+  let actual = 0, pico = 0;
+  eventos.forEach(([_, delta]) => {
+    actual += delta;
+    pico = Math.max(pico, actual);
+  });
+  return pico;
 }
 
 // NETWORK DIAGRAM LOGIC
@@ -705,7 +736,7 @@ function render(resultado){
   const horasDisponiblesDia = minutosPorDia / 60;
   const dias = resultado.tiempoFlujo > 0 ? resultado.tiempoFlujo / horasDisponiblesDia : 0;
   const capacidadDia = dias > 0 && resultado.bloqueados.length === 0 ? resultado.cantidad / dias : 0;
-  const operariosUsados = resultado.lista.reduce((sum, r) => sum + (r.ops || 0), 0);
+  const operariosUsados = calcularPicoOperarios(resultado.lista);
   const operariosDisponibles = Math.max(1, Math.floor(num("operariosDisponibles", operarios.length || 1)));
 
   document.getElementById("metFlujo").textContent = resultado.bloqueados.length ? "Bloqueado" : fmtHoras(resultado.tiempoFlujo);
@@ -713,7 +744,7 @@ function render(resultado){
   document.getElementById("metJornada").textContent = `jornada ${minutosPorDia} min/día`;
   document.getElementById("metCapacidad").textContent = resultado.bloqueados.length ? "-" : capacidadDia.toFixed(1);
   document.getElementById("metOperarios").textContent = operariosUsados;
-  document.getElementById("metOperariosSub").textContent = `${operariosDisponibles} disponibles`;
+  document.getElementById("metOperariosSub").innerHTML = `${operariosDisponibles} disponibles<br><span style="font-size:10px">(pico simultáneo)</span>`;
   document.getElementById("metCuello").textContent = resultado.cuello ? resultado.cuello.nombre : "-";
   document.getElementById("metCuelloSub").textContent = resultado.cuello ? fmtHoras(resultado.cuello.duracion) : "Sin datos";
   document.getElementById("panelResumen").textContent = `${actividades.length} actividades`;
@@ -773,7 +804,13 @@ function renderRecomendaciones(resultado, operariosUsados, operariosDisponibles)
   const cont = document.getElementById("recomendaciones");
   const recs = [];
 
-  resultado.alertas.forEach(a => recs.push(a));
+  const titulosAlertas = new Set();
+  resultado.alertas.forEach(a => {
+    if (!titulosAlertas.has(a.titulo)) {
+        titulosAlertas.add(a.titulo);
+        recs.push(a);
+    }
+  });
 
   if(resultado.bloqueados.length > 0){
     recs.push({tipo:"bad", titulo:"Plan Bloqueado", texto:`${resultado.bloqueados.length} actividad(es) necesitan estándar u operarios para poder avanzar.`});
