@@ -436,9 +436,15 @@ function setEstado(id, clase, texto){
 
 function simular(opsById){
   const cantidad = Math.max(1, Math.floor(num("cantidadObjetivo", 1)));
+  const disponibles = Math.max(1, Math.floor(num("operariosDisponibles", operarios.length || 1)));
+  
   const pendientes = new Map(actividades.map(a => [a.id, a]));
   const resultados = new Map();
   const alertas = [];
+  
+  let t = 0;
+  let libres = disponibles;
+  const eventosSalida = [];
 
   actividades.forEach(a => {
     const ops = opsById.get(a.id) || 0;
@@ -446,32 +452,63 @@ function simular(opsById){
     if(ops <= 0 && a.unidades_hora > 0) alertas.push({tipo:"warn", titulo:a.nombre, texto:"No tiene operarios asignados."});
   });
 
-  while(pendientes.size > 0){
-    let avanzo = false;
-
-    for(const [id, act] of Array.from(pendientes.entries())){
+  let loopProtector = 0;
+  while(pendientes.size > 0 && loopProtector < 10000){
+    loopProtector++;
+    
+    let startedSomething = false;
+    const readyTasks = [];
+    
+    for(const [id, act] of pendientes.entries()){
       const deps = (act.predecesoras || []).filter(depId => byId.has(depId));
-      const depsListas = deps.every(depId => resultados.has(depId));
-      if(!depsListas) continue;
-
-      const ops = opsById.get(id) || 0;
-      const capacidadHora = Number(act.unidades_hora || 0) * ops;
-      const inicio = deps.length ? Math.max(...deps.map(depId => resultados.get(depId).fin)) : 0;
-      const bloqueado = cantidad > 0 && capacidadHora <= 0;
-      const duracion = bloqueado ? Infinity : cantidad / capacidadHora;
-      const fin = bloqueado || !Number.isFinite(inicio) ? Infinity : inicio + duracion;
-
-      resultados.set(id, {...act, ops, capacidadHora, inicio, duracion, fin, bloqueado});
-      pendientes.delete(id);
-      avanzo = true;
+      const depsListas = deps.every(depId => resultados.has(depId) && resultados.get(depId).fin <= t);
+      if(depsListas){
+        readyTasks.push(act);
+      }
     }
-
-    if(!avanzo){
-      pendientes.forEach((act, id) => {
-        resultados.set(id, {...act, ops:opsById.get(id) || 0, capacidadHora:0, inicio:Infinity, duracion:Infinity, fin:Infinity, bloqueado:true});
-        alertas.push({tipo:"bad", titulo:act.nombre, texto:"No se pudo resolver su precedencia."});
-      });
-      pendientes.clear();
+    
+    readyTasks.sort((a,b) => a.id - b.id);
+    
+    for(const act of readyTasks){
+      const ops = opsById.get(act.id) || 0;
+      const capacidadHora = Number(act.unidades_hora || 0) * ops;
+      
+      if(ops === 0 || capacidadHora <= 0) {
+        resultados.set(act.id, {...act, ops, capacidadHora, inicio: Infinity, duracion: Infinity, fin: Infinity, bloqueado: true});
+        pendientes.delete(act.id);
+        startedSomething = true;
+        continue;
+      }
+      
+      if(ops <= libres){
+        const duracion = cantidad / capacidadHora;
+        const fin = t + duracion;
+        resultados.set(act.id, {...act, ops, capacidadHora, inicio: t, duracion, fin, bloqueado: false});
+        pendientes.delete(act.id);
+        libres -= ops;
+        eventosSalida.push({t: fin, ops: ops, id: act.id, released: false});
+        startedSomething = true;
+      }
+    }
+    
+    if(!startedSomething){
+      const futureEvents = eventosSalida.filter(e => e.t > t && !e.released);
+      if(futureEvents.length > 0){
+        const nextTime = Math.min(...futureEvents.map(e => e.t));
+        t = nextTime;
+        eventosSalida.forEach(e => {
+          if(Math.abs(e.t - t) < 1e-9 && !e.released){
+            libres += e.ops;
+            e.released = true;
+          }
+        });
+      } else {
+        for(const [id, act] of pendientes.entries()){
+          resultados.set(id, {...act, ops: opsById.get(id) || 0, capacidadHora: 0, inicio: Infinity, duracion: Infinity, fin: Infinity, bloqueado: true});
+          alertas.push({tipo:"bad", titulo:act.nombre, texto:`Requiere ${opsById.get(id)} operarios, pero el límite global es ${disponibles}.`});
+        }
+        pendientes.clear();
+      }
     }
   }
 
@@ -840,26 +877,32 @@ function optimizar(){
   productivas.forEach(a => ops.set(a.id, 1));
   
   let resultado = simular(ops);
-  let pico = calcularPicoOperarios(resultado.lista);
+  let mejorTiempo = resultado.tiempoFlujo;
 
-  // 2. Distribuir el resto basándonos en el PICO SIMULTÁNEO real, no en la suma absoluta
-  while(pico < disponibles && productivas.length > 0){
+  // 2. Inyectar operarios extra al cuello de botella si eso mejora el tiempo y no excede la disponibilidad
+  let intentos = 0;
+  while(intentos < 50 && productivas.length > 0){
     if(!resultado.cuello || resultado.bloqueados.length > 0) break;
     
     const idCuello = resultado.cuello.id;
-    ops.set(idCuello, (ops.get(idCuello) || 0) + 1);
+    const currentOps = ops.get(idCuello) || 1;
     
+    // No podemos asignar a una sola máquina más operarios de los que existen en toda la planta
+    if(currentOps >= disponibles) break;
+    
+    ops.set(idCuello, currentOps + 1);
     const nuevoResultado = simular(ops);
-    const nuevoPico = calcularPicoOperarios(nuevoResultado.lista);
     
-    // Si agregar este operario hace que el pico supere lo disponible, revertir y terminar
-    if(nuevoPico > disponibles) {
-        ops.set(idCuello, ops.get(idCuello) - 1);
+    // Si añadir un operario a esta tarea hizo que el tiempo no mejorara
+    // (porque robó recursos a tareas en paralelo, etc), deshacemos el cambio y paramos.
+    if(nuevoResultado.tiempoFlujo >= mejorTiempo - 0.001){
+        ops.set(idCuello, currentOps);
         break;
     }
     
     resultado = nuevoResultado;
-    pico = nuevoPico;
+    mejorTiempo = nuevoResultado.tiempoFlujo;
+    intentos++;
   }
 
   setOpsMap(ops);
