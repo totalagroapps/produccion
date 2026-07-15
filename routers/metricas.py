@@ -129,10 +129,11 @@ def metricas_semanales(cursor):
             COALESCE(SUM(r.cantidad), 0) AS unidades,
             COALESCE(SUM(EXTRACT(EPOCH FROM (r.fin::timestamp - r.inicio::timestamp))), 0) AS segundos,
             COUNT(r.id) AS operaciones,
-            COALESCE(SUM(CASE WHEN a.unidades_hora > 0 THEN (r.cantidad::numeric / a.unidades_hora) * 3600 ELSE 0 END), 0) AS segundos_estandar
+            COALESCE(SUM(CASE WHEN e.unidades_por_hora > 0 THEN (r.cantidad::numeric / e.unidades_por_hora) * 3600 ELSE 0 END), 0) AS segundos_estandar
         FROM registros_produccion r
         JOIN operarios op ON op.id = r.operario_id
         JOIN actividades a ON a.id = r.actividad_id
+        LEFT JOIN estandares_actividad e ON e.actividad_id = a.id
         GROUP BY DATE_TRUNC('week', r.inicio::timestamp)::date, op.id, op.nombre
         ORDER BY semana_inicio DESC, unidades DESC, op.nombre
     """)
@@ -181,10 +182,11 @@ def metricas_semanales(cursor):
             r.inicio,
             r.fin,
             ROUND((EXTRACT(EPOCH FROM (r.fin::timestamp - r.inicio::timestamp)) / 3600.0)::numeric, 2) AS horas,
-            CASE WHEN a.unidades_hora > 0 THEN ROUND((r.cantidad::numeric / a.unidades_hora), 2) ELSE 0 END AS horas_estandar
+            CASE WHEN e.unidades_por_hora > 0 THEN ROUND((r.cantidad::numeric / e.unidades_por_hora), 2) ELSE 0 END AS horas_estandar
         FROM registros_produccion r
         JOIN operarios op ON op.id = r.operario_id
         JOIN actividades a ON a.id = r.actividad_id
+        LEFT JOIN estandares_actividad e ON e.actividad_id = a.id
         ORDER BY semana_inicio DESC, r.inicio::timestamp DESC, r.id DESC
     """)
 
@@ -300,10 +302,11 @@ def _crear_excel_metricas(cursor, filtro):
             r.inicio,
             r.fin,
             ROUND((EXTRACT(EPOCH FROM (r.fin::timestamp - r.inicio::timestamp)) / 3600.0)::numeric, 2) AS horas,
-            CASE WHEN a.unidades_hora > 0 THEN ROUND((r.cantidad::numeric / a.unidades_hora), 2) ELSE 0 END AS horas_estandar
+            CASE WHEN e.unidades_por_hora > 0 THEN ROUND((r.cantidad::numeric / e.unidades_por_hora), 2) ELSE 0 END AS horas_estandar
         FROM registros_produccion r
         JOIN operarios op ON op.id = r.operario_id
         JOIN actividades a ON a.id = r.actividad_id
+        LEFT JOIN estandares_actividad e ON e.actividad_id = a.id
         LEFT JOIN procesos p ON p.id = a.proceso_id
         LEFT JOIN ordenes o ON o.id = r.orden_id
         LEFT JOIN maquinas m ON m.id = o.maquina_id
