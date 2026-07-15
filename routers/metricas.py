@@ -102,8 +102,8 @@ def _asegurar_semana(semanas, semana_inicio):
     if key not in semanas:
         semana_fin = semana_inicio + timedelta(days=6)
         semanas[key] = {
-            "inicio": semana_inicio,
-            "fin": semana_fin,
+            "inicio": semana_inicio.isoformat(),
+            "fin": semana_fin.isoformat(),
             "etiqueta": f"{_fecha_corta(semana_inicio)} - {_fecha_corta(semana_fin)}",
             "total": {
                 "unidades": 0,
@@ -201,8 +201,8 @@ def metricas_semanales(cursor):
             "operario": operario,
             "actividad": actividad,
             "cantidad": cantidad,
-            "inicio": inicio,
-            "fin": fin,
+            "inicio": inicio.isoformat() if hasattr(inicio, 'isoformat') else inicio,
+            "fin": fin.isoformat() if hasattr(fin, 'isoformat') else fin,
             "horas": horas,
             "eficiencia": round((horas_estandar / horas) * 100, 1) if horas > 0 else 0
         }
