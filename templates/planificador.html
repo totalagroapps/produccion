@@ -799,23 +799,19 @@ function optimizar(){
   const productivas = actividades.filter(a => Number(a.unidades_hora || 0) > 0);
   const ops = new Map(actividades.map(a => [a.id, 0]));
 
-  productivas.slice(0, disponibles).forEach(a => ops.set(a.id, 1));
-  let usados = Array.from(ops.values()).reduce((a,b) => a + b, 0);
+  // 1. Asignar 1 operario a todas las actividades productivas (para que la simulación no se bloquee)
+  productivas.forEach(a => ops.set(a.id, 1));
+  let usados = productivas.length;
 
+  // 2. Si todavía nos quedan operarios disponibles, asignarlos de a uno al cuello de botella actual
   while(usados < disponibles && productivas.length > 0){
-    const base = simular(ops).tiempoFlujo;
-    let mejor = null;
-
-    productivas.forEach(a => {
-      const prueba = new Map(ops);
-      prueba.set(a.id, (prueba.get(a.id) || 0) + 1);
-      const nuevo = simular(prueba).tiempoFlujo;
-      const mejora = base - nuevo;
-      if(!mejor || mejora > mejor.mejora) mejor = {id:a.id, mejora};
-    });
-
-    if(!mejor) break;
-    ops.set(mejor.id, (ops.get(mejor.id) || 0) + 1);
+    const resultado = simular(ops);
+    
+    // Si no hay cuello de botella o está bloqueado, no podemos optimizar más
+    if(!resultado.cuello || resultado.bloqueados.length > 0) break;
+    
+    const idCuello = resultado.cuello.id;
+    ops.set(idCuello, (ops.get(idCuello) || 0) + 1);
     usados += 1;
   }
 
