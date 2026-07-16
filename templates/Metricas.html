@@ -454,12 +454,9 @@ tr:hover{
     </section>
 
     {% if semanas and semanas|length > 0 %}
-    <section class="dashboard-panel">
+    <section class="dashboard-panel" style="grid-template-columns: 1fr;">
         <div class="chart-card">
             <canvas id="chartEficiencia"></canvas>
-        </div>
-        <div class="chart-card">
-            <canvas id="chartActividades"></canvas>
         </div>
     </section>
     {% endif %}
@@ -589,37 +586,6 @@ document.addEventListener("DOMContentLoaded", function() {
                 responsive: true,
                 plugins: {
                     title: { display: true, text: 'Rendimiento por Operario (Semana Actual)' }
-                }
-            }
-        });
-    }
-
-    // Gráfico 2: Pareto de Actividades (Horas invertidas)
-    const ctxActividades = document.getElementById('chartActividades');
-    if (ctxActividades) {
-        const actHoras = {};
-        semanaActual.detalle.forEach(reg => {
-            actHoras[reg.actividad] = (actHoras[reg.actividad] || 0) + reg.horas;
-        });
-        const labels = Object.keys(actHoras);
-        const data = Object.values(actHoras);
-
-        new Chart(ctxActividades, {
-            type: 'doughnut',
-            data: {
-                labels: labels,
-                datasets: [{
-                    data: data,
-                    backgroundColor: [
-                        '#ef5350', '#ab47bc', '#5c6bc0', '#29b6f6', '#26a69a', '#66bb6a', '#d4e157', '#ffa726'
-                    ]
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    title: { display: true, text: 'Distribución de Horas por Actividad' },
-                    legend: { position: 'right' }
                 }
             }
         });
