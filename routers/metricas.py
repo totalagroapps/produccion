@@ -498,7 +498,11 @@ def wip_cuellos_botella(request: Request):
         FROM orden_actividades oa
         JOIN actividades a ON oa.actividad_id = a.id
         JOIN ordenes o ON oa.orden_id = o.id
-        WHERE o.estado != 'CERRADA' AND (oa.cantidad_total - oa.cantidad_realizada) > 0
+        JOIN maquinas m ON m.id = o.maquina_id
+        WHERE o.estado != 'CERRADA' 
+          AND (oa.cantidad_total - oa.cantidad_realizada) > 0
+          AND m.nombre NOT ILIKE '%admin%'
+          AND m.nombre NOT ILIKE '%apoyo%'
         GROUP BY a.nombre
         ORDER BY WIP DESC
     """)
@@ -513,6 +517,8 @@ def wip_cuellos_botella(request: Request):
         JOIN maquinas m ON m.id = o.maquina_id
         LEFT JOIN orden_actividades oa ON oa.orden_id = o.id
         WHERE o.estado != 'CERRADA'
+          AND m.nombre NOT ILIKE '%admin%'
+          AND m.nombre NOT ILIKE '%apoyo%'
         GROUP BY o.id, m.nombre, o.cantidad, o.estado
         ORDER BY o.id ASC
     """)
