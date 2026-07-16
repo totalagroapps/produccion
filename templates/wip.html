@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventario en Proceso (WIP)</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f6fa;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        .titulo {
+            font-size: 24px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .btn-home {
+            background-color: #1976d2;
+            color: white;
+            text-decoration: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .btn-home:hover {
+            background-color: #115293;
+        }
+
+        .kpi-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .kpi-card {
+            flex: 1;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+        
+        .kpi-card h3 {
+            margin: 0;
+            font-size: 16px;
+            color: #7f8c8d;
+        }
+
+        .kpi-card .value {
+            font-size: 36px;
+            font-weight: bold;
+            color: #e74c3c;
+            margin-top: 10px;
+        }
+
+        .dashboard-panel {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .chart-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            color: #2c3e50;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            height: 10px;
+            margin-top: 5px;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background-color: #27ae60;
+        }
+
+    </style>
+</head>
+<body>
+{% include '_navbar.html' %}
+
+<div class="container">
+
+    <div class="topbar">
+        <div class="titulo">Inventario en Proceso (WIP) y Cuellos de Botella</div>
+        <a href="/" class="btn-home">Home</a>
+    </div>
+
+    <div class="kpi-row">
+        <div class="kpi-card">
+            <h3>Unidades Totales Atascadas (WIP)</h3>
+            <div class="value">{{ "{:,.0f}".format(wip_total) }}</div>
+        </div>
+        <div class="kpi-card">
+            <h3>Órdenes Activas Críticas</h3>
+            <div class="value" style="color: #f39c12;">{{ ordenes_activas|length }}</div>
+        </div>
+    </div>
+
+    <section class="dashboard-panel">
+        <div class="chart-card">
+            <canvas id="chartWIP" height="80"></canvas>
+        </div>
+    </section>
+
+    <section class="dashboard-panel">
+        <div class="chart-card">
+            <h2 style="margin-top: 0; font-size: 18px;">Listado de Órdenes Activas</h2>
+            <table>
+                <tr>
+                    <th>ID Orden</th>
+                    <th>Producto</th>
+                    <th>Cantidad</th>
+                    <th>Estado</th>
+                    <th>Avance Global</th>
+                </tr>
+                {% for o in ordenes_activas %}
+                <tr>
+                    <td>#{{ o.id }}</td>
+                    <td>{{ o.producto }}</td>
+                    <td>{{ "{:,.0f}".format(o.cantidad) }}</td>
+                    <td>{{ o.estado }}</td>
+                    <td>
+                        {{ o.avance_pct }}%
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" style="width: {{ o.avance_pct }}%;"></div>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if ordenes_activas|length == 0 %}
+                <tr>
+                    <td colspan="5" style="text-align: center; color: #777;">No hay órdenes activas en piso.</td>
+                </tr>
+                {% endif %}
+            </table>
+        </div>
+    </section>
+
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const dataWip = {{ wip_actividades | tojson | safe }};
+    if (!dataWip || dataWip.length === 0) return;
+
+    const ctx = document.getElementById('chartWIP');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: dataWip.map(d => d.actividad),
+                datasets: [{
+                    label: 'Unidades Atascadas (WIP)',
+                    data: dataWip.map(d => d.wip),
+                    backgroundColor: '#e74c3c',
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                indexAxis: 'y', // Barras horizontales
+                plugins: {
+                    title: { display: true, text: 'Cuellos de Botella por Actividad', font: { size: 16 } },
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'Unidades esperando' }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+
+</body>
+</html>

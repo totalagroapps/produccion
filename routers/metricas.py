@@ -484,50 +484,64 @@ def exportar_metricas_excel(request: Request, periodo: str = "semanal", fecha: s
     )
 
 
-@router.get("/kpi", response_class=HTMLResponse)
-def kpi(request: Request):
+@router.get("/wip", response_class=HTMLResponse)
+def wip_cuellos_botella(request: Request):
     if not request.session.get("role") == "admin":
         return RedirectResponse("/admin", 303)
 
     conn = db()
     c = conn.cursor()
 
+    # 1. Cuellos de Botella (WIP por actividad)
     c.execute("""
-    SELECT o.nombre,
-           COALESCE(SUM(r.cantidad),0)
-    FROM registros_produccion r
-    JOIN operarios o ON o.id=r.operario_id
-    GROUP BY o.id
+        SELECT a.nombre, SUM(oa.cantidad_total - oa.cantidad_realizada) as WIP
+        FROM orden_actividades oa
+        JOIN actividades a ON oa.actividad_id = a.id
+        JOIN ordenes o ON oa.orden_id = o.id
+        WHERE o.estado != 'CERRADA' AND (oa.cantidad_total - oa.cantidad_realizada) > 0
+        GROUP BY a.nombre
+        ORDER BY WIP DESC
     """)
-    por_operario = c.fetchall()
+    wip_actividades = [{"actividad": row[0], "wip": row[1]} for row in c.fetchall()]
 
+    # 2. Órdenes Activas Críticas
     c.execute("""
-    SELECT o.nombre,
-           COALESCE(SUM(EXTRACT(EPOCH FROM (r.fin::timestamp - r.inicio::timestamp)) / 60.0), 0)
-    FROM registros_produccion r
-    JOIN operarios o ON o.id=r.operario_id
-    GROUP BY o.id
+        SELECT o.id, m.nombre, o.cantidad, o.estado,
+               COALESCE(SUM(oa.cantidad_realizada), 0) as total_hecho,
+               COALESCE(SUM(oa.cantidad_total), 0) as total_planeado
+        FROM ordenes o
+        JOIN maquinas m ON m.id = o.maquina_id
+        LEFT JOIN orden_actividades oa ON oa.orden_id = o.id
+        WHERE o.estado != 'CERRADA'
+        GROUP BY o.id, m.nombre, o.cantidad, o.estado
+        ORDER BY o.id ASC
     """)
-    minutos = c.fetchall()
-
-    c.execute("""
-    SELECT substr(inicio,1,10),
-           SUM(cantidad)
-    FROM registros_produccion
-    GROUP BY substr(inicio,1,10)
-    ORDER BY substr(inicio,1,10)
-    """)
-    diario = c.fetchall()
+    
+    ordenes_activas = []
+    wip_total_unidades = 0
+    for row in c.fetchall():
+        hecho = row[4]
+        planeado = row[5]
+        porcentaje = round((hecho / planeado * 100) if planeado > 0 else 0, 1)
+        wip_total_unidades += (planeado - hecho) if planeado > hecho else 0
+        
+        ordenes_activas.append({
+            "id": row[0],
+            "producto": row[1],
+            "cantidad": row[2],
+            "estado": row[3],
+            "avance_pct": porcentaje
+        })
 
     conn.close()
 
     return request.app.state.templates.TemplateResponse(
         request=request,
-        name="kpi.html",
+        name="wip.html",
         context={
             "request": request,
-            "por_operario": por_operario,
-            "minutos": minutos,
-            "diario": diario,
+            "wip_actividades": wip_actividades,
+            "ordenes_activas": ordenes_activas,
+            "wip_total": wip_total_unidades
         },
     )
