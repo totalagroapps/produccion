@@ -112,6 +112,12 @@ def calcular_detalles_operario(c, operario_id: int, operario_nombre: str, mes: i
     horas_disponibles = (dias_trabajados * 530) / 60
     eficiencia_ocupacion = total_horas / horas_disponibles if horas_disponibles > 0 else 0
 
+    if eficiencia_ocupacion < 0.90:
+        total_bono = 0
+        for d in detalle:
+            d["bono"] = 0
+        alertas.append("Sin bono: Ocupación menor al 90%.")
+
     if total_registros == 1:
         alertas.append("Solo tiene 1 registro en el mes.")
         
