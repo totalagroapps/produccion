@@ -454,11 +454,7 @@ tr:hover{
     </section>
 
     {% if semanas and semanas|length > 0 %}
-    <section class="dashboard-panel" style="grid-template-columns: 1fr;">
-        <div class="chart-card">
-            <canvas id="chartEficiencia"></canvas>
-        </div>
-    </section>
+    <!-- Los gráficos se han trasladado a Informes Gerenciales -->
     {% endif %}
 
     {% if semanas %}
@@ -554,43 +550,8 @@ tr:hover{
 </div>
 
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-    // Solo graficamos si hay datos
-    const semanas = {{ semanas | tojson | safe }};
-    if (!semanas || semanas.length === 0) return;
-
-    // Tomamos la semana más reciente para los gráficos
-    const semanaActual = semanas[0];
-
-    // Gráfico 1: Eficiencia por Operario
-    const ctxEficiencia = document.getElementById('chartEficiencia');
-    if (ctxEficiencia) {
-        new Chart(ctxEficiencia, {
-            type: 'bar',
-            data: {
-                labels: semanaActual.operarios.map(op => op.nombre),
-                datasets: [
-                    {
-                        label: 'Eficiencia (%)',
-                        data: semanaActual.operarios.map(op => op.eficiencia),
-                        backgroundColor: '#1976d2',
-                    },
-                    {
-                        label: 'Utilización (%)',
-                        data: semanaActual.operarios.map(op => op.utilizacion),
-                        backgroundColor: '#cfd8dc',
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    title: { display: true, text: 'Rendimiento por Operario (Semana Actual)' }
-                }
-            }
-        });
-    }
-});
+// Los gráficos se han trasladado a Informes Gerenciales.
+// Esta página ahora solo muestra la vista tabular clásica.
 </script>
 
 </body>
