@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inventario en Proceso (WIP)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -141,9 +142,19 @@
             <h3>Unidades Totales Atascadas (WIP)</h3>
             <div class="value">{{ "{:,.0f}".format(wip_total) }}</div>
         </div>
-        <div class="kpi-card">
-            <h3>Órdenes Activas Críticas</h3>
+        <a href="#tabla-ordenes" class="kpi-card" style="text-decoration: none; display: block; cursor: pointer; transition: transform 0.2s;">
+            <h3 style="color: inherit;">Órdenes Activas Críticas</h3>
             <div class="value" style="color: #f39c12;">{{ ordenes_activas|length }}</div>
+        </a>
+        <div class="kpi-card">
+            <h3>Volumen Producido (Hoy)</h3>
+            <div class="value" style="color: #2c3e50;">
+                {{ "{:,.0f}".format(prod_hoy) }}
+                <span style="font-size: 16px; margin-left: 10px; color: {% if tendencia_pct > 0 %}#27ae60{% elif tendencia_pct < 0 %}#e74c3c{% else %}#7f8c8d{% endif %};">
+                    {% if tendencia_pct > 0 %}▲{% elif tendencia_pct < 0 %}▼{% else %}—{% endif %}
+                    {{ tendencia_pct }}%
+                </span>
+            </div>
         </div>
     </div>
 
@@ -153,23 +164,30 @@
         </div>
     </section>
 
-    <section class="dashboard-panel">
+    <section class="dashboard-panel" id="tabla-ordenes">
         <div class="chart-card">
-            <h2 style="margin-top: 0; font-size: 18px;">Listado de Órdenes Activas</h2>
+            <h2 style="margin-top: 0; font-size: 18px;">Listado de Órdenes Activas (Más atrasadas primero)</h2>
             <table>
                 <tr>
+                    <th>Estado (Días Inactiva)</th>
                     <th>ID Orden</th>
-                    <th>Producto</th>
+                    <th>Producto/Máquina</th>
+                    <th>Cuello de Botella Actual</th>
                     <th>Cantidad</th>
-                    <th>Estado</th>
                     <th>Avance Global</th>
                 </tr>
                 {% for o in ordenes_activas %}
                 <tr>
+                    <td>
+                        <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: {{ o.semaforo }}; margin-right: 5px;"></span>
+                        {% if o.dias_inactiva == 0 %}Activa Hoy
+                        {% elif o.dias_inactiva < 999 %}{{ o.dias_inactiva }} días
+                        {% else %}Sin Inicio{% endif %}
+                    </td>
                     <td>#{{ o.id }}</td>
                     <td>{{ o.producto }}</td>
+                    <td><span style="background: #eee; padding: 3px 8px; border-radius: 4px; font-size: 12px;">{{ o.actividad_atascada }}</span></td>
                     <td>{{ "{:,.0f}".format(o.cantidad) }}</td>
-                    <td>{{ o.estado }}</td>
                     <td>
                         {{ o.avance_pct }}%
                         <div class="progress-bar-container">
@@ -180,7 +198,7 @@
                 {% endfor %}
                 {% if ordenes_activas|length == 0 %}
                 <tr>
-                    <td colspan="5" style="text-align: center; color: #777;">No hay órdenes activas en piso.</td>
+                    <td colspan="6" style="text-align: center; color: #777;">No hay órdenes activas en piso.</td>
                 </tr>
                 {% endif %}
             </table>
@@ -190,6 +208,8 @@
 </div>
 
 <script>
+Chart.register(ChartDataLabels);
+
 document.addEventListener("DOMContentLoaded", function() {
     const dataWip = {{ wip_actividades | tojson | safe }};
     if (!dataWip || dataWip.length === 0) return;
@@ -211,8 +231,17 @@ document.addEventListener("DOMContentLoaded", function() {
                 responsive: true,
                 indexAxis: 'y', // Barras horizontales
                 plugins: {
-                    title: { display: true, text: 'Cuellos de Botella por Actividad', font: { size: 16 } },
-                    legend: { display: false }
+                    title: { display: true, text: 'Top 8: Cuellos de Botella por Actividad', font: { size: 16 } },
+                    legend: { display: false },
+                    datalabels: {
+                        color: 'white',
+                        font: { weight: 'bold' },
+                        anchor: 'end',
+                        align: 'left',
+                        formatter: function(value) {
+                            return Math.round(value);
+                        }
+                    }
                 },
                 scales: {
                     x: {

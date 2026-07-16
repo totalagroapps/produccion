@@ -241,51 +241,7 @@ def metricas_operarios(request: Request):
     })
 
 
-# ================= KPI DASHBOARD =================
 
-@router.get("/kpi", response_class=HTMLResponse)
-def kpi(request: Request):
-
-    if not require_admin(request):
-        return RedirectResponse("/admin", 303)
-
-    conn = db()
-    c = conn.cursor()
-
-    c.execute("""
-    SELECT o.nombre, COALESCE(SUM(r.cantidad), 0)
-    FROM registros_produccion r
-    JOIN operarios o ON o.id = r.operario_id
-    GROUP BY o.id, o.nombre
-    """)
-    por_operario = c.fetchall()
-
-    c.execute("""
-    SELECT o.nombre,
-           COALESCE(SUM(EXTRACT(EPOCH FROM (r.fin::timestamp - r.inicio::timestamp)) / 60.0), 0)
-    FROM registros_produccion r
-    JOIN operarios o ON o.id = r.operario_id
-    GROUP BY o.id, o.nombre
-    """)
-    minutos = c.fetchall()
-
-    c.execute("""
-    SELECT LEFT(inicio, 10), SUM(cantidad)
-    FROM registros_produccion
-    GROUP BY LEFT(inicio, 10)
-    ORDER BY LEFT(inicio, 10)
-    """)
-    diario = c.fetchall()
-
-    conn.close()
-
-    return request.app.state.templates.TemplateResponse(
-        request=request, name="kpi.html", context={
-        "request": request,
-        "por_operario": por_operario,
-        "minutos": minutos,
-        "diario": diario
-    })
 
 
 # ================= CREAR ORDEN DESDE PANEL =================

@@ -492,36 +492,82 @@ def wip_cuellos_botella(request: Request):
     conn = db()
     c = conn.cursor()
 
-    # 1. Cuellos de Botella (WIP por actividad)
+    # Tendencia Produccion (Hoy vs Ayer)
     c.execute("""
-        SELECT a.nombre, SUM(oa.cantidad_total - oa.cantidad_realizada) as WIP
-        FROM orden_actividades oa
-        JOIN actividades a ON oa.actividad_id = a.id
-        JOIN ordenes o ON oa.orden_id = o.id
+        SELECT 
+            COALESCE(SUM(CASE WHEN DATE(inicio) = CURRENT_DATE THEN cantidad ELSE 0 END), 0) as hoy,
+            COALESCE(SUM(CASE WHEN DATE(inicio) = CURRENT_DATE - INTERVAL '1 day' THEN cantidad ELSE 0 END), 0) as ayer
+        FROM registros_produccion
+    """)
+    row_tendencia = c.fetchone()
+    prod_hoy = row_tendencia[0] if row_tendencia else 0
+    prod_ayer = row_tendencia[1] if row_tendencia else 0
+    
+    tendencia_pct = 0
+    if prod_ayer > 0:
+        tendencia_pct = round(((prod_hoy - prod_ayer) / prod_ayer) * 100, 1)
+
+    # 1. Cuellos de Botella (WIP por actividad) evitando doble conteo
+    c.execute("""
+        WITH OrderBottleneck AS (
+            SELECT oa.orden_id,
+                   MIN(oa.actividad_id) as cuello_actividad_id,
+                   MAX(oa.cantidad_total - oa.cantidad_realizada) as pendiente
+            FROM orden_actividades oa
+            WHERE oa.cantidad_realizada < oa.cantidad_total
+            GROUP BY oa.orden_id
+        )
+        SELECT a.nombre, SUM(ob.pendiente) as WIP
+        FROM OrderBottleneck ob
+        JOIN actividades a ON ob.cuello_actividad_id = a.id
+        JOIN ordenes o ON ob.orden_id = o.id
         JOIN maquinas m ON m.id = o.maquina_id
         WHERE o.estado != 'CERRADA' 
-          AND (oa.cantidad_total - oa.cantidad_realizada) > 0
           AND m.nombre NOT ILIKE '%admin%'
           AND m.nombre NOT ILIKE '%apoyo%'
         GROUP BY a.nombre
         ORDER BY WIP DESC
+        LIMIT 8
     """)
     wip_actividades = [{"actividad": row[0], "wip": row[1]} for row in c.fetchall()]
 
-    # 2. Órdenes Activas Críticas
+    # Print de control para auditoría
+    print(f"DEBUG WIP - Se han encontrado {len(wip_actividades)} cuellos de botella (Top 8).")
+    if wip_actividades:
+        print(f"DEBUG WIP - Peor cuello: {wip_actividades[0]['actividad']} con {wip_actividades[0]['wip']} unidades.")
+
+    # 2. Órdenes Activas Críticas con Semáforo
     c.execute("""
+        WITH LastAction AS (
+            SELECT orden_id, MAX(inicio) as ultimo_movimiento
+            FROM registros_produccion
+            GROUP BY orden_id
+        ),
+        OrderBottleneck AS (
+            SELECT oa.orden_id, MIN(oa.actividad_id) as cuello_actividad_id
+            FROM orden_actividades oa
+            WHERE oa.cantidad_realizada < oa.cantidad_total
+            GROUP BY oa.orden_id
+        )
         SELECT o.id, m.nombre, o.cantidad, o.estado,
                COALESCE(SUM(oa.cantidad_realizada), 0) as total_hecho,
-               COALESCE(SUM(oa.cantidad_total), 0) as total_planeado
+               COALESCE(SUM(oa.cantidad_total), 0) as total_planeado,
+               la.ultimo_movimiento,
+               a_cuello.nombre as actividad_atascada
         FROM ordenes o
         JOIN maquinas m ON m.id = o.maquina_id
         LEFT JOIN orden_actividades oa ON oa.orden_id = o.id
+        LEFT JOIN LastAction la ON la.orden_id = o.id
+        LEFT JOIN OrderBottleneck ob ON ob.orden_id = o.id
+        LEFT JOIN actividades a_cuello ON a_cuello.id = ob.cuello_actividad_id
         WHERE o.estado != 'CERRADA'
           AND m.nombre NOT ILIKE '%admin%'
           AND m.nombre NOT ILIKE '%apoyo%'
-        GROUP BY o.id, m.nombre, o.cantidad, o.estado
-        ORDER BY o.id ASC
+        GROUP BY o.id, m.nombre, o.cantidad, o.estado, la.ultimo_movimiento, a_cuello.nombre
     """)
+    
+    from datetime import datetime
+    ahora = datetime.now()
     
     ordenes_activas = []
     wip_total_unidades = 0
@@ -531,13 +577,30 @@ def wip_cuellos_botella(request: Request):
         porcentaje = round((hecho / planeado * 100) if planeado > 0 else 0, 1)
         wip_total_unidades += (planeado - hecho) if planeado > hecho else 0
         
+        ultimo_movimiento = row[6]
+        dias_inactiva = (ahora - ultimo_movimiento).days if ultimo_movimiento else 999
+        
+        # Color Semáforo
+        if dias_inactiva == 0:
+            color = "green"
+        elif dias_inactiva <= 2:
+            color = "#f39c12" # yellow
+        else:
+            color = "red"
+            
         ordenes_activas.append({
             "id": row[0],
             "producto": row[1],
             "cantidad": row[2],
             "estado": row[3],
-            "avance_pct": porcentaje
+            "avance_pct": porcentaje,
+            "dias_inactiva": dias_inactiva,
+            "semaforo": color,
+            "actividad_atascada": row[7] or "Terminando"
         })
+        
+    # Ordenar por porcentaje de avance (las más atrasadas primero)
+    ordenes_activas.sort(key=lambda x: x["avance_pct"])
 
     conn.close()
 
@@ -548,6 +611,9 @@ def wip_cuellos_botella(request: Request):
             "request": request,
             "wip_actividades": wip_actividades,
             "ordenes_activas": ordenes_activas,
-            "wip_total": wip_total_unidades
+            "wip_total": wip_total_unidades,
+            "prod_hoy": prod_hoy,
+            "prod_ayer": prod_ayer,
+            "tendencia_pct": tendencia_pct
         },
     )
