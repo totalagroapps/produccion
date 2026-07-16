@@ -405,61 +405,25 @@ tr:hover{
 <div class="container">
 
     <div class="topbar">
-        <div class="titulo">Métricas Operativas</div>
+        <div class="titulo">Informes Gerenciales</div>
         <div style="display: flex; gap: 10px;">
-            <a href="/informes_gerenciales" class="btn-home" style="background-color: #2196F3;">Ver Informes Gerenciales</a>
+            <a href="/metricas_operarios" class="btn-home" style="background-color: #757575;">Volver a Métricas</a>
             <a href="/" class="btn-home">Home</a>
         </div>
     </div>
 
-    <section class="export-panel">
-        <h2>Exportar Excel detallado</h2>
-        <div class="export-grid">
-            <div class="export-option">
-                <h3>Diario</h3>
-                <div class="export-actions">
-                    <a class="btn-export-sec" href="/metricas/exportar_excel?periodo=diario">Hoy</a>
-                </div>
-                <form class="export-form" action="/metricas/exportar_excel" method="get">
-                    <input type="hidden" name="periodo" value="diario">
-                    <input type="date" name="fecha" required>
-                    <button class="btn-export-sec" type="submit">Descargar fecha</button>
-                </form>
-            </div>
-
-            <div class="export-option">
-                <h3>Semanal</h3>
-                <div class="export-actions">
-                    <a class="btn-export-sec" href="/metricas/exportar_excel?periodo=semanal">Semana actual</a>
-                </div>
-                <form class="export-form" action="/metricas/exportar_excel" method="get">
-                    <input type="hidden" name="periodo" value="semanal">
-                    <input type="date" name="fecha" required>
-                    <button class="btn-export-sec" type="submit">Descargar semana</button>
-                </form>
-            </div>
-
-            <div class="export-option">
-                <h3>Mensual</h3>
-                <div class="export-actions">
-                    <a class="btn-export-sec" href="/metricas/exportar_excel?periodo=mensual">Mes actual</a>
-                </div>
-                <form class="export-form" action="/metricas/exportar_excel" method="get">
-                    <input type="hidden" name="periodo" value="mensual">
-                    <input type="month" name="fecha" required>
-                    <button class="btn-export-sec" type="submit">Descargar mes</button>
-                </form>
-            </div>
+    {% if semanas and semanas|length > 0 %}
+    <section class="dashboard-panel" style="grid-template-columns: 1fr;">
+        <div class="chart-card">
+            <canvas id="chartTendencia" height="80"></canvas>
         </div>
     </section>
-
-    {% if semanas and semanas|length > 0 %}
     <section class="dashboard-panel">
         <div class="chart-card">
-            <canvas id="chartEficiencia"></canvas>
+            <canvas id="chartActividades"></canvas>
         </div>
         <div class="chart-card">
-            <canvas id="chartActividades"></canvas>
+            <canvas id="chartOperarios"></canvas>
         </div>
     </section>
     {% endif %}
@@ -493,61 +457,6 @@ tr:hover{
                         <strong>{{ semana.total.productividad }}</strong>
                     </div>
                 </div>
-
-                <div class="bloque">
-                    <h3>Operarios de la semana</h3>
-                    <div class="operario-list">
-                        {% for operario in semana.operarios %}
-                            <div class="operario-subbloque">
-                                <div class="operario-subheader">
-                                    <h4>{{ operario.nombre }}</h4>
-                                    <span>{{ operario.registros|length }} registro(s)</span>
-                                </div>
-
-                                <div class="operario-resumen">
-                                    <div class="operario-metrica">
-                                        <span>Eficiencia</span>
-                                        <strong>{{ operario.eficiencia }}%</strong>
-                                    </div>
-                                    <div class="operario-metrica">
-                                        <span>Utilización</span>
-                                        <strong>{{ operario.utilizacion }}%</strong>
-                                    </div>
-                                    <div class="operario-metrica">
-                                        <span>Unidades</span>
-                                        <strong>{{ operario.unidades }}</strong>
-                                    </div>
-                                    <div class="operario-metrica">
-                                        <span>Horas</span>
-                                        <strong>{{ operario.horas }}</strong>
-                                    </div>
-                                </div>
-
-                                <div class="operario-tabla">
-                                    <table>
-                                        <tr>
-                                            <th>Actividad</th>
-                                            <th>Cantidad</th>
-                                            <th>Horas</th>
-                                            <th>Inicio</th>
-                                            <th>Fin</th>
-                                        </tr>
-
-                                        {% for registro in operario.registros %}
-                                        <tr>
-                                            <td>{{ registro.actividad }}</td>
-                                            <td>{{ registro.cantidad }}</td>
-                                            <td>{{ registro.horas }}</td>
-                                            <td>{{ registro.inicio }}</td>
-                                            <td>{{ registro.fin }}</td>
-                                        </tr>
-                                        {% endfor %}
-                                    </table>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                </div>
             </section>
         {% endfor %}
     {% else %}
@@ -565,61 +474,117 @@ document.addEventListener("DOMContentLoaded", function() {
     // Tomamos la semana más reciente para los gráficos
     const semanaActual = semanas[0];
 
-    // Gráfico 1: Eficiencia por Operario
-    const ctxEficiencia = document.getElementById('chartEficiencia');
-    if (ctxEficiencia) {
-        new Chart(ctxEficiencia, {
+    // Gráfico 1: Tendencia Diaria de Eficiencia
+    const ctxTendencia = document.getElementById('chartTendencia');
+    if (ctxTendencia && semanaActual.detalle && semanaActual.detalle.length > 0) {
+        // Agrupar por fecha
+        const diaData = {};
+        semanaActual.detalle.forEach(reg => {
+            if (!reg.inicio) return;
+            const fecha = reg.inicio.split('T')[0];
+            if (!diaData[fecha]) diaData[fecha] = { horas: 0, horas_estandar: 0 };
+            diaData[fecha].horas += reg.horas;
+            // recalculamos horas_estandar = eficiencia * horas / 100
+            diaData[fecha].horas_estandar += (reg.eficiencia * reg.horas) / 100;
+        });
+
+        // Ordenar fechas cronológicamente
+        const fechasOrdenadas = Object.keys(diaData).sort();
+        const eficienciasDiarias = fechasOrdenadas.map(f => {
+            const d = diaData[f];
+            return d.horas > 0 ? ((d.horas_estandar / d.horas) * 100).toFixed(1) : 0;
+        });
+
+        new Chart(ctxTendencia, {
+            type: 'line',
+            data: {
+                labels: fechasOrdenadas,
+                datasets: [{
+                    label: 'Eficiencia Diaria Promedio (%)',
+                    data: eficienciasDiarias,
+                    borderColor: '#1976d2',
+                    backgroundColor: 'rgba(25, 118, 210, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: { display: true, text: 'Tendencia de Rendimiento (Semana Actual)' }
+                },
+                scales: {
+                    y: { beginAtZero: true, suggestedMax: 100 }
+                }
+            }
+        });
+    }
+
+    // Gráfico 2: Top 5 Cuellos de Botella (Pareto Barras)
+    const ctxActividades = document.getElementById('chartActividades');
+    if (ctxActividades && semanaActual.detalle && semanaActual.detalle.length > 0) {
+        const actHoras = {};
+        semanaActual.detalle.forEach(reg => {
+            actHoras[reg.actividad] = (actHoras[reg.actividad] || 0) + reg.horas;
+        });
+        
+        // Convertir a array y ordenar desc
+        const actividadesArray = Object.keys(actHoras).map(act => ({
+            nombre: act,
+            horas: actHoras[act]
+        })).sort((a, b) => b.horas - a.horas).slice(0, 5); // Tomar solo Top 5
+
+        const labels = actividadesArray.map(a => a.nombre.length > 25 ? a.nombre.substring(0, 25) + '...' : a.nombre);
+        const data = actividadesArray.map(a => a.horas.toFixed(1));
+
+        new Chart(ctxActividades, {
             type: 'bar',
             data: {
-                labels: semanaActual.operarios.map(op => op.nombre),
+                labels: labels,
+                datasets: [{
+                    label: 'Horas Totales Invertidas',
+                    data: data,
+                    backgroundColor: '#ef5350' // Rojo para cuellos de botella
+                }]
+            },
+            options: {
+                responsive: true,
+                indexAxis: 'y', // Barras horizontales
+                plugins: {
+                    title: { display: true, text: 'Top 5 Cuellos de Botella (Mayor Consumo de Tiempo)' },
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+
+    // Gráfico 3: Ranking de Operarios
+    const ctxOperarios = document.getElementById('chartOperarios');
+    if (ctxOperarios && semanaActual.operarios) {
+        // Ordenar operarios por eficiencia de mayor a menor
+        const operariosOrdenados = [...semanaActual.operarios].sort((a, b) => b.eficiencia - a.eficiencia);
+
+        new Chart(ctxOperarios, {
+            type: 'bar',
+            data: {
+                labels: operariosOrdenados.map(op => op.nombre),
                 datasets: [
                     {
                         label: 'Eficiencia (%)',
-                        data: semanaActual.operarios.map(op => op.eficiencia),
-                        backgroundColor: '#1976d2',
-                    },
-                    {
-                        label: 'Utilización (%)',
-                        data: semanaActual.operarios.map(op => op.utilizacion),
-                        backgroundColor: '#cfd8dc',
+                        data: operariosOrdenados.map(op => op.eficiencia),
+                        backgroundColor: operariosOrdenados.map(op => op.eficiencia >= 100 ? '#66bb6a' : (op.eficiencia >= 80 ? '#ffa726' : '#ef5350')),
                     }
                 ]
             },
             options: {
                 responsive: true,
                 plugins: {
-                    title: { display: true, text: 'Rendimiento por Operario (Semana Actual)' }
-                }
-            }
-        });
-    }
-
-    // Gráfico 2: Pareto de Actividades (Horas invertidas)
-    const ctxActividades = document.getElementById('chartActividades');
-    if (ctxActividades) {
-        const actHoras = {};
-        semanaActual.detalle.forEach(reg => {
-            actHoras[reg.actividad] = (actHoras[reg.actividad] || 0) + reg.horas;
-        });
-        const labels = Object.keys(actHoras);
-        const data = Object.values(actHoras);
-
-        new Chart(ctxActividades, {
-            type: 'doughnut',
-            data: {
-                labels: labels,
-                datasets: [{
-                    data: data,
-                    backgroundColor: [
-                        '#ef5350', '#ab47bc', '#5c6bc0', '#29b6f6', '#26a69a', '#66bb6a', '#d4e157', '#ffa726'
-                    ]
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    title: { display: true, text: 'Distribución de Horas por Actividad' },
-                    legend: { position: 'right' }
+                    title: { display: true, text: 'Ranking de Eficiencia por Operario' },
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true }
                 }
             }
         });

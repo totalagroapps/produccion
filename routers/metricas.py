@@ -424,6 +424,26 @@ def metricas_operarios(request: Request):
     )
 
 
+@router.get("/informes_gerenciales", response_class=HTMLResponse)
+def informes_gerenciales(request: Request):
+    if not request.session.get("role") == "admin":
+        return RedirectResponse("/admin", 303)
+
+    conn = db()
+    c = conn.cursor()
+    semanas = metricas_semanales(c)
+    conn.close()
+
+    return request.app.state.templates.TemplateResponse(
+        request=request,
+        name="Informes.html",
+        context={
+            "request": request,
+            "semanas": semanas,
+        },
+    )
+
+
 @router.get("/metricas", response_class=HTMLResponse)
 def metricas(request: Request):
     if not request.session.get("role") == "admin":
