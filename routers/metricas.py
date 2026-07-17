@@ -539,7 +539,7 @@ def wip_cuellos_botella(request: Request):
     # 2. Órdenes Activas Críticas con Semáforo
     c.execute("""
         WITH LastAction AS (
-            SELECT orden_id, MAX(inicio) as ultimo_movimiento
+            SELECT orden_id, MAX(inicio::timestamp) as ultimo_movimiento
             FROM registros_produccion
             GROUP BY orden_id
         ),
