@@ -145,9 +145,37 @@
         </a>
     </div>
 
+    <div class="card">
+        <h3>☁️ Backup a S3</h3>
+        <p>Exportar y subir base de datos a la nube.</p>
+        <button id="btn-backup" class="btn warning" style="border:none; cursor:pointer;" onclick="lanzarBackup()">Disparar Backup</button>
+    </div>
+
 </div>
 
 <a class="back" href="/">← Volver al Dashboard</a>
+
+<script>
+async function lanzarBackup() {
+    const btn = document.getElementById("btn-backup");
+    btn.disabled = true;
+    btn.textContent = "Respaldando... (Demora un poco)";
+    try {
+        const res = await fetch("/admin_tools/backup_manual", { method: "POST" });
+        const data = await res.json();
+        if(data.estado === 'ok') {
+            alert("✅ Éxito: " + data.mensaje + "\nArchivo: " + data.archivo);
+        } else {
+            alert("❌ Fallo: " + data.mensaje);
+        }
+    } catch(e) {
+        alert("❌ Error de red o servidor al intentar el backup.");
+    } finally {
+        btn.disabled = false;
+        btn.textContent = "Disparar Backup";
+    }
+}
+</script>
 
 </body>
 </html>
