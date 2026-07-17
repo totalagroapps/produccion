@@ -15,6 +15,7 @@ from auth import login_user, require_admin, require_operario, hash_password
 from database import db
 from apscheduler.schedulers.background import BackgroundScheduler
 from notificaciones import notificar_ausencias_operarios
+from backup_db import ejecutar_backup_completo
 from routers.ordenes import router as ordenes_router
 from routers.usuarios import router as usuarios_router
 from routers.android import router as android_router, guardar_registro_android, usuario_android_habilitado
@@ -423,6 +424,7 @@ def startup():
     # Start apscheduler
     scheduler = BackgroundScheduler(timezone="America/Bogota")
     scheduler.add_job(notificar_ausencias_operarios, 'cron', day_of_week='tue-fri', hour=7, minute=0)
+    scheduler.add_job(ejecutar_backup_completo, 'cron', hour=3, minute=0, kwargs={'tipo': 'AUTOMATICO'})
     scheduler.start()
 
 

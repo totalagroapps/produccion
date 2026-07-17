@@ -149,3 +149,14 @@ def trigger_notificar_ausencias(request: Request):
     
     res = notificar_ausencias_operarios()
     return JSONResponse(res)
+
+from backup_db import ejecutar_backup_completo
+
+@router.post("/admin_tools/backup_manual")
+def backup_manual_endpoint(request: Request):
+    if not require_admin(request):
+        return JSONResponse({"detail": "No autorizado"}, status_code=401)
+    
+    # Run synchronously to return result to frontend
+    res = ejecutar_backup_completo(tipo="MANUAL")
+    return JSONResponse(res)
