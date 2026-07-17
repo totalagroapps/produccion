@@ -13,5 +13,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copiar el codigo fuente
 COPY . .
 
-# Iniciar la aplicacion usando el puerto inyectado por Railway
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Iniciar la aplicacion usando el script de python seguro
+CMD ["python", "start.py"]
