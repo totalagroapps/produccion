@@ -254,17 +254,6 @@ def guardar_registro_android(data: dict, operario_id: int):
     # --- LÓGICA DE ACTIVIDAD NUEVA ---
     if actividad_id <= 0 and actividad_nombre:
         actividad_nombre = actividad_nombre.strip().upper()
-        
-        # Verificar que la orden pertenece a la máquina APOYO
-        c.execute("""
-            SELECT m.nombre 
-            FROM ordenes o 
-            JOIN maquinas m ON m.id = o.maquina_id 
-            WHERE o.id = %s
-        """, (orden_id,))
-        row_maquina = c.fetchone()
-        if not row_maquina or 'APOYO' not in row_maquina[0].upper():
-            raise HTTPException(status_code=400, detail="Actividades personalizadas solo permitidas en maquina APOYO")
 
         # Buscar el proceso "OTROS" de esta máquina/orden
         c.execute("""
