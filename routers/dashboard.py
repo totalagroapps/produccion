@@ -241,10 +241,51 @@ def metricas_operarios(request: Request):
     })
 
 
+# ================= CERRAR ORDEN =================
 
+@router.get("/cerrar/{orden_id}")
+def cerrar_orden(orden_id: int, request: Request):
 
+    if not require_admin(request):
+        return RedirectResponse("/admin", 303)
 
-# ================= CREAR ORDEN DESDE PANEL =================
+    conn = db()
+    c = conn.cursor()
+
+    c.execute("""
+        UPDATE orden_actividades
+        SET cantidad_realizada = cantidad_total
+        WHERE orden_id=%s
+    """, (orden_id,))
+
+    c.execute("""
+        UPDATE ordenes
+        SET estado='CERRADA',
+            cerrado_en=%s
+        WHERE id=%s
+    """, (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), orden_id))
+    
+    conn.commit()
+    conn.close()
+    
+    return RedirectResponse("/panel", 303)
+
+# ================= ELIMINAR ORDEN =================
+
+@router.post("/eliminar/{id}")
+def eliminar(id: int):
+
+    conn = db()
+    c = conn.cursor()
+
+    c.execute("DELETE FROM orden_actividades WHERE orden_id = %s", (id,))
+    c.execute("DELETE FROM ordenes WHERE id = %s", (id,))
+
+    conn.commit()
+    conn.close()
+
+    return RedirectResponse("/panel", 303)
+
 
 @router.post("/crear_orden_web")
 def crear_orden_web(cantidad: int = Form(...), maquina: int = Form(...)):
