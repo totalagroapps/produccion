@@ -119,4 +119,21 @@ def cerrar_orden(orden_id: int, request: Request):
     WHERE id=%s
     """,(maquina_id,))
 
-    producto = c.fetchone()[0]\n\n
+    producto = c.fetchone()[0]
+
+
+# ================= ELIMINAR ORDEN =================
+
+@router.post("/eliminar/{id}")
+def eliminar(id: int):
+
+    conn = db()
+    c = conn.cursor()
+
+    c.execute("DELETE FROM orden_actividades WHERE orden_id = %s", (id,))
+    c.execute("DELETE FROM ordenes WHERE id = %s", (id,))
+
+    conn.commit()
+    conn.close()
+
+    return RedirectResponse("/panel", 303)
