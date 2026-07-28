@@ -1,216 +1,93 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta charset="utf-8">
-<title>Produccion</title>
+{% extends "base.html" %}
 
-<style>
-body{
-    font-family:Arial;
-    background:#f2f4f7;
-    margin:0;
-}
-
-.container{
-    padding:25px 40px;
-}
-
-.card{
-    background:white;
-    padding:18px;
-    margin-bottom:20px;
-    border-radius:8px;
-    box-shadow:0 2px 6px rgba(0,0,0,.05)
-}
-
-.progress{
-    height:14px;
-    background:#ddd;
-    border-radius:6px;
-    overflow:hidden
-}
-
-.bar{
-    height:14px;
-    background:#4caf50
-}
-
-.act{
-    margin-left:25px;
-    font-size:14px
-}
-
-button{
-    padding:6px 12px;
-    border-radius:4px;
-    border:0;
-    background:#4caf50;
-    color:white;
-    cursor:pointer
-}
-
-.badge{
-    padding:3px 8px;
-    border-radius:4px;
-    font-size:12px;
-    color:white
-}
-
-.abierta{background:#ff9800}
-.cerrada{background:#4caf50}
-
-a{text-decoration:none;margin-right:10px}
-
-.sync-btn{
-    display:inline-block;
-    padding:8px 12px;
-    border-radius:4px;
-    background:#2563eb;
-    color:white;
-    font-weight:600;
-}
-
-.sync-msg{
-    display:inline-block;
-    margin-left:10px;
-    color:#15803d;
-    font-weight:600;
-}
-
-small{color:#555}
-</style>
-
-
-<style>
-/* Base Responsive Styles */
-@media (max-width: 768px) {
-    .container {
-        padding: 15px !important;
-    }
-    .card, .box, .panel {
-        padding: 12px !important;
-        margin-bottom: 15px !important;
-    }
-    .grid {
-        grid-template-columns: 1fr !important;
-    }
-    input, select, button, textarea {
-        width: 100% !important;
-        box-sizing: border-box !important;
-        margin-bottom: 8px !important;
-    }
-    table {
-        display: block !important;
-        width: 100% !important;
-        overflow-x: auto !important;
-        white-space: nowrap !important;
-    }
-    th, td {
-        padding: 8px !important;
-        font-size: 13px !important;
-    }
-    h2, h3 {
-        font-size: 1.2rem !important;
-    }
-}
-</style>
-
-</head>
-<body>
-{% include '_navbar.html' %}
-
-<div class="container">
+{% block content %}
 
 <div class="card">
-<h3>Crear Orden</h3>
-
-<form action="/crear_orden_web" method="post">
-Cantidad:
-<input name="cantidad" type="number" required>
-
-Producto:
-<select name="maquina">
-{% for m in maquinas %}
-<option value="{{m[0]}}">{{m[1]}}</option>
-{% endfor %}
-</select>
-
-<button>Crear</button>
-</form>
+    <h3 style="margin-top:0;">Crear Orden</h3>
+    <form action="/crear_orden_web" method="post" style="display:flex; gap:15px; align-items:flex-end; flex-wrap:wrap;">
+        <div class="form-group" style="margin-bottom:0; flex:1; min-width:150px;">
+            <label>Cantidad:</label>
+            <input name="cantidad" type="number" required>
+        </div>
+        <div class="form-group" style="margin-bottom:0; flex:2; min-width:200px;">
+            <label>Producto:</label>
+            <select name="maquina">
+                {% for m in maquinas %}
+                <option value="{{m[0]}}">{{m[1]}}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn">Crear</button>
+    </form>
 </div>
 
 <div class="card">
-<h3>Sincronizar ordenes abiertas</h3>
-<p>Agrega a las ordenes abiertas las actividades nuevas que fueron creadas despues de abrir la orden. No duplica actividades ni cambia los avances ya registrados.</p>
-<a class="sync-btn" href="/sincronizar_ordenes_abiertas">Sincronizar actividades nuevas</a>
-{% if request.query_params.get("sync") is not none %}
-<span class="sync-msg">{{ request.query_params.get("sync") }} actividad(es) agregada(s)</span>
-{% endif %}
+    <h3 style="margin-top:0;">Sincronizar ordenes abiertas</h3>
+    <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:15px;">Agrega a las ordenes abiertas las actividades nuevas que fueron creadas despues de abrir la orden. No duplica actividades ni cambia los avances ya registrados.</p>
+    <a class="btn btn-success" href="/sincronizar_ordenes_abiertas">Sincronizar actividades nuevas</a>
+    {% if request.query_params.get("sync") is not none %}
+    <span style="display:inline-block; margin-left:15px; font-weight:600; color:var(--success);">{{ request.query_params.get("sync") }} actividad(es) agregada(s)</span>
+    {% endif %}
 </div>
 
 {% for o in ordenes %}
-
 <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
+        <div>
+            <h3 style="margin:0; font-size:1.25rem;">
+                Orden {{o.id}} — {{o.producto}}
+                <span style="color:var(--text-muted); font-weight:400; font-size:1rem;">({{o.cantidad}} uds)</span>
+            </h3>
+            {% if o.estado == "CERRADA" %}
+            <small style="display:block; margin-top:5px; color:var(--text-muted);">
+                🕒 Cerrada: {{o.cerrado_en}} | ⏱ Duración: {{o.duracion}}
+            </small>
+            {% endif %}
+        </div>
+        <div>
+            {% if o.estado == "CERRADA" %}
+            <span class="badge badge-success">CERRADA</span>
+            {% else %}
+            <span class="badge badge-warning">ABIERTA</span>
+            {% endif %}
+        </div>
+    </div>
 
-<h3>
-Orden {{o.id}} — {{o.producto}} ({{o.cantidad}} uds)
+    <div style="height:8px; background:#e2e8f0; border-radius:4px; overflow:hidden; margin-bottom:5px;">
+        <div style="height:8px; background:var(--primary); width:{{o.porcentaje}}%; transition:width 0.5s ease;"></div>
+    </div>
+    <div style="text-align:right; font-weight:600; font-size:0.85rem; color:var(--primary);">
+        {{o.porcentaje}}% Completado
+    </div>
 
-{% if o.estado == "CERRADA" %}
-<span class="badge cerrada">CERRADA</span>
-{% else %}
-<span class="badge abierta">ABIERTA</span>
-{% endif %}
+    <div style="margin-top:15px; display:flex; gap:10px;">
+        {% if o.estado != "CERRADA" %}
+        <a href="/cerrar/{{o.id}}" class="btn btn-success" style="padding:4px 10px; font-size:0.8rem;">✅ Cerrar</a>
+        {% endif %}
 
-<br>
+        {% if o.estado == "CERRADA" %}
+        <form action="/eliminar/{{o.id}}" method="POST" style="display:inline;" onsubmit="return confirm('¿Seguro que deseas eliminar esta orden? No se puede deshacer.')">
+            <button type="submit" class="btn btn-red" style="padding:4px 10px; font-size:0.8rem;">❌ Eliminar</button>
+        </form>
+        {% endif %}
+    </div>
 
-{% if o.estado == "CERRADA" %}
-<small>
-🕒 Cerrada: {{o.cerrado_en}} |
-⏱ Duración: {{o.duracion}}
-</small>
-{% endif %}
-</h3>
+    <hr style="border:none; border-top:1px solid var(--border-color); margin:20px 0;">
 
-<div class="progress">
-<div class="bar" style="width:{{o.porcentaje}}%"></div>
-</div>
-
-{{o.porcentaje}}%
-
-<br><br>
-
-{% if o.estado != "CERRADA" %}
-<a href="/cerrar/{{o.id}}">✅ Cerrar</a>
-{% endif %}
-
-{% if o.estado == "CERRADA" %}
-<form action="/eliminar/{{o.id}}" method="POST" style="display:inline;" onsubmit="return confirm('¿Eliminar orden?')">
-    <button type="submit" style="background:none; border:none; color:red; cursor:pointer; text-decoration:underline; font-size:inherit; padding:0;">❌ Eliminar</button>
-</form>
-{% endif %}
-
-<hr>
-
-{% for p in o.procesos %}
-
-<b>{{p.nombre}}</b>
-
-{% for a in p.actividades %}
-<div class="act">
-{{a.nombre}} — {{a.realizada}} / {{a.total}} ({{a.porcentaje}}%)
+    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:20px;">
+        {% for p in o.procesos %}
+        <div>
+            <b style="display:block; margin-bottom:8px; color:var(--text-main); font-size:0.95rem;">{{p.nombre}}</b>
+            {% for a in p.actividades %}
+            <div style="margin-left:10px; font-size:0.85rem; color:var(--text-muted); display:flex; justify-content:space-between; padding:3px 0; border-bottom:1px solid #f1f5f9;">
+                <span>{{a.nombre}}</span>
+                <strong style="color:var(--text-main);">{{a.realizada}} / {{a.total}}</strong>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </div>
 </div>
 {% endfor %}
 
-<br>
-
-{% endfor %}
-
-</div>
-
-{% endfor %}
-
-</div>
-
-</body>
-</html>
+{% endblock %}
