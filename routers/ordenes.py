@@ -119,4 +119,4 @@ def cerrar_orden(orden_id: int, request: Request):
     WHERE id=%s
     """,(maquina_id,))
 
-    producto = c.fetchone()[0]
+    producto = c.fetchone()[0]\n\n
