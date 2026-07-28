@@ -1,4 +1,229 @@
-{% extends "base.html" %}\n\n{% block content %}\n<h1>Configuracion del sistema</h1>
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+
+
+
+h1{
+margin-bottom:8px;
+}
+
+#tabs_tablas{
+display:flex;
+flex-wrap:wrap;
+gap:10px;
+margin:18px 0 20px;
+}
+
+.tab-btn{
+background:white;
+border:none;
+padding:10px 16px;
+border-radius:8px;
+box-shadow:0 2px 6px rgba(0,0,0,.1);
+cursor:pointer;
+font-weight:600;
+}
+
+.tab-btn:hover,
+.tab-btn.activa{
+background:#e2e8f0;
+}
+
+
+.quick-grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+gap:18px;
+margin-bottom:20px;
+}
+
+.quick-card{
+background:white;
+padding:20px;
+border-radius:8px;
+box-shadow:0 2px 8px rgba(0,0,0,.1);
+}
+
+.quick-card h3{
+margin-top:0;
+margin-bottom:8px;
+}
+
+.quick-card p{
+color:#475569;
+font-size:14px;
+margin-top:0;
+}
+
+.form-grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+gap:12px;
+}
+
+.field{
+display:flex;
+flex-direction:column;
+gap:5px;
+font-size:13px;
+font-weight:700;
+color:#334155;
+}
+
+.field input,
+.field select{
+width:100%;
+height:38px;
+box-sizing:border-box;
+padding:8px 10px;
+border:1px solid #cbd5e1;
+border-radius:6px;
+font-size:14px;
+background:white;
+color:#111827;
+line-height:20px;
+}
+
+.field select:disabled{
+background:#f1f5f9;
+color:#64748b;
+cursor:not-allowed;
+}
+
+.field-wide{
+grid-column:1 / -1;
+}
+
+.quick-actions{
+margin-top:14px;
+}
+
+.quick-status{
+margin:0 0 16px;
+font-weight:700;
+}
+
+.quick-status.ok{
+color:#15803d;
+}
+
+.quick-status.error{
+color:#b91c1c;
+}
+
+.panel{
+background:white;
+padding:25px;
+border-radius:8px;
+box-shadow:0 2px 8px rgba(0,0,0,.1);
+overflow-x:auto;
+}
+
+.notice{
+background:#ecfdf5;
+border:1px solid #86efac;
+color:#14532d;
+padding:12px 14px;
+border-radius:8px;
+margin:12px 0 18px;
+font-size:14px;
+}
+
+.notice strong{
+display:block;
+margin-bottom:4px;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:15px;
+}
+
+th,td{
+border:1px solid #ddd;
+padding:8px;
+text-align:left;
+vertical-align:top;
+}
+
+th{
+background:#f1f5f9;
+white-space:nowrap;
+}
+
+td{
+background:white;
+min-width:110px;
+}
+
+td[contenteditable="true"]{
+outline:2px solid transparent;
+}
+
+td[contenteditable="true"]:focus{
+outline:2px solid #2563eb;
+background:#eff6ff;
+}
+
+.id-cell{
+background:#f8fafc;
+color:#64748b;
+font-family:Consolas, monospace;
+white-space:nowrap;
+}
+
+button{
+padding:8px 12px;
+margin-right:5px;
+border-radius:6px;
+border:none;
+cursor:pointer;
+font-weight:600;
+}
+
+.add-btn{
+background:#22c55e;
+color:white;
+}
+
+.save-btn{
+background:#2563eb;
+color:white;
+}
+
+.delete-btn{
+background:#ef4444;
+color:white;
+}
+
+#buscador{
+padding:8px;
+border-radius:6px;
+border:1px solid #ccc;
+margin-left:10px;
+}
+
+.estado{
+margin-top:12px;
+font-weight:600;
+}
+
+.estado.ok{
+color:#15803d;
+}
+
+.estado.error{
+color:#b91c1c;
+}
+
+</style>
+
+
+
+<h1>Configuracion del sistema</h1>
 <p>Edicion segura de maquinas, procesos, actividades, operarios y estandares.</p>
 
 <div class="notice">
@@ -497,4 +722,6 @@ function iniciarConfiguracion(){
 }
 
 iniciarConfiguracion();
-</script>\n{% endblock %}\n
+</script>
+
+{% endblock %}

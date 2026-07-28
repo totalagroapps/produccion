@@ -19,14 +19,14 @@
         <a href="/usuarios">Usuarios</a>
         <a href="/admin_tools">Tools</a>
         <a href="/configuracion">Config</a>
-        <a href="/logout" style="background: #ef4444; color: white; margin-left: 1rem;">Salir</a>
+        <a href="/logout" class="btn-red" style="margin-left: 1rem; padding: 0.4rem 0.8rem; font-size: 0.85rem; border-radius: 6px;">Salir</a>
         {% elif request and request.session.get("role") == "jefe_tickets" %}
         <a href="/tickets/admin">Panel de Tickets</a>
-        <a href="/logout" style="background: #ef4444; color: white; margin-left: 1rem;">Salir</a>
+        <a href="/logout" class="btn-red" style="margin-left: 1rem; padding: 0.4rem 0.8rem; font-size: 0.85rem; border-radius: 6px;">Salir</a>
         {% elif request and request.session.get("role") == "operario" %}
         <a href="/registro_web">Registro Web</a>
         <a href="/tickets/mis_tickets">Mis Tickets</a>
-        <a href="/logout" style="background: #ef4444; color: white; margin-left: 1rem;">Salir</a>
+        <a href="/logout" class="btn-red" style="margin-left: 1rem; padding: 0.4rem 0.8rem; font-size: 0.85rem; border-radius: 6px;">Salir</a>
         {% else %}
         {% endif %}
     </nav>
