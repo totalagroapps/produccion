@@ -2,233 +2,32 @@
 
 {% block content %}
 <style>
-
-
-
-h1{
-margin-bottom:8px;
-}
-
-#tabs_tablas{
-display:flex;
-flex-wrap:wrap;
-gap:10px;
-margin:18px 0 20px;
-}
-
-.tab-btn{
-background:white;
-border:none;
-padding:10px 16px;
-border-radius:8px;
-box-shadow:0 2px 6px rgba(0,0,0,.1);
-cursor:pointer;
-font-weight:600;
-}
-
-.tab-btn:hover,
-.tab-btn.activa{
-background:var(--border-color);
-}
-
-
-.quick-grid{
-display:grid;
-grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
-gap:18px;
-margin-bottom:20px;
-}
-
-.quick-card{
-background:white;
-padding:20px;
-border-radius:8px;
-box-shadow:0 2px 8px rgba(0,0,0,.1);
-}
-
-.quick-card h3{
-margin-top:0;
-margin-bottom:8px;
-}
-
-.quick-card p{
-color:#475569;
-font-size:14px;
-margin-top:0;
-}
-
-.form-grid{
-display:grid;
-grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-gap:12px;
-}
-
-.field{
-display:flex;
-flex-direction:column;
-gap:5px;
-font-size:13px;
-font-weight:700;
-color:#334155;
-}
-
-.field input,
-.field select{
-width:100%;
-height:38px;
-box-sizing:border-box;
-padding:8px 10px;
-border:1px solid #cbd5e1;
-border-radius:6px;
-font-size:14px;
-background:white;
-color:#111827;
-line-height:20px;
-}
-
-.field select:disabled{
-background:#f1f5f9;
-color:#64748b;
-cursor:not-allowed;
-}
-
-.field-wide{
-grid-column:1 / -1;
-}
-
-.quick-actions{
-margin-top:14px;
-}
-
-.quick-status{
-margin:0 0 16px;
-font-weight:700;
-}
-
-.quick-status.ok{
-color:#15803d;
-}
-
-.quick-status.error{
-color:#b91c1c;
-}
-
-.panel{
-background:white;
-padding:25px;
-border-radius:8px;
-box-shadow:0 2px 8px rgba(0,0,0,.1);
-overflow-x:auto;
-}
-
-.notice{
-background:var(--bg-surface);
-border:1px solid #86efac;
-color:#14532d;
-padding:12px 14px;
-border-radius:8px;
-margin:12px 0 18px;
-font-size:14px;
-}
-
-.notice strong{
-display:block;
-margin-bottom:4px;
-}
-
-table{
-width:100%;
-border-collapse:collapse;
-margin-top:15px;
-}
-
-th,td{
-border:1px solid #ddd;
-padding:8px;
-text-align:left;
-vertical-align:top;
-}
-
-th{
-background:#f1f5f9;
-white-space:nowrap;
-}
-
-td{
-background:white;
-min-width:110px;
-}
-
-td[contenteditable="true"]{
-outline:2px solid transparent;
-}
-
-td[contenteditable="true"]:focus{
-outline:2px solid var(--primary);
-background:var(--bg-body);
-}
-
-.id-cell{
-background:#f8fafc;
-color:#64748b;
-font-family:Consolas, monospace;
-white-space:nowrap;
-}
-
-button{
-padding:8px 12px;
-margin-right:5px;
-border-radius:6px;
-border:none;
-cursor:pointer;
-font-weight:600;
-}
-
-.add-btn{
-background:var(--success);
-color:white;
-}
-
-.save-btn{
-background:var(--primary);
-color:white;
-}
-
-.delete-btn{
-background:var(--danger);
-color:white;
-}
-
-#buscador{
-padding:8px;
-border-radius:6px;
-border:1px solid #ccc;
-margin-left:10px;
-}
-
-.estado{
-margin-top:12px;
-font-weight:600;
-}
-
-.estado.ok{
-color:#15803d;
-}
-
-.estado.error{
-color:#b91c1c;
-}
-
+h1 { margin-bottom: 8px; }
+.quick-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; margin-bottom: 20px; }
+.quick-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,.1); }
+.quick-card h3 { margin-top: 0; margin-bottom: 8px; }
+.quick-card p { color: #475569; font-size: 14px; margin-top: 0; }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.field { display: flex; flex-direction: column; gap: 5px; font-size: 13px; font-weight: 700; color: #334155; }
+.field input, .field select { width: 100%; height: 38px; box-sizing: border-box; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; background: white; color: #111827; line-height: 20px; }
+.field select:disabled { background: #f1f5f9; color: #64748b; cursor: not-allowed; }
+.field-wide { grid-column: 1 / -1; }
+.quick-actions { margin-top: 14px; }
+.quick-status { margin: 0 0 16px; font-weight: 700; }
+.quick-status.ok { color: #15803d; }
+.quick-status.error { color: #b91c1c; }
+.notice { background: var(--bg-surface); border: 1px solid #86efac; color: #14532d; padding: 12px 14px; border-radius: 8px; margin: 12px 0 18px; font-size: 14px; }
+.notice strong { display: block; margin-bottom: 4px; }
+button { padding: 8px 12px; margin-right: 5px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; }
+.add-btn { background: var(--success); color: white; }
 </style>
 
-
-
-<h1>Configuracion del sistema</h1>
-<p>Edicion segura de maquinas, procesos, actividades, operarios y estandares.</p>
+<h1>Asistente de Nuevos Flujos</h1>
+<p>Herramienta rápida para inicializar la producción asociando máquinas, procesos y actividades.</p>
 
 <div class="notice">
-<strong>Modo seguro</strong>
-El ID es solo lectura. Guardar actualiza cada fila por su ID y las filas nuevas reciben un ID automatico de PostgreSQL. El boton eliminar se bloquea si la fila ya esta usada por ordenes, registros o bonos.
+<strong>Mantenimiento de Catálogos</strong>
+Para editar nombres, actualizar estandares o eliminar items, dirígete al <b>Panel de Herramientas > Editar Catálogos</b>.
 </div>
 
 <div id="quickStatus" class="quick-status"></div>
@@ -236,16 +35,15 @@ El ID es solo lectura. Guardar actualiza cada fila por su ID y las filas nuevas 
 <div class="quick-grid">
   <div class="quick-card">
     <h3>Crear proceso</h3>
-    <p>Crea un proceso asociado a una maquina. Si ya conoces la primera actividad, puedes crearla con su estandar al mismo tiempo.</p>
-
+    <p>Crea un proceso asociado a una máquina. Si ya conoces la primera actividad, puedes crearla con su estándar al mismo tiempo.</p>
     <div class="form-grid">
-      <label class="field field-wide">Maquina
-        <select id="procesoMaquina"><option value="">Cargando maquinas...</option></select>
+      <label class="field field-wide">Máquina
+        <select id="procesoMaquina"><option value="">Cargando máquinas...</option></select>
       </label>
       <label class="field field-wide">Nombre del proceso
         <input id="procesoNombre" placeholder="Ej: Alistamiento">
       </label>
-      <label class="field field-wide">Primera actividad opcional
+      <label class="field field-wide">Primera actividad (opcional)
         <input id="procesoActividad" placeholder="Ej: Revisar componentes">
       </label>
       <label class="field">Unidades por hora
@@ -258,22 +56,20 @@ El ID es solo lectura. Guardar actualiza cada fila por su ID y las filas nuevas 
         <input id="procesoCostoHora" type="number" min="0" step="0.01" placeholder="0">
       </label>
     </div>
-
     <div class="quick-actions">
       <button class="add-btn" onclick="crearProcesoRapido()">Crear proceso</button>
     </div>
   </div>
 
   <div class="quick-card">
-    <h3>Crear actividad con estandar</h3>
-    <p>Asocia la actividad al proceso correcto y guarda el estandar en el mismo paso. Tambien se sincroniza con ordenes abiertas.</p>
-
+    <h3>Crear actividad con estándar</h3>
+    <p>Asocia la actividad al proceso correcto y guarda el estándar en el mismo paso. También se sincroniza con órdenes abiertas.</p>
     <div class="form-grid">
-      <label class="field field-wide">Maquina
-        <select id="actividadMaquina"><option value="">Cargando maquinas...</option></select>
+      <label class="field field-wide">Máquina
+        <select id="actividadMaquina"><option value="">Cargando máquinas...</option></select>
       </label>
       <label class="field field-wide">Proceso
-        <select id="actividadProceso" disabled><option value="">Seleccione una maquina primero</option></select>
+        <select id="actividadProceso" disabled><option value="">Seleccione una máquina primero</option></select>
       </label>
       <label class="field field-wide">Nombre de la actividad
         <input id="actividadNombre" placeholder="Ej: Pulido final">
@@ -288,53 +84,25 @@ El ID es solo lectura. Guardar actualiza cada fila por su ID y las filas nuevas 
         <input id="actividadCostoHora" type="number" min="0" step="0.01" placeholder="0">
       </label>
     </div>
-
     <div class="quick-actions">
       <button class="add-btn" onclick="crearActividadRapida()">Crear actividad</button>
     </div>
   </div>
 </div>
 
-<div id="tabs_tablas"></div>
-
-<div class="panel">
-<h3 id="titulo_tabla">Seleccione una tabla</h3>
-
-<button class="add-btn" onclick="agregarFila()">Nueva fila</button>
-<button class="save-btn" onclick="guardarCambios()">Guardar cambios</button>
-
-<input id="buscador" placeholder="Buscar..." onkeyup="filtrarTabla()">
-
-<div id="estado" class="estado"></div>
-<div id="tabla_editor"></div>
-</div>
-
 <script>
-let tablaActual = "";
-let columnasGlobal = [];
-
-function setEstado(texto, tipo){
-  const estado = document.getElementById("estado");
-  estado.innerText = texto || "";
-  estado.className = "estado " + (tipo || "");
-}
-
-async function leerJsonSeguro(response){
-  const text = await response.text();
-  try{
-    return text ? JSON.parse(text) : {};
-  }catch(_){
-    return {detail:text};
-  }
-}
-
-
-let catalogosRapidos = {maquinas:[], procesos:[]};
+let catalogosRapidos = {maquinas: [], procesos: []};
 
 function setQuickStatus(texto, tipo){
   const estado = document.getElementById("quickStatus");
   estado.innerText = texto || "";
   estado.className = "quick-status " + (tipo || "");
+}
+
+async function leerJsonSeguro(response){
+  const text = await response.text();
+  try { return text ? JSON.parse(text) : {}; }
+  catch(_) { return {detail: text}; }
 }
 
 function llenarSelect(select, opciones, textoVacio){
@@ -345,7 +113,6 @@ function llenarSelect(select, opciones, textoVacio){
     opt.innerText = textoVacio;
     select.appendChild(opt);
   }
-
   opciones.forEach(item => {
     const opt = document.createElement("option");
     opt.value = item.id;
@@ -362,22 +129,15 @@ function valorSiExiste(select, valor){
 
 function actualizarProcesosActividad(maquinaId, procesoActual){
   const select = document.getElementById("actividadProceso");
-
   if(!maquinaId){
-    llenarSelect(select, [], "Seleccione una maquina primero");
+    llenarSelect(select, [], "Seleccione una máquina primero");
     select.disabled = true;
     return;
   }
-
   const procesos = catalogosRapidos.procesos
     .filter(p => String(p.maquina_id) === String(maquinaId))
-    .map(p => ({id:p.id, label:p.nombre}));
-
-  llenarSelect(
-    select,
-    procesos,
-    procesos.length ? "Seleccione proceso" : "Esta maquina no tiene procesos"
-  );
+    .map(p => ({id: p.id, label: p.nombre}));
+  llenarSelect(select, procesos, procesos.length ? "Seleccione proceso" : "Esta máquina no tiene procesos");
   select.disabled = procesos.length === 0;
   valorSiExiste(select, procesoActual || "");
 }
@@ -393,32 +153,18 @@ async function cargarCatalogosRapidos(){
 
     const r = await fetch("/config/catalogos");
     const data = await leerJsonSeguro(r);
-    if(!r.ok){
-      throw new Error(data.detail || "No se pudieron cargar los catalogos.");
-    }
-
+    if(!r.ok) throw new Error(data.detail || "No se pudieron cargar los catálogos.");
+    
     catalogosRapidos = data;
-    const maquinas = catalogosRapidos.maquinas.map(m => ({id:m.id, label:m.nombre}));
+    const maquinas = catalogosRapidos.maquinas.map(m => ({id: m.id, label: m.nombre}));
 
-    llenarSelect(
-      procesoMaquinaSelect,
-      maquinas,
-      maquinas.length ? "Seleccione maquina" : "No hay maquinas disponibles"
-    );
+    llenarSelect(procesoMaquinaSelect, maquinas, maquinas.length ? "Seleccione máquina" : "No hay máquinas");
     valorSiExiste(procesoMaquinaSelect, procesoMaquinaActual);
 
-    llenarSelect(
-      actividadMaquinaSelect,
-      maquinas,
-      maquinas.length ? "Seleccione maquina" : "No hay maquinas disponibles"
-    );
+    llenarSelect(actividadMaquinaSelect, maquinas, maquinas.length ? "Seleccione máquina" : "No hay máquinas");
     valorSiExiste(actividadMaquinaSelect, actividadMaquinaActual);
     actualizarProcesosActividad(actividadMaquinaSelect.value, actividadProcesoActual);
   }catch(error){
-    llenarSelect(document.getElementById("procesoMaquina"), [], "Error cargando maquinas");
-    llenarSelect(document.getElementById("actividadMaquina"), [], "Error cargando maquinas");
-    llenarSelect(document.getElementById("actividadProceso"), [], "Error cargando procesos");
-    document.getElementById("actividadProceso").disabled = true;
     setQuickStatus(error.message, "error");
   }
 }
@@ -430,17 +176,8 @@ async function postJson(url, payload){
     body:JSON.stringify(payload)
   });
   const data = await leerJsonSeguro(r);
-  if(!r.ok){
-    throw new Error(data.detail || "No se pudo guardar");
-  }
+  if(!r.ok) throw new Error(data.detail || "Error al procesar la petición");
   return data;
-}
-
-async function refrescarConfiguracion(tablas){
-  await cargarCatalogosRapidos();
-  if(tablas.includes(tablaActual)){
-    await cargarTabla(tablaActual, document.querySelector(".tab-btn.activa"));
-  }
 }
 
 async function crearProcesoRapido(){
@@ -450,18 +187,9 @@ async function crearProcesoRapido(){
     const actividadInicial = document.getElementById("procesoActividad").value.trim();
     const unidadesIniciales = document.getElementById("procesoUnidades").value.trim();
 
-    if(!maquinaId){
-      setQuickStatus("Seleccione una maquina.", "error");
-      return;
-    }
-    if(!nombreProceso){
-      setQuickStatus("Escriba el nombre del proceso.", "error");
-      return;
-    }
-    if(actividadInicial && !unidadesIniciales){
-      setQuickStatus("Si agrega una primera actividad, indique unidades por hora.", "error");
-      return;
-    }
+    if(!maquinaId) return setQuickStatus("Seleccione una máquina.", "error");
+    if(!nombreProceso) return setQuickStatus("Escriba el nombre del proceso.", "error");
+    if(actividadInicial && !unidadesIniciales) return setQuickStatus("Indique unidades por hora.", "error");
 
     setQuickStatus("Guardando proceso...", "");
     const payload = {
@@ -479,8 +207,8 @@ async function crearProcesoRapido(){
     document.getElementById("procesoUnidades").value = "";
     document.getElementById("procesoCostoUnidad").value = "";
     document.getElementById("procesoCostoHora").value = "";
-    await refrescarConfiguracion(["procesos", "actividades", "estandares_actividad"]);
-    setQuickStatus("Proceso creado. Actividades agregadas a ordenes abiertas: " + data.ordenes_actualizadas, "ok");
+    await cargarCatalogosRapidos();
+    setQuickStatus("Proceso creado. Actividades agregadas a órdenes abiertas: " + data.ordenes_actualizadas, "ok");
   }catch(error){
     setQuickStatus(error.message, "error");
   }
@@ -493,22 +221,10 @@ async function crearActividadRapida(){
     const nombreActividad = document.getElementById("actividadNombre").value.trim();
     const unidadesActividad = document.getElementById("actividadUnidades").value.trim();
 
-    if(!maquinaId){
-      setQuickStatus("Seleccione una maquina.", "error");
-      return;
-    }
-    if(!procesoId){
-      setQuickStatus("Seleccione un proceso.", "error");
-      return;
-    }
-    if(!nombreActividad){
-      setQuickStatus("Escriba el nombre de la actividad.", "error");
-      return;
-    }
-    if(!unidadesActividad){
-      setQuickStatus("Indique unidades por hora para el estandar.", "error");
-      return;
-    }
+    if(!maquinaId) return setQuickStatus("Seleccione una máquina.", "error");
+    if(!procesoId) return setQuickStatus("Seleccione un proceso.", "error");
+    if(!nombreActividad) return setQuickStatus("Escriba el nombre de la actividad.", "error");
+    if(!unidadesActividad) return setQuickStatus("Indique unidades por hora.", "error");
 
     setQuickStatus("Guardando actividad...", "");
     const payload = {
@@ -524,204 +240,16 @@ async function crearActividadRapida(){
     document.getElementById("actividadUnidades").value = "";
     document.getElementById("actividadCostoUnidad").value = "";
     document.getElementById("actividadCostoHora").value = "";
-    await refrescarConfiguracion(["actividades", "estandares_actividad"]);
-    setQuickStatus("Actividad creada. Ordenes abiertas actualizadas: " + data.ordenes_actualizadas, "ok");
+    await cargarCatalogosRapidos();
+    setQuickStatus("Actividad creada. Órdenes abiertas actualizadas: " + data.ordenes_actualizadas, "ok");
   }catch(error){
     setQuickStatus(error.message, "error");
   }
 }
 
-async function cargarTabs(){
-  const r = await fetch("/config/tablas_lista");
-  const tablas = await r.json();
-  const cont = document.getElementById("tabs_tablas");
-  cont.innerHTML = "";
-
-  tablas.forEach(nombre => {
-    const btn = document.createElement("button");
-    btn.className = "tab-btn";
-    btn.innerText = nombre;
-    btn.onclick = () => cargarTabla(nombre, btn);
-    cont.appendChild(btn);
-  });
-}
-
-async function cargarTabla(tabla, boton){
-  tablaActual = tabla;
-  setEstado("", "");
-  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("activa"));
-  if(boton) boton.classList.add("activa");
-
-  document.getElementById("titulo_tabla").innerText = "Tabla: " + tabla;
-
-  const r = await fetch("/config/tabla/" + tabla);
-  const data = await r.json();
-
-  columnasGlobal = data.columnas;
-  const div = document.getElementById("tabla_editor");
-  div.innerHTML = "";
-
-  const table = document.createElement("table");
-  table.id = "tabla_editable";
-
-  const header = document.createElement("tr");
-  columnasGlobal.forEach((columna, i) => {
-    const th = document.createElement("th");
-    th.innerText = columna;
-    th.onclick = () => ordenarColumna(i);
-    header.appendChild(th);
-  });
-
-  const th = document.createElement("th");
-  th.innerText = "Accion";
-  header.appendChild(th);
-  table.appendChild(header);
-
-  data.datos.forEach(fila => agregarFilaTabla(table, fila));
-  div.appendChild(table);
-}
-
-function agregarFilaTabla(table, fila){
-  const tr = document.createElement("tr");
-  const nueva = !fila;
-  const datos = fila || columnasGlobal.map(() => "");
-
-  columnasGlobal.forEach((columna, i) => {
-    const td = document.createElement("td");
-    const valor = datos[i] ?? "";
-
-    if(i === 0){
-      td.className = "id-cell";
-      td.innerText = nueva ? "nuevo" : valor;
-      td.dataset.id = nueva ? "" : valor;
-    }else{
-      td.innerText = valor;
-      td.contentEditable = true;
-    }
-
-    tr.appendChild(td);
-  });
-
-  const tdAccion = document.createElement("td");
-  tdAccion.innerHTML = "<button class='delete-btn' onclick='borrarFila(this)'>Eliminar</button>";
-  tr.appendChild(tdAccion);
-  table.appendChild(tr);
-}
-
-function agregarFila(){
-  if(!tablaActual){
-    setEstado("Seleccione una tabla primero.", "error");
-    return;
-  }
-
-  const table = document.getElementById("tabla_editable");
-  agregarFilaTabla(table, null);
-}
-
-async function borrarFila(btn){
-  const row = btn.parentNode.parentNode;
-  const id = row.cells[0].dataset.id || "";
-
-  if(!id){
-    row.remove();
-    return;
-  }
-
-  if(!confirm("Eliminar esta fila puede afectar datos historicos. Desea continuar?")){
-    return;
-  }
-
-  const r = await fetch(`/config/tabla/${tablaActual}/${id}`, {method:"DELETE"});
-  const data = await leerJsonSeguro(r);
-
-  if(!r.ok){
-    setEstado(data.detail || "No se pudo eliminar la fila.", "error");
-    return;
-  }
-
-  row.remove();
-  setEstado("Fila eliminada.", "ok");
-}
-
-async function guardarCambios(){
-  if(!tablaActual){
-    setEstado("Seleccione una tabla primero.", "error");
-    return;
-  }
-
-  const table = document.getElementById("tabla_editable");
-  const filas = [];
-
-  for(let i = 1; i < table.rows.length; i++){
-    const row = table.rows[i];
-    const fila = [];
-
-    for(let j = 0; j < columnasGlobal.length; j++){
-      if(j === 0){
-        fila.push(row.cells[j].dataset.id || "");
-      }else{
-        fila.push(row.cells[j].innerText.trim());
-      }
-    }
-
-    filas.push(fila);
-  }
-
-  const r = await fetch("/config/tabla/" + tablaActual + "/guardar", {
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({columnas:columnasGlobal, filas:filas})
-  });
-
-  const data = await leerJsonSeguro(r);
-  if(!r.ok){
-    setEstado(data.detail || "No se pudieron guardar los cambios.", "error");
-    return;
-  }
-
-  setEstado("Cambios guardados sin recrear IDs.", "ok");
-  await cargarTabla(tablaActual, document.querySelector(".tab-btn.activa"));
-}
-
-function filtrarTabla(){
-  const filtro = document.getElementById("buscador").value.toLowerCase();
-  const table = document.getElementById("tabla_editable");
-  if(!table) return;
-
-  for(let i = 1; i < table.rows.length; i++){
-    const row = table.rows[i];
-    const texto = row.innerText.toLowerCase();
-    row.style.display = texto.includes(filtro) ? "" : "none";
-  }
-}
-
-function ordenarColumna(col){
-  const table = document.getElementById("tabla_editable");
-  if(!table) return;
-
-  const rows = Array.from(table.rows).slice(1);
-  rows.sort((a,b) => {
-    const A = a.cells[col].innerText;
-    const B = b.cells[col].innerText;
-    return A.localeCompare(B, undefined, {numeric:true});
-  });
-
-  rows.forEach(r => table.appendChild(r));
-}
-
-function iniciarConfiguracion(){
-  const actividadMaquina = document.getElementById("actividadMaquina");
-  if(actividadMaquina){
-    actividadMaquina.addEventListener("change", function(){
-      actualizarProcesosActividad(this.value, "");
-    });
-  }
-
-  cargarTabs();
-  cargarCatalogosRapidos();
-}
-
-iniciarConfiguracion();
+document.getElementById("actividadMaquina").addEventListener("change", function(){
+  actualizarProcesosActividad(this.value, "");
+});
+cargarCatalogosRapidos();
 </script>
-
 {% endblock %}

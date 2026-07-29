@@ -182,6 +182,18 @@ def editar_registros_vista(request: Request):
         context={"request": request, "operarios": operarios}
     )
 
+# ================= EDITAR CATALOGOS (VISTA) =================
+@router.get("/admin_tools/editar_catalogos", response_class=HTMLResponse)
+def editar_catalogos_vista(request: Request):
+    if not require_admin(request):
+        return RedirectResponse("/admin", 303)
+        
+    return request.app.state.templates.TemplateResponse(
+        request=request, 
+        name="admin_editar_catalogos.html", 
+        context={"request": request}
+    )
+
 # ================= OBTENER REGISTROS (API) =================
 @router.get("/admin_tools/api/registros")
 def api_obtener_registros(request: Request, operario_id: int = None, fecha_inicio: str = None, fecha_fin: str = None):
