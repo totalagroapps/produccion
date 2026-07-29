@@ -171,8 +171,10 @@ def editar_registros_vista(request: Request):
     conn = db()
     c = conn.cursor()
     c.execute("SELECT id, nombre FROM operarios ORDER BY nombre")
-    operarios = c.fetchall()
+    operarios_tuples = c.fetchall()
     conn.close()
+    
+    operarios = [{"id": r[0], "nombre": r[1]} for r in operarios_tuples]
     
     return request.app.state.templates.TemplateResponse(
         request=request, 
