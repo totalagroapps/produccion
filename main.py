@@ -259,6 +259,16 @@ def startup():
     )""")
 
     c.execute("""
+    CREATE TABLE IF NOT EXISTS auditoria_registros_produccion(
+        id SERIAL PRIMARY KEY,
+        registro_id INTEGER,
+        admin_id INTEGER,
+        fecha_edicion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        valores_anteriores JSONB,
+        valores_nuevos JSONB
+    )""")
+
+    c.execute("""
     CREATE TABLE IF NOT EXISTS bonos(
         id SERIAL PRIMARY KEY,
         operario_id INTEGER REFERENCES operarios(id) ON DELETE CASCADE,

@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h2>📝 Editar Registros de Producción</h2>
+        <a href="/admin_tools" class="btn" style="background: var(--bg-surface); color: var(--text-main); border: 1px solid var(--border-color);">Volver al Panel</a>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card">
+        <form id="filterForm" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 200px;">
+                <label>Operario (Opcional)</label>
+                <select id="filter_operario">
+                    <option value="">-- Todos los Operarios --</option>
+                    {% for op in operarios %}
+                    <option value="{{ op.id }}">{{ op.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div style="flex: 1; min-width: 150px;">
+                <label>Fecha Desde</label>
+                <input type="date" id="filter_desde" required>
+            </div>
+            
+            <div style="flex: 1; min-width: 150px;">
+                <label>Fecha Hasta</label>
+                <input type="date" id="filter_hasta" required>
+            </div>
+            
+            <div>
+                <button type="submit" class="btn">Buscar Registros</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabla -->
+    <div class="table-responsive">
+        <table class="table-striped" id="registrosTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Fecha Inicio</th>
+                    <th>Fin</th>
+                    <th>Operario</th>
+                    <th>Actividad</th>
+                    <th>Orden</th>
+                    <th>Cant.</th>
+                    <th>Tiempo</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td colspan="9" style="text-align: center; color: var(--text-muted);">Usa los filtros para buscar registros.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Edicion -->
+<div id="editModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:100; align-items:center; justify-content:center;">
+    <div class="card" style="width:100%; max-width:400px; margin:20px;">
+        <h3 id="modalTitle" style="margin-bottom:1rem;">Editar Registro</h3>
+        <form id="editForm">
+            <input type="hidden" id="edit_id">
+            
+            <div class="form-group">
+                <label>Cantidad Producida</label>
+                <input type="number" id="edit_cantidad" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Inicio (Fecha y Hora)</label>
+                <input type="datetime-local" id="edit_inicio" required step="1">
+            </div>
+            
+            <div class="form-group">
+                <label>Fin (Fecha y Hora)</label>
+                <input type="datetime-local" id="edit_fin" required step="1">
+            </div>
+            
+            <div class="form-group" style="background:#f8fafc; padding:10px; border-radius:8px; text-align:center;">
+                <span style="font-size:12px; color:var(--text-muted); font-weight:700;">DURACIÓN CALCULADA</span><br>
+                <span id="edit_tiempo_display" style="font-size:24px; font-weight:700; color:var(--primary);">0s</span>
+                <input type="hidden" id="edit_tiempo">
+            </div>
+            
+            <div style="display:flex; gap:10px; margin-top:20px;">
+                <button type="button" class="btn" style="flex:1; background:var(--bg-body); color:var(--text-muted);" onclick="document.getElementById('editModal').style.display='none'">Cancelar</button>
+                <button type="submit" class="btn-success" style="flex:1;">Guardar Cambios</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Inicializar fechas por defecto (ultimos 3 dias a hoy)
+    const hoy = new Date();
+    const hace3Dias = new Date();
+    hace3Dias.setDate(hoy.getDate() - 3);
+    
+    document.getElementById('filter_hasta').value = hoy.toISOString().split('T')[0];
+    document.getElementById('filter_desde').value = hace3Dias.toISOString().split('T')[0];
+
+    document.getElementById('filterForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        cargarRegistros();
+    });
+
+    async function cargarRegistros() {
+        const tbody = document.querySelector('#registrosTable tbody');
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;">Cargando...</td></tr>';
+        
+        const op = document.getElementById('filter_operario').value;
+        const desde = document.getElementById('filter_desde').value;
+        const hasta = document.getElementById('filter_hasta').value;
+        
+        // Validacion limite 31 dias
+        const d1 = new Date(desde);
+        const d2 = new Date(hasta);
+        const diffDays = Math.ceil(Math.abs(d2 - d1) / (1000 * 60 * 60 * 24)); 
+        if(diffDays > 31) {
+            alert("El rango máximo de búsqueda es de 31 días para evitar sobrecarga.");
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:var(--danger);">Rango inválido.</td></tr>';
+            return;
+        }
+        
+        let url = `/admin_tools/api/registros?fecha_inicio=${desde}&fecha_fin=${hasta}`;
+        if(op) url += `&operario_id=${op}`;
+        
+        try {
+            const res = await fetch(url);
+            if(!res.ok) throw new Error("Error en la respuesta");
+            const data = await res.json();
+            
+            if(data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;">No se encontraron registros.</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = '';
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                // Formatear fechas
+                const ini = row.inicio.replace('T', ' ').substring(0, 16);
+                const fin = row.fin ? row.fin.replace('T', ' ').substring(0, 16) : '-';
+                
+                tr.innerHTML = `
+                    <td>#${row.id}</td>
+                    <td>${ini}</td>
+                    <td>${fin}</td>
+                    <td><b>${row.operario_nombre}</b></td>
+                    <td>${row.proceso_nombre} > ${row.actividad_nombre}</td>
+                    <td>Ord. #${row.orden_id}</td>
+                    <td><span class="badge badge-info" style="font-size:14px;">${row.cantidad}</span></td>
+                    <td>${formatSegundos(row.tiempo)}</td>
+                    <td>
+                        <button class="btn" style="padding:4px 8px; font-size:12px;" onclick='abrirModal(${JSON.stringify(row)})'>✏️ Editar</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+        } catch(e) {
+            console.error(e);
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:var(--danger);">Error al cargar registros.</td></tr>';
+        }
+    }
+    
+    function formatSegundos(segundos) {
+        if(!segundos) return "0s";
+        const h = Math.floor(segundos / 3600);
+        const m = Math.floor((segundos % 3600) / 60);
+        const s = Math.floor(segundos % 60);
+        if(h > 0) return `${h}h ${m}m`;
+        return `${m}m ${s}s`;
+    }
+
+    // Modal Logic
+    function abrirModal(row) {
+        document.getElementById('edit_id').value = row.id;
+        document.getElementById('edit_cantidad').value = row.cantidad;
+        
+        // Recibe ISO de DB: 2024-05-10 14:00:00, datetime-local requiere 2024-05-10T14:00
+        const formatForInput = (dbDateStr) => {
+            if(!dbDateStr) return "";
+            // Replace space with T
+            let iso = dbDateStr.replace(' ', 'T');
+            // If it has seconds, we can keep them, datetime-local with step="1" allows it.
+            return iso;
+        };
+        
+        document.getElementById('edit_inicio').value = formatForInput(row.inicio);
+        document.getElementById('edit_fin').value = formatForInput(row.fin);
+        
+        recalcularTiempoModal();
+        
+        document.getElementById('modalTitle').innerText = `Editando Reg. #${row.id} - ${row.operario_nombre}`;
+        document.getElementById('editModal').style.display = 'flex';
+    }
+    
+    // Escuchar cambios en las fechas para recalcular el tiempo
+    document.getElementById('edit_inicio').addEventListener('change', recalcularTiempoModal);
+    document.getElementById('edit_fin').addEventListener('change', recalcularTiempoModal);
+    
+    function recalcularTiempoModal() {
+        const i = new Date(document.getElementById('edit_inicio').value);
+        const f = new Date(document.getElementById('edit_fin').value);
+        
+        if(!isNaN(i) && !isNaN(f)) {
+            const segundos = Math.floor((f - i) / 1000);
+            if(segundos < 0) {
+                document.getElementById('edit_tiempo_display').innerText = "Fecha fin < Inicio";
+                document.getElementById('edit_tiempo_display').style.color = "var(--danger)";
+                document.getElementById('edit_tiempo').value = 0;
+            } else {
+                document.getElementById('edit_tiempo_display').innerText = formatSegundos(segundos);
+                document.getElementById('edit_tiempo_display').style.color = "var(--primary)";
+                document.getElementById('edit_tiempo').value = segundos;
+            }
+        }
+    }
+    
+    document.getElementById('editForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const id = document.getElementById('edit_id').value;
+        const cantidad = document.getElementById('edit_cantidad').value;
+        // DB usa formato con espacio en sqlite/pg a veces, pero enviamos ISO con T, el backend parsea fromisoformat
+        const inicio = document.getElementById('edit_inicio').value;
+        const fin = document.getElementById('edit_fin').value;
+        const tiempo = document.getElementById('edit_tiempo').value;
+        
+        const btn = this.querySelector('button[type="submit"]');
+        const ogText = btn.innerText;
+        btn.innerText = "Guardando...";
+        btn.disabled = true;
+        
+        try {
+            const res = await fetch(`/admin_tools/api/registros/${id}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    cantidad: cantidad,
+                    inicio: inicio,
+                    fin: fin,
+                    tiempo: tiempo
+                })
+            });
+            
+            const data = await res.json();
+            if(!res.ok) throw new Error(data.detail || "Error desconocido");
+            
+            alert(`Registro guardado exitosamente.\nDelta aplicado a orden: ${data.delta}`);
+            document.getElementById('editModal').style.display = 'none';
+            cargarRegistros(); // Recargar tabla
+            
+        } catch(e) {
+            alert(`Error: ${e.message}`);
+        } finally {
+            btn.innerText = ogText;
+            btn.disabled = false;
+        }
+    });
+</script>
+{% endblock %}

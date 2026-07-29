@@ -403,29 +403,8 @@ def registro(data: dict):
         WHERE orden_id = %s AND actividad_id = %s
     """, (data["cantidad"], data["orden_id"], data["actividad_id"]))
 
-    c.execute("""
-        SELECT
-            SUM(oa.cantidad_realizada),
-            SUM(oa.cantidad_total)
-        FROM orden_actividades oa
-        JOIN actividades a ON a.id = oa.actividad_id
-        WHERE oa.orden_id = %s
-        AND a.nombre ILIKE '%Empaque%'
-    """, (data["orden_id"],))
-
-    row = c.fetchone()
-
-    if row and row[1] and row[1] > 0:
-        porcentaje = round((row[0] / row[1]) * 100, 2)
-    else:
-        porcentaje = 0
-
-    c.execute("""
-        UPDATE ordenes
-        SET porcentaje = %s,
-            estado = CASE WHEN %s >= 100 THEN 'CERRADA' ELSE estado END
-        WHERE id = %s
-    """, (porcentaje, porcentaje, data["orden_id"]))
+    from database import recalcular_porcentaje_orden
+    porcentaje = recalcular_porcentaje_orden(c, data["orden_id"])
 
     conn.commit()
     conn.close()

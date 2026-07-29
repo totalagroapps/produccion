@@ -81,3 +81,36 @@ def sincronizar_actividades_ordenes_abiertas(cursor, orden_id=None):
         )
     ''', params)
     return cursor.rowcount
+
+def recalcular_porcentaje_orden(cursor, orden_id):
+    """
+    Recalcula el porcentaje de avance de una orden basándose en las actividades
+    que contengan 'Empaque' en su nombre y actualiza la tabla ordenes.
+    Si el porcentaje llega al 100%, marca la orden como CERRADA.
+    Retorna el nuevo porcentaje calculado.
+    """
+    cursor.execute("""
+        SELECT
+            SUM(oa.cantidad_realizada),
+            SUM(oa.cantidad_total)
+        FROM orden_actividades oa
+        JOIN actividades a ON a.id = oa.actividad_id
+        WHERE oa.orden_id = %s
+        AND a.nombre ILIKE '%%Empaque%%'
+    """, (orden_id,))
+    
+    row = cursor.fetchone()
+    
+    if row and row[1] and row[1] > 0:
+        porcentaje = round((row[0] / row[1]) * 100, 2)
+    else:
+        porcentaje = 0
+
+    cursor.execute("""
+        UPDATE ordenes
+        SET porcentaje = %s,
+            estado = CASE WHEN %s >= 100 THEN 'CERRADA' ELSE estado END
+        WHERE id = %s
+    """, (porcentaje, porcentaje, orden_id))
+    
+    return porcentaje
