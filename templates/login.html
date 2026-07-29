@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="/static/styles.css">
 <style>
 body {
-    background: linear-gradient(135deg, var(--bg-navbar), #1e293b);
+    background: linear-gradient(135deg, var(--bg-navbar), var(--text-main));
     display: flex;
     justify-content: center;
     align-items: center;
@@ -94,7 +94,7 @@ body {
     <h2>Iniciar sesión</h2>
 
     {% if error %}
-    <div style="background: #fee2e2; color: #ef4444; padding: 10px; border-radius: var(--radius-md); margin-bottom: 1.5rem; font-size: 0.875rem; font-weight: 500; border: 1px solid #fecaca;">
+    <div style="background: #fee2e2; color: var(--danger); padding: 10px; border-radius: var(--radius-md); margin-bottom: 1.5rem; font-size: 0.875rem; font-weight: 500; border: 1px solid var(--bg-surface);">
         {{ error }}
     </div>
     {% endif %}

@@ -22,7 +22,7 @@ body{
     display:flex;
     justify-content:space-between;
     align-items:center;
-    background:#263238;
+    background:var(--primary-hover);
     color:white;
     padding:16px 25px;
     border-radius:8px;
@@ -103,7 +103,7 @@ body{
 
 .kpi strong{
     font-size:24px;
-    color:#263238;
+    color:var(--primary-hover);
 }
 
 .bloque{
@@ -112,7 +112,7 @@ body{
 
 .bloque h3{
     margin:0 0 10px;
-    color:#263238;
+    color:var(--primary-hover);
     font-size:17px;
 }
 
@@ -140,7 +140,7 @@ body{
 }
 
 .operario-subheader h4{
-    color:#263238;
+    color:var(--primary-hover);
     font-size:16px;
     margin:0;
 }
@@ -175,7 +175,7 @@ body{
 }
 
 .operario-metrica strong{
-    color:#263238;
+    color:var(--primary-hover);
     font-size:18px;
 }
 
@@ -194,7 +194,7 @@ table{
 
 th{
     background:#eceff1;
-    color:#263238;
+    color:var(--primary-hover);
     padding:10px;
     text-align:center;
     font-size:13px;
@@ -222,7 +222,7 @@ tr:hover{
 
 .btn-export{
     display:inline-block;
-    background:#1976d2;
+    background:var(--primary);
     color:white;
     padding:12px 22px;
     border-radius:8px;
@@ -233,7 +233,7 @@ tr:hover{
 }
 
 .btn-export:hover{
-    background:#0d47a1;
+    background:var(--primary-hover);
 }
 
 .export-panel{
@@ -246,7 +246,7 @@ tr:hover{
 }
 
 .export-panel h2{
-    color:#263238;
+    color:var(--primary-hover);
     font-size:18px;
     margin:0 0 14px;
 }
@@ -265,7 +265,7 @@ tr:hover{
 }
 
 .export-option h3{
-    color:#263238;
+    color:var(--primary-hover);
     font-size:16px;
     margin:0 0 12px;
 }
@@ -304,7 +304,7 @@ tr:hover{
 }
 
 .btn-export-sec:hover{
-    background:#263238;
+    background:var(--primary-hover);
 }
 
 @media (max-width: 760px){
@@ -502,7 +502,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 datasets: [{
                     label: 'Eficiencia Diaria Promedio (%)',
                     data: eficienciasDiarias,
-                    borderColor: '#1976d2',
+                    borderColor: 'var(--primary)',
                     backgroundColor: 'rgba(25, 118, 210, 0.1)',
                     borderWidth: 3,
                     tension: 0.3,

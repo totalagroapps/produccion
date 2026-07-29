@@ -65,10 +65,10 @@
     color: var(--text3);
     transition: all .3s;
   }
-  #estadoPill.running  { background: #dcfce7; border-color: var(--green); color: #16a34a; }
-  #estadoPill.saving   { background: #dbeafe; border-color: var(--accent); color: #2563eb; }
-  #estadoPill.saved    { background: #dcfce7; border-color: var(--green); color: #16a34a; }
-  #estadoPill.error    { background: #fee2e2; border-color: var(--red); color: #dc2626; }
+  #estadoPill.running { background: var(--success); color: white; }  { background: #dcfce7; border-color: var(--green); color: #16a34a; }
+  #estadoPill.saving { background: var(--warning); color: white; }   { background: #dbeafe; border-color: var(--accent); color: #2563eb; }
+  #estadoPill.saved { background: var(--success); color: white; }    { background: #dcfce7; border-color: var(--green); color: #16a34a; }
+  #estadoPill.error { background: var(--danger); color: white; }    { background: #fee2e2; border-color: var(--red); color: #dc2626; }
 
   /* ── MAIN LAYOUT ── */
   #main {
@@ -173,8 +173,8 @@
 
   /* ── MESSAGES ── */
   #mensaje { display: none; padding: 12px 14px; border-radius: 8px; font-size: 14px; font-weight: 600; margin-top: 8px; text-align: center; }
-  #mensaje.ok    { display: block; background: #dcfce7; border: 1px solid #bbf7d0; color: #15803d; }
-  #mensaje.error { display: block; background: #fee2e2; border: 1px solid #fecaca; color: #b91c1c; }
+  #mensaje.ok { background: var(--success); color: white; }
+  #mensaje.error { background: var(--danger); color: white; }
 
   /* ── MODAL ── */
   #modal { display: none; position: fixed; inset: 0; background: rgba(15,23,42,.7); backdrop-filter: blur(4px); z-index: 100; align-items: center; justify-content: center; padding: 16px; }
