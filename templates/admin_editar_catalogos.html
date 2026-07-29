@@ -288,7 +288,8 @@ const TAB_CONFIG = {
         canDelete: true,
         cols: [
             { key: "id", label: "ID" },
-            { key: "nombre", label: "Nombre" }
+            { key: "nombre", label: "Nombre" },
+            { key: "activo", label: "Estado" }
         ],
         fields: [
             { key: "nombre", label: "Nombre del Operario", type: "text", required: true }
@@ -435,16 +436,34 @@ async function renderTable() {
                 let val = row[c.key] !== null ? row[c.key] : '';
                 if(c.key === 'id') {
                     bodyHtml += `<td><span class="id-badge">#${val}</span></td>`;
+                } else if(c.key === 'activo') {
+                    if (val === true) {
+                        bodyHtml += `<td><span style="background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:12px;font-size:12px;font-weight:700;">Activo</span></td>`;
+                    } else if (val === false) {
+                        bodyHtml += `<td><span style="background:#f1f5f9;color:#64748b;padding:2px 8px;border-radius:12px;font-size:12px;font-weight:700;">Inactivo</span></td>`;
+                    } else {
+                        bodyHtml += `<td></td>`;
+                    }
                 } else {
                     bodyHtml += `<td>${val}</td>`;
                 }
             });
             
+            let deleteBtnLabel = "Eliminar";
+            let showDeleteBtn = config.canDelete;
+            if (currentTab === 'operarios') {
+                deleteBtnLabel = "🚫 Desactivar";
+                // Si ya está inactivo, ocultamos el botón
+                if (row.activo === false) {
+                    showDeleteBtn = false;
+                }
+            }
+
             bodyHtml += `
                 <td>
                     <div class="action-buttons">
                         <button class="btn-edit" onclick="openModalEdit(${row.id})">Editar</button>
-                        ${config.canDelete ? `<button class="btn-delete" onclick="deleteItem(${row.id})">Eliminar</button>` : ''}
+                        ${showDeleteBtn ? `<button class="btn-delete" onclick="deleteItem(${row.id})">${deleteBtnLabel}</button>` : ''}
                     </div>
                 </td>
             `;
@@ -595,7 +614,7 @@ async function deleteItem(id) {
             throw new Error(json.detail || "No se pudo eliminar");
         }
         
-        showToast('Ítem eliminado correctamente', 'success');
+        showToast(json.mensaje || 'Ítem eliminado correctamente', 'success');
         
         if (currentTab === 'maquinas' || currentTab === 'procesos') {
             await loadDependencies();

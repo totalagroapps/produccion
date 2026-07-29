@@ -62,11 +62,27 @@ def eliminar_fila_segura(tabla: str, id: int):
         uso = fila_en_uso(c, tabla, id)
         if uso:
             tabla_ref, columna_ref, total = uso
-            raise HTTPException(
-                status_code=409,
-                detail=f"No se puede eliminar: esta fila esta siendo usada por {total} registro(s) en la tabla '{tabla_ref}'."
-            )
+            
+            # Intentar Soft Delete si la tabla lo soporta
+            try:
+                c.execute(sql.SQL("UPDATE {} SET activo = FALSE WHERE id = %s").format(sql.Identifier(tabla)), (id,))
+                
+                if tabla == 'operarios':
+                    c.execute("DELETE FROM users WHERE operario_id = %s", (id,))
+                    
+                conn.commit()
+                return {"ok": True, "mensaje": f"El ítem estaba en uso por {total} registros en '{tabla_ref}'. Ha sido desactivado (Soft Delete) en lugar de eliminado."}
+            except Exception as e:
+                # Si falla (ej. la columna activo no existe aún), lanzar el 409 original
+                conn.rollback()
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"No se puede eliminar: esta fila esta siendo usada por {total} registro(s) en la tabla '{tabla_ref}'."
+                )
         
+        if tabla == 'operarios':
+            c.execute("DELETE FROM users WHERE operario_id = %s", (id,))
+            
         c.execute(sql.SQL("DELETE FROM {} WHERE id=%s").format(sql.Identifier(tabla)), (id,))
         sincronizar_secuencia(c, tabla)
         conn.commit()
@@ -78,7 +94,7 @@ def eliminar_fila_segura(tabla: str, id: int):
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         conn.close()
-    return {"ok": True, "mensaje": "Fila eliminada"}
+    return {"ok": True, "mensaje": "Fila eliminada permanentemente"}
 
 # --- Validaciones de Asistente ---
 def texto_obligatorio(data: dict, campo: str, etiqueta: str):
@@ -279,8 +295,14 @@ def ver_operarios(request: Request):
     if not require_admin(request): return JSONResponse({"detail": "No autorizado"}, status_code=401)
     conn = db()
     c = conn.cursor()
-    c.execute("SELECT id, nombre FROM operarios ORDER BY id")
-    datos = [{"id": r[0], "nombre": r[1]} for r in c.fetchall()]
+    try:
+        c.execute("SELECT id, nombre, activo FROM operarios ORDER BY id")
+        datos = [{"id": r[0], "nombre": r[1], "activo": r[2]} for r in c.fetchall()]
+    except Exception:
+        conn.rollback()
+        # Fallback si la columna no existe aún
+        c.execute("SELECT id, nombre FROM operarios ORDER BY id")
+        datos = [{"id": r[0], "nombre": r[1], "activo": True} for r in c.fetchall()]
     conn.close()
     return {"ok": True, "data": datos}
 

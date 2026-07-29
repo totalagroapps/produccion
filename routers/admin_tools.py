@@ -326,3 +326,27 @@ def api_editar_registro(request: Request, registro_id: int, data: dict):
         return JSONResponse({"detail": f"Error interno: {str(e)}"}, status_code=500)
     finally:
         conn.close()
+
+# ================= MIGRACION =================
+@router.get("/admin_tools/run_migration_soft_delete")
+def run_migration_soft_delete(request: Request):
+    if not require_admin(request):
+        return JSONResponse({"detail": "No autorizado"}, status_code=401)
+    
+    conn = db()
+    c = conn.cursor()
+    tablas = ['operarios', 'maquinas', 'procesos', 'actividades']
+    resultados = []
+    
+    for tabla in tablas:
+        try:
+            c.execute(f"ALTER TABLE {tabla} ADD COLUMN activo BOOLEAN DEFAULT TRUE")
+            c.execute(f"UPDATE {tabla} SET activo = TRUE WHERE activo IS NULL")
+            conn.commit()
+            resultados.append(f"{tabla}: Columna agregada y valores actualizados.")
+        except Exception as e:
+            conn.rollback()
+            resultados.append(f"{tabla}: {str(e)}")
+            
+    conn.close()
+    return JSONResponse({"ok": True, "resultados": resultados})

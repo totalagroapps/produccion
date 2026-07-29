@@ -365,8 +365,13 @@ def operarios():
     conn = db()
     c = conn.cursor()
 
-    c.execute("SELECT id,nombre FROM operarios")
-    rows = c.fetchall() or []
+    try:
+        c.execute("SELECT id, nombre FROM operarios WHERE activo = TRUE")
+        rows = c.fetchall() or []
+    except Exception:
+        conn.rollback()
+        c.execute("SELECT id, nombre FROM operarios")
+        rows = c.fetchall() or []
 
     conn.close()
 
