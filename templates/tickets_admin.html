@@ -103,16 +103,13 @@
     .prioridad-MEDIA { border-left-color: #f59e0b; }
     .prioridad-BAJA { border-left-color: #10b981; }
     
-    .badge-prioridad {
-        font-size: 10px;
-        padding: 2px 6px;
-        border-radius: 10px;
+    .badge {
+        font-size: 11px;
+        padding: 4px 8px;
+        border-radius: 9999px;
         font-weight: bold;
         color: white;
     }
-    .badge-danger { background: #ef4444; }
-    .badge-warning { background: #f59e0b; }
-    .badge-success { background: #10b981; }
 
     .card-title {
         font-weight: bold;
@@ -122,18 +119,18 @@
     }
     
     .vencimiento-badge {
-        font-size: 10px;
+        font-size: 11px;
         padding: 2px 6px;
         border-radius: 4px;
         font-weight: bold;
-        display: inline-flex;
+        margin-top: 6px;
+        display: inline-block;
+        display: flex;
         align-items: center;
         gap: 4px;
         margin-top: 5px;
     }
-    .badge-success { background: #f1f5f9; color: #64748b; }
-    .badge-warning { background: #fef3c7; color: #d97706; border: 1px solid var(--warning); }
-    .badge-danger { background: #fee2e2; color: #ef4444; border: 1px solid #fca5a5; }
+    
     .card-meta {
         font-size: 12px;
         color: #64748b;
@@ -276,7 +273,7 @@
                     <span>👤 {{ t.asignado or 'Sin asignar' }}</span>
                 </div>
                 {% if t.fecha_vencimiento %}
-                <div class="vencimiento-badge vencimiento-OK" style="text-decoration:line-through;">
+                <div class="vencimiento-badge badge badge-success" style="text-decoration:line-through;">
                     ⏳ Vence: {{ t.fecha_vencimiento.strftime('%b %d, %H:%M') }}
                 </div>
                 {% endif %}
