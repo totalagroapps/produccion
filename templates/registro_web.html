@@ -7,29 +7,13 @@
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-  :root {
-    --bg: #f8fafc;
-    --surface: #ffffff;
-    --border: #e2e8f0;
-    --accent: #4f46e5;
-    --accent-hover: #4338ca;
-    --accent-glow: rgba(79, 70, 229, 0.2);
-    --green: #10b981;
-    --green-hover: #059669;
-    --green-glow: rgba(16, 185, 129, 0.2);
-    --red: #ef4444;
-    --red-hover: #dc2626;
-    --text: #1e293b;
-    --text2: #475569;
-    --text3: #64748b;
-    --font: 'Inter', system-ui, sans-serif;
-  }
+  
 
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
   body {
-    background: var(--bg);
-    color: var(--text);
+    background: var(--bg-body);
+    color: var(--text-main);
     font-family: var(--font);
     font-size: 14px;
     line-height: 1.5;
@@ -44,31 +28,31 @@
     align-items: center;
     justify-content: space-between;
     height: 56px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border-color);
     padding: 0 16px;
     position: sticky;
     top: 0;
     z-index: 10;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
   }
-  #topbar .title { font-size: 18px; font-weight: 800; color: var(--text); }
-  #topbar .title span { color: var(--accent); }
+  #topbar .title { font-size: 18px; font-weight: 800; color: var(--text-main); }
+  #topbar .title span { color: var(--primary); }
 
   #estadoPill {
     font-size: 13px;
     font-weight: 700;
     padding: 5px 14px;
     border-radius: 20px;
-    background: #f1f5f9;
-    border: 1px solid var(--border);
-    color: var(--text3);
+    background: var(--bg-body);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
     transition: all .3s;
   }
-  #estadoPill.running { background: var(--success); color: white; }  { background: #dcfce7; border-color: var(--green); color: #16a34a; }
-  #estadoPill.saving { background: var(--warning); color: white; }   { background: #dbeafe; border-color: var(--accent); color: #2563eb; }
-  #estadoPill.saved { background: var(--success); color: white; }    { background: #dcfce7; border-color: var(--green); color: #16a34a; }
-  #estadoPill.error { background: var(--danger); color: white; }    { background: #fee2e2; border-color: var(--red); color: #dc2626; }
+  #estadoPill.running { background: var(--success); color: white; }  { background: #dcfce7; border-color: var(--success); color: #16a34a; }
+  #estadoPill.saving { background: var(--warning); color: white; }   { background: #dbeafe; border-color: var(--primary); color: #2563eb; }
+  #estadoPill.saved { background: var(--success); color: white; }    { background: #dcfce7; border-color: var(--success); color: #16a34a; }
+  #estadoPill.error { background: var(--danger); color: white; }    { background: #fee2e2; border-color: var(--danger); color: #dc2626; }
 
   /* ── MAIN LAYOUT ── */
   #main {
@@ -90,8 +74,8 @@
 
   /* ── PANELS ── */
   .panel {
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
     border-radius: 12px;
     padding: 16px;
     box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
@@ -105,14 +89,14 @@
   @media(max-width: 480px) { .field-row { grid-template-columns: 1fr; } }
   
   .field { display: flex; flex-direction: column; gap: 6px; }
-  .field label { font-size: 12px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px;}
+  .field label { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;}
 
   .field select, .field input {
     height: 48px;
-    background: var(--surface);
-    border: 1px solid #cbd5e1;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
-    color: var(--text);
+    color: var(--text-main);
     font-size: 15px;
     padding: 0 14px;
     outline: none;
@@ -121,36 +105,36 @@
     appearance: none;
     font-family: inherit;
   }
-  .field select:focus, .field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+  .field select:focus, .field input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.2); }
   .field select:disabled, .field input:disabled { background: #f8fafc; color: #94a3b8; border-color: #e2e8f0; opacity: 1; }
 
   .sel-wrap { position: relative; }
   .sel-wrap::after {
     content: '▾'; position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
-    color: var(--text3); pointer-events: none; font-size: 18px;
+    color: var(--text-muted); pointer-events: none; font-size: 18px;
   }
 
   /* ── TIMER ── */
   #timerBox {
-    background: var(--surface);
-    border: 2px dashed #cbd5e1;
+    background: var(--bg-surface);
+    border: 2px dashed var(--border-color);
     border-radius: 12px;
     text-align: center;
     padding: 24px 10px;
     margin-bottom: 8px;
     transition: all 0.3s;
   }
-  #timerBox.running { border-color: var(--green); background: #f0fdf4; border-style: solid; }
-  #timerLabel { font-size: 12px; font-weight: 700; color: var(--text3); text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;}
-  #cronometro { font-size: 52px; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; line-height: 1; letter-spacing: -1.5px; }
-  #cronometro.running { color: var(--green); }
+  #timerBox.running { border-color: var(--success); background: #f0fdf4; border-style: solid; }
+  #timerLabel { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;}
+  #cronometro { font-size: 52px; font-weight: 800; color: var(--text-main); font-variant-numeric: tabular-nums; line-height: 1; letter-spacing: -1.5px; }
+  #cronometro.running { color: var(--success); }
 
   /* ── SUMMARY ── */
   #summary { display: flex; flex-direction: column; gap: 10px; }
-  .sumrow { display: flex; flex-direction: column; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+  .sumrow { display: flex; flex-direction: column; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); }
   .sumrow:last-child { border-bottom: none; }
-  .sumrow strong { font-size: 11px; text-transform: uppercase; color: var(--text3); font-weight: 700; letter-spacing: 0.5px;}
-  .sumrow span { font-size: 15px; font-weight: 600; color: var(--text); }
+  .sumrow strong { font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.5px;}
+  .sumrow span { font-size: 15px; font-weight: 600; color: var(--text-main); }
 
   /* ── BUTTONS ── */
   #actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
@@ -162,14 +146,14 @@
   button:active { transform: scale(.96); }
   button:disabled { opacity: .5; cursor: not-allowed; transform: none; }
 
-  #btnIniciar { background: var(--green); color: white; grid-column: 1 / -1; box-shadow: 0 4px 6px var(--green-glow); }
-  #btnIniciar:not(:disabled):hover { background: var(--green-hover); box-shadow: 0 6px 14px var(--green-glow); }
+  #btnIniciar { background: var(--success); color: white; grid-column: 1 / -1; box-shadow: 0 4px 6px rgba(39, 174, 96, 0.2); }
+  #btnIniciar:not(:disabled):hover { background: var(--success-hover); box-shadow: 0 6px 14px rgba(39, 174, 96, 0.2); }
 
-  #btnGuardar { background: var(--accent); color: white; grid-column: 1 / 2; box-shadow: 0 4px 6px var(--accent-glow); }
-  #btnGuardar:not(:disabled):hover { background: var(--accent-hover); box-shadow: 0 6px 14px var(--accent-glow); }
+  #btnGuardar { background: var(--primary); color: white; grid-column: 1 / 2; box-shadow: 0 4px 6px rgba(46, 125, 50, 0.2); }
+  #btnGuardar:not(:disabled):hover { background: var(--primary-hover); box-shadow: 0 6px 14px rgba(46, 125, 50, 0.2); }
 
-  #btnCancelar { background: white; border: 2px solid #f87171; color: var(--red); grid-column: 2 / 3; }
-  #btnRecargar { background: #f1f5f9; color: var(--text2); grid-column: 1 / -1; height: 44px; font-size: 14px; margin-top: 10px; }
+  #btnCancelar { background: white; border: 2px solid var(--danger); color: var(--danger); grid-column: 2 / 3; }
+  #btnRecargar { background: var(--bg-body); color: var(--text-muted); grid-column: 1 / -1; height: 44px; font-size: 14px; margin-top: 10px; }
 
   /* ── MESSAGES ── */
   #mensaje { display: none; padding: 12px 14px; border-radius: 8px; font-size: 14px; font-weight: 600; margin-top: 8px; text-align: center; }
@@ -179,20 +163,20 @@
   /* ── MODAL ── */
   #modal { display: none; position: fixed; inset: 0; background: rgba(15,23,42,.7); backdrop-filter: blur(4px); z-index: 100; align-items: center; justify-content: center; padding: 16px; }
   #modal.visible { display: flex; }
-  #modalBox { background: var(--surface); border-radius: 16px; padding: 24px; width: 100%; max-width: 360px; box-shadow: 0 20px 40px rgba(0,0,0,.15); }
-  #modalBox h2 { font-size: 20px; color: var(--text); margin-bottom: 8px; font-weight: 800;}
-  #modalBox p { color: var(--text2); font-size: 14px; margin-bottom: 20px; }
-  #modalCantidadInput { width: 100%; height: 64px; background: #f8fafc; border: 2px solid var(--accent); border-radius: 12px; color: var(--text); font-size: 36px; font-weight: 800; text-align: center; outline: none; margin-bottom: 20px; }
+  #modalBox { background: var(--bg-surface); border-radius: 16px; padding: 24px; width: 100%; max-width: 360px; box-shadow: 0 20px 40px rgba(0,0,0,.15); }
+  #modalBox h2 { font-size: 20px; color: var(--text-main); margin-bottom: 8px; font-weight: 800;}
+  #modalBox p { color: var(--text-muted); font-size: 14px; margin-bottom: 20px; }
+  #modalCantidadInput { width: 100%; height: 64px; background: #f8fafc; border: 2px solid var(--primary); border-radius: 12px; color: var(--text-main); font-size: 36px; font-weight: 800; text-align: center; outline: none; margin-bottom: 20px; }
   .modal-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .btn-modal-cancel { background: #f1f5f9; color: var(--text2); }
-  .btn-modal-ok { background: var(--accent); color: white; }
+  .btn-modal-cancel { background: var(--bg-body); color: var(--text-muted); }
+  .btn-modal-ok { background: var(--primary); color: white; }
 
   /* ── LOADING ── */
   #loadingOverlay { display: none; position: fixed; inset: 0; background: rgba(255,255,255,.9); backdrop-filter: blur(4px); z-index: 200; align-items: center; justify-content: center; flex-direction: column; gap: 16px; }
   #loadingOverlay.visible { display: flex; }
-  .spinner { width: 44px; height: 44px; border: 4px solid #e2e8f0; border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+  .spinner { width: 44px; height: 44px; border: 4px solid #e2e8f0; border-top-color: var(--primary); border-radius: 50%; animation: spin .8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  #loadingText { color: var(--text); font-size: 16px; font-weight: 700; }
+  #loadingText { color: var(--text-main); font-size: 16px; font-weight: 700; }
 </style>
 
 <style>
@@ -229,13 +213,14 @@
 }
 </style>
 
+    <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
 
 <div id="topbar">
   <div class="title">Registro <span>Producción</span></div>
   <div style="display:flex; gap:10px; align-items:center;">
-    <a href="/inicio_operario" style="background:#f1f5f9; color:#475569; padding:6px 12px; border-radius:8px; text-decoration:none; font-weight:700; font-size:13px; border:1px solid #cbd5e1;">🏠 Menú</a>
+    <a href="/inicio_operario" style="background:var(--bg-body); color:var(--text-muted); padding:6px 12px; border-radius:8px; text-decoration:none; font-weight:700; font-size:13px; border:1px solid var(--border-color);">🏠 Menú</a>
     <div id="estadoPill">Listo</div>
   </div>
 </div>
