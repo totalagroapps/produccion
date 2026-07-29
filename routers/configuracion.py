@@ -434,7 +434,9 @@ def ver_estandares(request: Request):
     """)
     datos = [{
         "id": r[0], "actividad_nombre": r[1], 
-        "unidades_por_hora": float(r[2]), "costo_mo_unidad": float(r[3]), "costo_mo_hora": float(r[4])
+        "unidades_por_hora": float(r[2]) if r[2] is not None else 0.0, 
+        "costo_mo_unidad": float(r[3]) if r[3] is not None else 0.0, 
+        "costo_mo_hora": float(r[4]) if r[4] is not None else 0.0
     } for r in c.fetchall()]
     conn.close()
     return {"ok": True, "data": datos}
