@@ -251,9 +251,23 @@ def guardar_registro_android(data: dict, operario_id: int):
     conn = db()
     c = conn.cursor()
 
-    # --- LÓGICA DE ACTIVIDAD NUEVA ---
+    # --- LÓGICA DE ACTIVIDAD NUEVA O RECUPERADA ---
     if actividad_id <= 0 and actividad_nombre:
-        raise HTTPException(status_code=400, detail="La creación de actividades personalizadas ha sido deshabilitada por el administrador.")
+        # Intentar resolver el ID si la actividad ya existe en esta orden (caso de reanudación en Android)
+        c.execute("""
+            SELECT a.id 
+            FROM orden_actividades oa
+            JOIN actividades a ON a.id = oa.actividad_id
+            WHERE oa.orden_id = %s AND LOWER(TRIM(a.nombre)) = LOWER(TRIM(%s))
+            LIMIT 1
+        """, (orden_id, actividad_nombre))
+        row = c.fetchone()
+        
+        if row:
+            actividad_id = row[0]
+        else:
+            conn.close()
+            raise HTTPException(status_code=400, detail="La creación de actividades personalizadas ha sido deshabilitada por el administrador.")
 
     inicio = fecha_android(data.get("inicio"))
     fin = fecha_android(data.get("fin"))
