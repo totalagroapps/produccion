@@ -1,0 +1,618 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+/* Estilos modernos compartidos */
+.header-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+.header-actions h1 { margin: 0; font-size: 24px; color: var(--text-dark); }
+.btn-new {
+    background-color: var(--primary);
+    color: white;
+    padding: 10px 16px;
+    border-radius: 6px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.btn-new:hover { background-color: var(--primary-hover); }
+
+/* Pestañas */
+.tabs-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 10px;
+    overflow-x: auto;
+}
+.tab-btn {
+    background: transparent;
+    border: none;
+    padding: 10px 16px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+.tab-btn:hover { background: #f1f5f9; color: var(--primary); }
+.tab-btn.active { background: var(--primary); color: white; }
+
+/* Tabla */
+.table-container {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    margin-bottom: 20px;
+    width: 100%;
+    overflow-x: auto;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+}
+th {
+    background-color: #f8fafc;
+    color: #475569;
+    font-weight: 600;
+    text-align: left;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 14px;
+}
+td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #e2e8f0;
+    color: #334155;
+    font-size: 14px;
+    vertical-align: middle;
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background-color: #f8fafc; }
+.id-badge {
+    background-color: #f1f5f9;
+    color: #64748b;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 12px;
+}
+
+/* Acciones en tabla */
+.action-buttons {
+    display: flex;
+    gap: 8px;
+}
+.btn-edit, .btn-delete {
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: none;
+    font-weight: 500;
+    cursor: pointer;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.btn-edit { background-color: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
+.btn-edit:hover { background-color: #e2e8f0; }
+.btn-delete { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+.btn-delete:hover { background-color: #fecaca; }
+
+/* Modal global */
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(15, 23, 42, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(2px);
+}
+.modal-overlay.active { opacity: 1; visibility: visible; }
+.modal-content {
+    background: white;
+    width: 90%;
+    max-width: 450px;
+    border-radius: 12px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    transform: translateY(20px);
+    transition: transform 0.2s ease;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+.modal-overlay.active .modal-content { transform: translateY(0); }
+.modal-header {
+    padding: 16px 24px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8fafc;
+}
+.modal-header h2 { margin: 0; font-size: 18px; color: #0f172a; }
+.modal-close {
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    color: #64748b;
+    cursor: pointer;
+    line-height: 1;
+}
+.modal-close:hover { color: #0f172a; }
+.modal-body { padding: 24px; }
+.modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    background: #f8fafc;
+}
+.btn-cancel {
+    background: white; border: 1px solid #cbd5e1;
+    padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 500; color: #475569;
+}
+.btn-cancel:hover { background: #f1f5f9; }
+.btn-save {
+    background: var(--primary); border: none; color: white;
+    padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 500;
+}
+.btn-save:hover { background: var(--primary-hover); }
+
+/* Form field */
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px; color: #334155; }
+.form-group input, .form-group select {
+    width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1;
+    border-radius: 6px; font-size: 14px; box-sizing: border-box;
+}
+.form-group input:focus, .form-group select:focus {
+    outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+}
+
+/* Toasts */
+.toast-container {
+    position: fixed; bottom: 20px; right: 20px; z-index: 2000;
+    display: flex; flex-direction: column; gap: 10px;
+}
+.toast {
+    padding: 12px 16px; border-radius: 8px; color: white;
+    font-weight: 500; font-size: 14px; display: flex; align-items: center; gap: 8px;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); animation: slideIn 0.3s ease forwards;
+}
+.toast.success { background-color: var(--success); }
+.toast.error { background-color: var(--danger); }
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes slideOut { to { transform: translateX(100%); opacity: 0; } }
+
+/* Spinner */
+.spinner {
+    display: inline-block; width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.3); border-radius: 50%;
+    border-top-color: white; animation: spin 1s ease-in-out infinite; margin-left: 8px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Empty state */
+.empty-state {
+    padding: 40px 20px; text-align: center; color: #64748b;
+}
+</style>
+
+<div class="header-actions">
+    <div>
+        <h1>Mantenimiento de Catálogos</h1>
+        <p style="color: #64748b; margin-top: 4px;">Edita, crea o elimina ítems base del sistema de forma segura.</p>
+    </div>
+    <a href="/admin_tools" class="btn-cancel" style="text-decoration: none;">&larr; Volver a Herramientas</a>
+</div>
+
+<div class="tabs-container" id="tabs">
+    <button class="tab-btn active" onclick="switchTab('operarios')">Operarios</button>
+    <button class="tab-btn" onclick="switchTab('maquinas')">Máquinas</button>
+    <button class="tab-btn" onclick="switchTab('procesos')">Procesos</button>
+    <button class="tab-btn" onclick="switchTab('actividades')">Actividades</button>
+    <button class="tab-btn" onclick="switchTab('estandares')">Estándares</button>
+</div>
+
+<div class="header-actions" style="margin-bottom: 15px;">
+    <h2 id="currentTabTitle" style="font-size: 18px; margin: 0; color: #334155;">Cargando...</h2>
+    <button id="btnNew" class="btn-new" onclick="openModalNew()">
+        <span>+</span> Nuevo
+    </button>
+</div>
+
+<div class="table-container">
+    <table id="dataTable">
+        <thead id="dataHead"></thead>
+        <tbody id="dataBody">
+            <tr><td colspan="10" class="empty-state">Cargando datos...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- MODAL GENÉRICO -->
+<div class="modal-overlay" id="editorModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modalTitle">Crear/Editar</h2>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="modalForm">
+            <!-- Dynamic fields go here -->
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+            <button class="btn-save" id="btnSave" onclick="saveData()">
+                <span id="saveText">Guardar</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentTab = 'operarios';
+let currentData = [];
+let editingId = null;
+
+// Catálogos auxiliares para los dropdowns
+let auxMaquinas = [];
+let auxProcesos = [];
+
+const TAB_CONFIG = {
+    operarios: {
+        title: "Operarios",
+        endpoint: "/config/operarios",
+        canCreate: true,
+        canDelete: true,
+        cols: [
+            { key: "id", label: "ID" },
+            { key: "nombre", label: "Nombre" }
+        ],
+        fields: [
+            { key: "nombre", label: "Nombre del Operario", type: "text", required: true }
+        ]
+    },
+    maquinas: {
+        title: "Máquinas",
+        endpoint: "/config/maquinas",
+        canCreate: true,
+        canDelete: true,
+        cols: [
+            { key: "id", label: "ID" },
+            { key: "nombre", label: "Nombre" }
+        ],
+        fields: [
+            { key: "nombre", label: "Nombre de la Máquina", type: "text", required: true }
+        ]
+    },
+    procesos: {
+        title: "Procesos",
+        endpoint: "/config/procesos",
+        canCreate: true,
+        canDelete: true,
+        cols: [
+            { key: "id", label: "ID" },
+            { key: "maquina_nombre", label: "Máquina" },
+            { key: "nombre", label: "Nombre Proceso" }
+        ],
+        fields: [
+            { key: "maquina_id", label: "Máquina", type: "select", options: 'auxMaquinas', required: true },
+            { key: "nombre", label: "Nombre del Proceso", type: "text", required: true }
+        ]
+    },
+    actividades: {
+        title: "Actividades",
+        endpoint: "/config/actividades",
+        canCreate: true,
+        canDelete: true,
+        cols: [
+            { key: "id", label: "ID" },
+            { key: "proceso_nombre", label: "Proceso Padre" },
+            { key: "nombre", label: "Nombre Actividad" }
+        ],
+        fields: [
+            { key: "proceso_id", label: "Proceso", type: "select", options: 'auxProcesos', required: true },
+            { key: "nombre", label: "Nombre de la Actividad", type: "text", required: true },
+            // Los estandares solo se piden al crear, no al editar (se editan en su pestaña)
+            { key: "unidades_por_hora", label: "Unidades por hora (Estándar)", type: "number", required: true, createOnly: true },
+            { key: "costo_mo_unidad", label: "Costo MO Unidad (Opcional)", type: "number", required: false, createOnly: true },
+            { key: "costo_mo_hora", label: "Costo MO Hora (Opcional)", type: "number", required: false, createOnly: true }
+        ]
+    },
+    estandares: {
+        title: "Estándares de Actividades",
+        endpoint: "/config/estandares",
+        canCreate: false, // Se crean junto con la actividad
+        canDelete: false, // Mueren con la actividad
+        cols: [
+            { key: "id", label: "ID" },
+            { key: "actividad_nombre", label: "Actividad" },
+            { key: "unidades_por_hora", label: "Unidades/hr" },
+            { key: "costo_mo_unidad", label: "Costo Unidad" },
+            { key: "costo_mo_hora", label: "Costo Hora" }
+        ],
+        fields: [
+            // El ID de actividad no se edita aquí, solo los números
+            { key: "unidades_por_hora", label: "Unidades por hora", type: "number", required: true },
+            { key: "costo_mo_unidad", label: "Costo MO Unidad", type: "number", required: false },
+            { key: "costo_mo_hora", label: "Costo MO Hora", type: "number", required: false }
+        ]
+    }
+};
+
+function showToast(message, type = 'success') {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = message;
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease forwards';
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
+}
+
+async function loadDependencies() {
+    try {
+        const reqM = await fetch('/config/maquinas');
+        const resM = await reqM.json();
+        if(resM.ok) auxMaquinas = resM.data;
+        
+        const reqP = await fetch('/config/procesos');
+        const resP = await reqP.json();
+        if(resP.ok) auxProcesos = resP.data;
+    } catch(e) {
+        console.error("Error cargando dependencias", e);
+    }
+}
+
+async function switchTab(tabId) {
+    currentTab = tabId;
+    
+    // Update active UI
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+    
+    const config = TAB_CONFIG[tabId];
+    document.getElementById('currentTabTitle').innerText = config.title;
+    document.getElementById('btnNew').style.display = config.canCreate ? 'inline-flex' : 'none';
+    
+    await renderTable();
+}
+
+async function renderTable() {
+    const tbody = document.getElementById('dataBody');
+    const thead = document.getElementById('dataHead');
+    const config = TAB_CONFIG[currentTab];
+    
+    tbody.innerHTML = '<tr><td colspan="10" class="empty-state">Cargando datos...</td></tr>';
+    
+    // Render Head
+    let headHtml = '<tr>';
+    config.cols.forEach(c => { headHtml += `<th>${c.label}</th>`; });
+    headHtml += '<th>Acciones</th></tr>';
+    thead.innerHTML = headHtml;
+    
+    try {
+        const res = await fetch(config.endpoint);
+        const json = await res.json();
+        
+        if (!res.ok) throw new Error(json.detail || "Error cargando datos");
+        
+        currentData = json.data || [];
+        
+        if (currentData.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="${config.cols.length + 1}" class="empty-state">No hay registros</td></tr>`;
+            return;
+        }
+        
+        let bodyHtml = '';
+        currentData.forEach(row => {
+            bodyHtml += '<tr>';
+            config.cols.forEach(c => {
+                let val = row[c.key] !== null ? row[c.key] : '';
+                if(c.key === 'id') {
+                    bodyHtml += `<td><span class="id-badge">#${val}</span></td>`;
+                } else {
+                    bodyHtml += `<td>${val}</td>`;
+                }
+            });
+            
+            bodyHtml += `
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn-edit" onclick="openModalEdit(${row.id})">Editar</button>
+                        ${config.canDelete ? `<button class="btn-delete" onclick="deleteItem(${row.id})">Eliminar</button>` : ''}
+                    </div>
+                </td>
+            `;
+            bodyHtml += '</tr>';
+        });
+        tbody.innerHTML = bodyHtml;
+        
+    } catch(e) {
+        tbody.innerHTML = `<tr><td colspan="10" class="empty-state" style="color:var(--danger)">${e.message}</td></tr>`;
+        showToast(e.message, 'error');
+    }
+}
+
+function openModalNew() {
+    editingId = null;
+    const config = TAB_CONFIG[currentTab];
+    document.getElementById('modalTitle').innerText = `Nuevo ${config.title.slice(0,-1)}`;
+    renderForm(config.fields, {});
+    document.getElementById('editorModal').classList.add('active');
+}
+
+function openModalEdit(id) {
+    editingId = id;
+    const config = TAB_CONFIG[currentTab];
+    document.getElementById('modalTitle').innerText = `Editar ${config.title.slice(0,-1)} #${id}`;
+    
+    const rowData = currentData.find(r => r.id === id);
+    renderForm(config.fields, rowData);
+    document.getElementById('editorModal').classList.add('active');
+}
+
+function closeModal() {
+    document.getElementById('editorModal').classList.remove('active');
+}
+
+function renderForm(fields, data) {
+    const formContainer = document.getElementById('modalForm');
+    let html = '';
+    
+    fields.forEach(f => {
+        // Skip createOnly fields if we are editing
+        if (editingId !== null && f.createOnly) return;
+        
+        const val = data[f.key] !== undefined && data[f.key] !== null ? data[f.key] : '';
+        
+        html += `<div class="form-group">`;
+        html += `<label>${f.label} ${f.required ? '<span style="color:var(--danger)">*</span>' : ''}</label>`;
+        
+        if (f.type === 'select') {
+            html += `<select id="field_${f.key}" ${f.required ? 'required' : ''}>`;
+            html += `<option value="">Seleccione...</option>`;
+            
+            let optionsSource = [];
+            if(f.options === 'auxMaquinas') optionsSource = auxMaquinas;
+            if(f.options === 'auxProcesos') optionsSource = auxProcesos;
+            
+            optionsSource.forEach(opt => {
+                const selected = (String(opt.id) === String(val)) ? 'selected' : '';
+                // For procesos dropdown, show machine name too if available
+                const labelStr = opt.maquina_nombre ? `[${opt.maquina_nombre}] ${opt.nombre}` : opt.nombre;
+                html += `<option value="${opt.id}" ${selected}>${labelStr}</option>`;
+            });
+            html += `</select>`;
+        } else {
+            html += `<input type="${f.type}" id="field_${f.key}" value="${val}" ${f.required ? 'required' : ''} step="0.01">`;
+        }
+        html += `</div>`;
+    });
+    
+    formContainer.innerHTML = html;
+}
+
+async function saveData() {
+    const config = TAB_CONFIG[currentTab];
+    let payload = {};
+    
+    // Gather data
+    for (let f of config.fields) {
+        if (editingId !== null && f.createOnly) continue;
+        
+        const el = document.getElementById(`field_${f.key}`);
+        if(el) {
+            let val = el.value.trim();
+            if(f.required && !val) {
+                showToast(`El campo ${f.label} es obligatorio`, 'error');
+                return;
+            }
+            if(f.type === 'number' && val) val = parseFloat(val);
+            payload[f.key] = val;
+        }
+    }
+    
+    const btn = document.getElementById('btnSave');
+    const text = document.getElementById('saveText');
+    btn.disabled = true;
+    text.innerHTML = 'Guardando<div class="spinner"></div>';
+    
+    try {
+        let url = config.endpoint;
+        let method = 'POST';
+        
+        if (editingId !== null) {
+            url = `${config.endpoint}/${editingId}`;
+            method = 'PUT';
+        }
+        
+        const res = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        
+        const json = await res.json();
+        
+        if (!res.ok) throw new Error(json.detail || "Error al guardar");
+        
+        showToast('Guardado correctamente', 'success');
+        closeModal();
+        
+        // Refresh dependencies if we changed a maquina or proceso
+        if (currentTab === 'maquinas' || currentTab === 'procesos') {
+            await loadDependencies();
+        }
+        await renderTable();
+        
+    } catch(e) {
+        showToast(e.message, 'error');
+    } finally {
+        btn.disabled = false;
+        text.innerHTML = 'Guardar';
+    }
+}
+
+async function deleteItem(id) {
+    if(!confirm('¿Estás seguro de que deseas eliminar este ítem? Esto podría afectar la integridad de los datos.')) return;
+    
+    const config = TAB_CONFIG[currentTab];
+    
+    try {
+        const res = await fetch(`${config.endpoint}/${id}`, {
+            method: 'DELETE'
+        });
+        
+        const json = await res.json();
+        
+        if (!res.ok) {
+            // Throw specific error messages exactly as returned by the backend (409 Conflict handled here)
+            throw new Error(json.detail || "No se pudo eliminar");
+        }
+        
+        showToast('Ítem eliminado correctamente', 'success');
+        
+        if (currentTab === 'maquinas' || currentTab === 'procesos') {
+            await loadDependencies();
+        }
+        await renderTable();
+        
+    } catch(e) {
+        showToast(e.message, 'error');
+    }
+}
+
+// Inicialización
+window.onload = async () => {
+    // Initial fetch of dependent catalogs
+    await loadDependencies();
+    // Start with the default tab (which initializes UI & fetches table data)
+    switchTab(currentTab);
+};
+</script>
+{% endblock %}
