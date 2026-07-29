@@ -266,8 +266,30 @@ def guardar_registro_android(data: dict, operario_id: int):
         if row:
             actividad_id = row[0]
         else:
-            conn.close()
-            raise HTTPException(status_code=400, detail="La creación de actividades personalizadas ha sido deshabilitada por el administrador.")
+            # Buscar si la actividad existe globalmente en otra orden o proceso
+            c.execute("SELECT id FROM actividades WHERE LOWER(TRIM(nombre)) = LOWER(TRIM(%s)) LIMIT 1", (actividad_nombre,))
+            row_global = c.fetchone()
+            
+            if row_global:
+                actividad_id = row_global[0]
+            else:
+                # Si no existe en absoluto, y como viene de una app antigua (que enviaba el nombre), la creamos
+                # para no hacerle perder al operario las horas trabajadas.
+                # Se asume un proceso_id genérico o NULL si la BD lo permite. 
+                # Buscaremos un proceso de la orden para asociarla, o el primero que exista.
+                c.execute("SELECT id FROM procesos WHERE maquina_id = (SELECT maquina_id FROM ordenes WHERE id = %s) LIMIT 1", (orden_id,))
+                proc_row = c.fetchone()
+                proceso_id = proc_row[0] if proc_row else None
+                
+                c.execute("INSERT INTO actividades (nombre, proceso_id) VALUES (%s, %s) RETURNING id", (actividad_nombre, proceso_id))
+                actividad_id = c.fetchone()[0]
+
+            # Ahora insertamos la actividad en orden_actividades con cantidad_total = 0 si no estaba
+            c.execute("""
+                INSERT INTO orden_actividades (orden_id, actividad_id, cantidad_total, cantidad_realizada)
+                VALUES (%s, %s, 0, 0)
+                ON CONFLICT DO NOTHING
+            """, (orden_id, actividad_id))
 
     inicio = fecha_android(data.get("inicio"))
     fin = fecha_android(data.get("fin"))
