@@ -2,387 +2,234 @@
 
 {% block content %}
 <style>
-.container{
-    max-width:1300px;
-    margin:auto;
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
 }
-
-.topbar{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    background:#263238;
-    color:white;
-    padding:16px 25px;
-    border-radius:8px;
-    box-shadow:0 4px 10px rgba(0,0,0,.2);
-    margin-bottom:24px;
+.titulo {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text-main);
 }
-
-.titulo{
-    font-size:22px;
-    font-weight:bold;
+.export-panel {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-sm);
 }
-
-.btn-home{
-    background:#2e7d32;
-    color:white;
-    padding:10px 16px;
-    border-radius:8px;
-    text-decoration:none;
-    font-weight:bold;
-    transition:.3s;
+.export-panel h2 {
+    margin: 0 0 16px;
+    font-size: 18px;
 }
-
-.btn-home:hover{
-    background:#1b5e20;
+.export-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
 }
-
-.semana-card{
-    background:white;
-    border:1px solid #e1e7ec;
-    border-radius:8px;
-    box-shadow:0 2px 8px rgba(0,0,0,.07);
-    margin-bottom:28px;
-    overflow:hidden;
+.export-option {
+    background: var(--bg-body);
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
 }
-
-.semana-header{
-    display:flex;
-    justify-content:space-between;
-    gap:18px;
-    align-items:center;
-    background:#37474f;
-    color:white;
-    padding:16px 20px;
+.export-option h3 {
+    margin: 0 0 12px;
+    font-size: 16px;
 }
-
-.semana-header h2{
-    margin:0;
-    font-size:20px;
+.export-actions {
+    margin-bottom: 12px;
 }
-
-.semana-header span{
-    color:#dce5ea;
-    font-size:13px;
+.export-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
-
-.kpis{
-    display:grid;
-    grid-template-columns:repeat(4,minmax(140px,1fr));
-    gap:12px;
-    padding:16px 20px 4px;
+.semana-card {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-sm);
 }
-
-.kpi{
-    border:1px solid #e5e7eb;
-    border-radius:8px;
-    padding:12px;
-    background:#fafafa;
+.semana-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 16px;
 }
-
-.kpi span{
-    display:block;
-    color:#607d8b;
-    font-size:12px;
-    font-weight:bold;
-    text-transform:uppercase;
-    margin-bottom:5px;
+.semana-header h2 { margin: 0; }
+.semana-header span { color: var(--text-muted); font-size: 14px; }
+.kpis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
 }
-
-.kpi strong{
-    font-size:24px;
-    color:#263238;
+.kpi {
+    background: var(--bg-body);
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
 }
-
-.bloque{
-    padding:16px 20px 20px;
+.kpi span { font-size: 14px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 8px; }
+.kpi strong { font-size: 24px; color: var(--primary); }
+.operario-list {
+    display: grid;
+    gap: 24px;
 }
-
-.bloque h3{
-    margin:0 0 10px;
-    color:#263238;
-    font-size:17px;
+.operario-subbloque {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
 }
-
-.operario-list{
-    display:grid;
-    grid-template-columns:1fr;
-    gap:16px;
+.operario-subheader {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 16px;
 }
-
-.operario-subbloque{
-    border:1px solid #dce5ea;
-    border-radius:8px;
-    overflow:hidden;
-    background:#fbfcfd;
+.operario-subheader h4 { margin: 0; font-size: 16px; color: var(--primary); }
+.operario-resumen {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
 }
-
-.operario-subheader{
-    display:flex;
-    justify-content:space-between;
-    gap:12px;
-    align-items:center;
-    background:#edf3f6;
-    border-bottom:1px solid #dce5ea;
-    padding:12px 14px;
+.operario-metrica {
+    background: var(--bg-body);
+    padding: 10px;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
 }
-
-.operario-subheader h4{
-    color:#263238;
-    font-size:16px;
-    margin:0;
-}
-
-.operario-subheader span{
-    color:#607d8b;
-    font-size:13px;
-    font-weight:bold;
-}
-
-.operario-resumen{
-    display:grid;
-    grid-template-columns:repeat(4,minmax(120px,1fr));
-    gap:10px;
-    padding:12px 14px;
-}
-
-.operario-metrica{
-    background:white;
-    border:1px solid #e5e7eb;
-    border-radius:8px;
-    padding:10px;
-}
-
-.operario-metrica span{
-    color:#607d8b;
-    display:block;
-    font-size:12px;
-    font-weight:bold;
-    margin-bottom:4px;
-    text-transform:uppercase;
-}
-
-.operario-metrica strong{
-    color:#263238;
-    font-size:18px;
-}
-
-.operario-tabla{
-    padding:0 14px 14px;
-}
-
-table{
-    width:100%;
-    border-collapse:collapse;
-    background:white;
-    border-radius:8px;
-    overflow:hidden;
-    border:1px solid #edf0f2;
-}
-
-th{
-    background:#eceff1;
-    color:#263238;
-    padding:10px;
-    text-align:center;
-    font-size:13px;
-}
-
-td{
-    padding:9px;
-    text-align:center;
-    border-bottom:1px solid #eee;
-    font-size:14px;
-}
-
-tr:hover{
-    background:#f7f9fa;
-}
-
-.sin-datos{
-    background:white;
-    border:1px solid #e1e7ec;
-    border-radius:8px;
-    padding:22px;
-    color:#607d8b;
-    text-align:center;
-}
-
-.btn-export{
-    display:inline-block;
-    background:#1976d2;
-    color:white;
-    padding:12px 22px;
-    border-radius:8px;
-    text-decoration:none;
-    font-weight:bold;
-    transition:.3s;
-    margin-top:4px;
-}
-
-.btn-export:hover{
-    background:#0d47a1;
-}
-
-.export-panel{
-    background:white;
-    border:1px solid #e1e7ec;
-    border-radius:8px;
-    box-shadow:0 2px 8px rgba(0,0,0,.07);
-    margin-bottom:24px;
-    padding:18px 20px;
-}
-
-.export-panel h2{
-    color:#263238;
-    font-size:18px;
-    margin:0 0 14px;
-}
-
-.export-grid{
-    display:grid;
-    grid-template-columns:repeat(3,minmax(220px,1fr));
-    gap:14px;
-}
-
-.export-option{
-    border:1px solid #e5e7eb;
-    border-radius:8px;
-    padding:14px;
-    background:#fafafa;
-}
-
-.export-option h3{
-    color:#263238;
-    font-size:16px;
-    margin:0 0 12px;
-}
-
-.export-actions{
-    display:flex;
-    flex-wrap:wrap;
-    gap:8px;
-    align-items:center;
-}
-
-.export-form{
-    display:grid;
-    grid-template-columns:1fr auto;
-    gap:8px;
-    margin-top:10px;
-}
-
-.export-form input{
-    border:1px solid #cfd8dc;
-    border-radius:8px;
-    font-size:14px;
-    padding:9px 10px;
-    min-width:0;
-}
-
-.btn-export-sec{
-    background:#455a64;
-    border:0;
-    color:white;
-    cursor:pointer;
-    border-radius:8px;
-    font-weight:bold;
-    padding:10px 12px;
-    text-decoration:none;
-}
-
-.btn-export-sec:hover{
-    background:#263238;
-}
-
-@media (max-width: 760px){
-    body{
-        padding:12px;
-    }
-
-    .topbar,
-    .semana-header{
-        align-items:flex-start;
-        flex-direction:column;
-    }
-
-    .kpis{
-        grid-template-columns:1fr 1fr;
-    }
-
-    .operario-subheader{
-        align-items:flex-start;
-        flex-direction:column;
-    }
-
-    .operario-resumen{
-        grid-template-columns:1fr 1fr;
-    }
-
-    .export-grid,
-    .export-form{
-        grid-template-columns:1fr;
-    }
-
-    table{
-        display:block;
-        overflow-x:auto;
-        white-space:nowrap;
-    }
+.operario-metrica span { font-size: 12px; color: var(--text-muted); text-transform: uppercase; }
+.operario-metrica strong { font-size: 18px; color: var(--text-main); }
+@media(max-width:768px) {
+    .kpis { grid-template-columns: 1fr 1fr; }
 }
 </style>
 
 <style>
-/* Base Responsive Styles */
-@media (max-width: 768px) {
-    .container {
-        padding: 15px !important;
-    }
-    .card, .box, .panel {
-        padding: 12px !important;
-        margin-bottom: 15px !important;
-    }
-    .grid {
-        grid-template-columns: 1fr !important;
-    }
-    input, select, button, textarea {
-        width: 100% !important;
-        box-sizing: border-box !important;
-        margin-bottom: 8px !important;
-    }
-    table {
-        display: block !important;
-        width: 100% !important;
-        overflow-x: auto !important;
-        white-space: nowrap !important;
-    }
-    th, td {
-        padding: 8px !important;
-        font-size: 13px !important;
-    }
-    h2, h3 {
-        font-size: 1.2rem !important;
-    }
-}
-
-.dashboard-panel {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 24px;
 }
-.chart-card {
-    background: white;
-    border: 1px solid #e1e7ec;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,.07);
-    padding: 16px;
+.titulo {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text-main);
 }
-@media (max-width: 768px) {
-    .dashboard-panel {
-        grid-template-columns: 1fr;
-    }
+.export-panel {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-sm);
+}
+.export-panel h2 {
+    margin: 0 0 16px;
+    font-size: 18px;
+}
+.export-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+}
+.export-option {
+    background: var(--bg-body);
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+.export-option h3 {
+    margin: 0 0 12px;
+    font-size: 16px;
+}
+.export-actions {
+    margin-bottom: 12px;
+}
+.export-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.semana-card {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-sm);
+}
+.semana-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 16px;
+}
+.semana-header h2 { margin: 0; }
+.semana-header span { color: var(--text-muted); font-size: 14px; }
+.kpis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+.kpi {
+    background: var(--bg-body);
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+}
+.kpi span { font-size: 14px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 8px; }
+.kpi strong { font-size: 24px; color: var(--primary); }
+.operario-list {
+    display: grid;
+    gap: 24px;
+}
+.operario-subbloque {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+}
+.operario-subheader {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+.operario-subheader h4 { margin: 0; font-size: 16px; color: var(--primary); }
+.operario-resumen {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.operario-metrica {
+    background: var(--bg-body);
+    padding: 10px;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+}
+.operario-metrica span { font-size: 12px; color: var(--text-muted); text-transform: uppercase; }
+.operario-metrica strong { font-size: 18px; color: var(--text-main); }
+@media(max-width:768px) {
+    .kpis { grid-template-columns: 1fr 1fr; }
 }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -392,8 +239,8 @@ tr:hover{
     <div class="topbar">
         <div class="titulo">Métricas Operativas</div>
         <div style="display: flex; gap: 10px;">
-            <a href="/informes_gerenciales" class="btn-home" style="background-color: #2196F3;">Ver Informes Gerenciales</a>
-            <a href="/" class="btn-home">Home</a>
+            <a href="/informes_gerenciales" class="btn" >Ver Informes Gerenciales</a>
+            <a href="/" class="btn">Home</a>
         </div>
     </div>
 
@@ -403,36 +250,36 @@ tr:hover{
             <div class="export-option">
                 <h3>Diario</h3>
                 <div class="export-actions">
-                    <a class="btn-export-sec" href="/metricas/exportar_excel?periodo=diario">Hoy</a>
+                    <a class="btn" href="/metricas/exportar_excel?periodo=diario">Hoy</a>
                 </div>
                 <form class="export-form" action="/metricas/exportar_excel" method="get">
                     <input type="hidden" name="periodo" value="diario">
                     <input type="date" name="fecha" required>
-                    <button class="btn-export-sec" type="submit">Descargar fecha</button>
+                    <button class="btn" type="submit">Descargar fecha</button>
                 </form>
             </div>
 
             <div class="export-option">
                 <h3>Semanal</h3>
                 <div class="export-actions">
-                    <a class="btn-export-sec" href="/metricas/exportar_excel?periodo=semanal">Semana actual</a>
+                    <a class="btn" href="/metricas/exportar_excel?periodo=semanal">Semana actual</a>
                 </div>
                 <form class="export-form" action="/metricas/exportar_excel" method="get">
                     <input type="hidden" name="periodo" value="semanal">
                     <input type="date" name="fecha" required>
-                    <button class="btn-export-sec" type="submit">Descargar semana</button>
+                    <button class="btn" type="submit">Descargar semana</button>
                 </form>
             </div>
 
             <div class="export-option">
                 <h3>Mensual</h3>
                 <div class="export-actions">
-                    <a class="btn-export-sec" href="/metricas/exportar_excel?periodo=mensual">Mes actual</a>
+                    <a class="btn" href="/metricas/exportar_excel?periodo=mensual">Mes actual</a>
                 </div>
                 <form class="export-form" action="/metricas/exportar_excel" method="get">
                     <input type="hidden" name="periodo" value="mensual">
                     <input type="month" name="fecha" required>
-                    <button class="btn-export-sec" type="submit">Descargar mes</button>
+                    <button class="btn" type="submit">Descargar mes</button>
                 </form>
             </div>
         </div>
@@ -502,7 +349,7 @@ tr:hover{
                                 </div>
 
                                 <div class="operario-tabla">
-                                    <table>
+                                    <div class="table-responsive"><table class="table-striped">
                                         <tr>
                                             <th>Actividad</th>
                                             <th>Cantidad</th>
@@ -520,7 +367,7 @@ tr:hover{
                                             <td>{{ registro.fin }}</td>
                                         </tr>
                                         {% endfor %}
-                                    </table>
+                                    </table></div>
                                 </div>
                             </div>
                         {% endfor %}

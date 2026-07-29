@@ -1,173 +1,43 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inventario en Proceso (WIP)</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f6fa;
-            margin: 0;
-            padding: 0;
-            color: #333;
-        }
+{% extends "base.html" %}
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
 
-        .topbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #fff;
-            padding: 15px 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            margin-bottom: 20px;
-        }
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h2>Inventario en Proceso (WIP) y Cuellos de Botella</h2>
+</div>
 
-        .titulo {
-            font-size: 24px;
-            font-weight: 600;
-            color: #2c3e50;
-        }
-
-        .btn-home {
-            background-color: #1976d2;
-            color: white;
-            text-decoration: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            font-weight: 600;
-            transition: background 0.3s;
-        }
-
-        .btn-home:hover {
-            background-color: #115293;
-        }
-
-        .kpi-row {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .kpi-card {
-            flex: 1;
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            text-align: center;
-        }
-        
-        .kpi-card h3 {
-            margin: 0;
-            font-size: 16px;
-            color: #7f8c8d;
-        }
-
-        .kpi-card .value {
-            font-size: 36px;
-            font-weight: bold;
-            color: #e74c3c;
-            margin-top: 10px;
-        }
-
-        .dashboard-panel {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .chart-card {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-
-        th, td {
-            text-align: left;
-            padding: 12px;
-            border-bottom: 1px solid #ddd;
-        }
-
-        th {
-            background-color: #f8f9fa;
-            color: #2c3e50;
-        }
-
-        .progress-bar-container {
-            width: 100%;
-            background-color: #e0e0e0;
-            border-radius: 4px;
-            overflow: hidden;
-            height: 10px;
-            margin-top: 5px;
-        }
-        
-        .progress-bar {
-            height: 100%;
-            background-color: #27ae60;
-        }
-
-    </style>
-</head>
-<body>
-{% include '_navbar.html' %}
-
-<div class="container">
-
-    <div class="topbar">
-        <div class="titulo">Inventario en Proceso (WIP) y Cuellos de Botella</div>
-        <a href="/" class="btn-home">Home</a>
+<div class="kpi-grid">
+    <div class="kpi-card">
+        <h3 class="kpi-title">Unidades Totales Atascadas (WIP)</h3>
+        <div class="kpi-value danger">{{ "{:,.0f}".format(wip_total) }}</div>
     </div>
-
-    <div class="kpi-row">
-        <div class="kpi-card">
-            <h3>Unidades Totales Atascadas (WIP)</h3>
-            <div class="value">{{ "{:,.0f}".format(wip_total) }}</div>
-        </div>
-        <a href="#tabla-ordenes" class="kpi-card" style="text-decoration: none; display: block; cursor: pointer; transition: transform 0.2s;">
-            <h3 style="color: inherit;">Órdenes Activas Críticas</h3>
-            <div class="value" style="color: #f39c12;">{{ ordenes_activas|length }}</div>
-        </a>
-        <div class="kpi-card">
-            <h3>Volumen Producido (Hoy)</h3>
-            <div class="value" style="color: #2c3e50;">
-                {{ "{:,.0f}".format(prod_hoy) }}
-                <span style="font-size: 16px; margin-left: 10px; color: {% if tendencia_pct > 0 %}#27ae60{% elif tendencia_pct < 0 %}#e74c3c{% else %}#7f8c8d{% endif %};">
-                    {% if tendencia_pct > 0 %}▲{% elif tendencia_pct < 0 %}▼{% else %}—{% endif %}
-                    {{ tendencia_pct }}%
-                </span>
-            </div>
+    <a href="#tabla-ordenes" class="kpi-card">
+        <h3 class="kpi-title">Órdenes Activas Críticas</h3>
+        <div class="kpi-value warning">{{ ordenes_activas|length }}</div>
+    </a>
+    <div class="kpi-card">
+        <h3 class="kpi-title">Volumen Producido (Hoy)</h3>
+        <div class="kpi-value">
+            {{ "{:,.0f}".format(prod_hoy) }}
+            <span style="font-size: 1rem; margin-left: 10px; color: {% if tendencia_pct > 0 %}var(--success){% elif tendencia_pct < 0 %}var(--danger){% else %}var(--text-muted){% endif %};">
+                {% if tendencia_pct > 0 %}▲{% elif tendencia_pct < 0 %}▼{% else %}—{% endif %}
+                {{ tendencia_pct }}%
+            </span>
         </div>
     </div>
+</div>
 
-    <section class="dashboard-panel">
-        <div class="chart-card">
-            <canvas id="chartWIP" height="80"></canvas>
-        </div>
-    </section>
+<div class="card">
+    <canvas id="chartWIP" height="80"></canvas>
+</div>
 
-    <section class="dashboard-panel" id="tabla-ordenes">
-        <div class="chart-card">
-            <h2 style="margin-top: 0; font-size: 18px;">Listado de Órdenes Activas (Más atrasadas primero)</h2>
-            <table>
+<div class="card" id="tabla-ordenes">
+    <h2 style="margin-top: 0; font-size: 1.1rem; margin-bottom: 1rem;">Listado de Órdenes Activas (Más atrasadas primero)</h2>
+    <div class="table-responsive">
+        <table class="table-striped">
+            <thead>
                 <tr>
                     <th>Estado (Días Inactiva)</th>
                     <th>ID Orden</th>
@@ -176,35 +46,36 @@
                     <th>Cantidad</th>
                     <th>Avance Global</th>
                 </tr>
+            </thead>
+            <tbody>
                 {% for o in ordenes_activas %}
                 <tr>
                     <td>
-                        <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: {{ o.semaforo }}; margin-right: 5px;"></span>
+                        <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: {{ o.semaforo }}; margin-right: 5px;"></span>
                         {% if o.dias_inactiva == 0 %}Activa Hoy
                         {% elif o.dias_inactiva < 999 %}{{ o.dias_inactiva }} días
                         {% else %}Sin Inicio{% endif %}
                     </td>
                     <td>#{{ o.id }}</td>
                     <td>{{ o.producto }}</td>
-                    <td><span style="background: #eee; padding: 3px 8px; border-radius: 4px; font-size: 12px;">{{ o.actividad_atascada }}</span></td>
+                    <td><span class="badge badge-warning">{{ o.actividad_atascada }}</span></td>
                     <td>{{ "{:,.0f}".format(o.cantidad) }}</td>
                     <td>
                         {{ o.avance_pct }}%
-                        <div class="progress-bar-container">
-                            <div class="progress-bar" style="width: {{ o.avance_pct }}%;"></div>
+                        <div style="width: 100%; background-color: var(--border-color); border-radius: 4px; overflow: hidden; height: 6px; margin-top: 4px;">
+                            <div style="height: 100%; background-color: var(--success); width: {{ o.avance_pct }}%;"></div>
                         </div>
                     </td>
                 </tr>
                 {% endfor %}
                 {% if ordenes_activas|length == 0 %}
                 <tr>
-                    <td colspan="6" style="text-align: center; color: #777;">No hay órdenes activas en piso.</td>
+                    <td colspan="6" style="text-align: center; color: var(--text-muted);">No hay órdenes activas en piso.</td>
                 </tr>
                 {% endif %}
-            </table>
-        </div>
-    </section>
-
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <script>
@@ -213,6 +84,10 @@ Chart.register(ChartDataLabels);
 document.addEventListener("DOMContentLoaded", function() {
     const dataWip = {{ wip_actividades | tojson | safe }};
     if (!dataWip || dataWip.length === 0) return;
+
+    // Obtener color desde variable CSS
+    const rootStyles = getComputedStyle(document.documentElement);
+    const warningColor = rootStyles.getPropertyValue('--warning').trim() || '#d97706';
 
     const ctx = document.getElementById('chartWIP');
     if (ctx) {
@@ -223,7 +98,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 datasets: [{
                     label: 'Unidades Atascadas (WIP)',
                     data: dataWip.map(d => d.wip),
-                    backgroundColor: '#e74c3c',
+                    backgroundColor: warningColor,
                     borderRadius: 4
                 }]
             },
@@ -254,6 +129,4 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 });
 </script>
-
-</body>
-</html>
+{% endblock %}

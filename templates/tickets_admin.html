@@ -42,9 +42,9 @@
         padding-bottom: 10px;
         border-bottom: 3px solid #e2e8f0;
     }
-    .kanban-column#col-PENDIENTE h3 { border-bottom-color: #fcd34d; }
-    .kanban-column#col-EN_PROGRESO h3 { border-bottom-color: #60a5fa; }
-    .kanban-column#col-CERRADO h3 { border-bottom-color: #34d399; }
+    .kanban-column#col-PENDIENTE h3 { border-bottom-color: var(--warning); }
+    .kanban-column#col-EN_PROGRESO h3 { border-bottom-color: var(--primary); }
+    .kanban-column#col-CERRADO h3 { border-bottom-color: var(--success); }
 
     .kanban-card {
         background: white;
@@ -132,7 +132,7 @@
         margin-top: 5px;
     }
     .vencimiento-OK { background: #f1f5f9; color: #64748b; }
-    .vencimiento-POR_VENCER { background: #fef3c7; color: #d97706; border: 1px solid #fcd34d; }
+    .vencimiento-POR_VENCER { background: #fef3c7; color: #d97706; border: 1px solid var(--warning); }
     .vencimiento-VENCIDO { background: #fee2e2; color: #ef4444; border: 1px solid #fca5a5; }
     .card-meta {
         font-size: 12px;
