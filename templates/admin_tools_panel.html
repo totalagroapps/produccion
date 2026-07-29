@@ -1,164 +1,114 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Herramientas Administrativas</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f6f9;
-            margin: 0;
-            padding: 30px;
-        }
+{% extends "base.html" %}
 
-        h1 {
-            margin-bottom: 30px;
-            color: #333;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-        }
-
-        .card {
-            background: white;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            transition: 0.2s;
-        }
-
-        .card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 18px rgba(0,0,0,0.15);
-        }
-
-        .card h3 {
-            margin-top: 0;
-            color: #222;
-        }
-
-        .card p {
-            color: #666;
-            font-size: 14px;
-        }
-
-        .btn {
-            display: inline-block;
-            margin-top: 15px;
-            padding: 10px 15px;
-            border-radius: 6px;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: bold;
-        }
-
-        .danger {
-            background: var(--danger);
-            color: white;
-        }
-
-        .warning {
-            background: var(--warning);
-            color: white;
-        }
-
-        .primary {
-            background: var(--primary);
-            color: white;
-        }
-
-        .back {
-            margin-top: 40px;
-            display: inline-block;
-            text-decoration: none;
-            color: #555;
-        }
-    </style>
-
+{% block content %}
 <style>
-/* Base Responsive Styles */
-@media (max-width: 768px) {
-    .container {
-        padding: 15px !important;
-    }
-    .card, .box, .panel {
-        padding: 12px !important;
-        margin-bottom: 15px !important;
-    }
-    .grid {
-        grid-template-columns: 1fr !important;
-    }
-    input, select, button, textarea {
-        width: 100% !important;
-        box-sizing: border-box !important;
-        margin-bottom: 8px !important;
-    }
-    table {
-        display: block !important;
-        width: 100% !important;
-        overflow-x: auto !important;
-        white-space: nowrap !important;
-    }
-    th, td {
-        padding: 8px !important;
-        font-size: 13px !important;
-    }
-    h2, h3 {
-        font-size: 1.2rem !important;
-    }
+.tools-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    margin-top: 24px;
+}
+.tool-card {
+    background: white;
+    padding: 24px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+.tool-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+.tool-icon {
+    font-size: 24px;
+    margin-bottom: 12px;
+    display: inline-block;
+}
+.tool-title {
+    margin: 0 0 8px 0;
+    color: var(--text-main);
+    font-size: 18px;
+    font-weight: 600;
+}
+.tool-desc {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin: 0 0 20px 0;
+    line-height: 1.5;
+    flex-grow: 1;
+}
+.page-header {
+    margin-bottom: 30px;
+}
+.page-header h1 {
+    margin: 0 0 8px 0;
+    color: var(--text-main);
+    font-size: 28px;
+}
+.page-header p {
+    margin: 0;
+    color: var(--text-muted);
 }
 </style>
 
-</head>
-<body>
-{% include '_navbar.html' %}
+<div class="page-header">
+    <h1>Panel de Herramientas Administrativas</h1>
+    <p>Utilidades del sistema y mantenimiento avanzado de la base de datos.</p>
+</div>
 
-<h1>⚙ Panel de Herramientas Administrativas</h1>
+<div class="tools-grid">
 
-<div class="grid">
-
-    <div class="card">
-        <h3>🔄 Reset Métricas</h3>
-        <p>Reinicia producción, porcentajes y estado de órdenes.</p>
+    <div class="tool-card">
+        <div>
+            <span class="tool-icon">🔄</span>
+            <h3 class="tool-title">Reset Métricas</h3>
+            <p class="tool-desc">Reinicia producción, porcentajes y estado de órdenes. Utilízalo al inicio de un nuevo ciclo de producción.</p>
+        </div>
         <form action="/admin_tools/reset_metricas" method="POST" onsubmit="return confirm('¿Seguro que deseas resetear métricas?')">
-            <button type="submit" class="btn danger" style="border:none; cursor:pointer;">Ejecutar</button>
+            <button type="submit" class="btn btn-danger" style="width: 100%;">Ejecutar Reset</button>
         </form>
     </div>
 
-    <div class="card">
-        <h3>🗑 Borrar Registros</h3>
-        <p>Elimina todos los registros de producción.</p>
+    <div class="tool-card">
+        <div>
+            <span class="tool-icon">🗑️</span>
+            <h3 class="tool-title">Borrar Registros</h3>
+            <p class="tool-desc">Elimina todos los registros de producción históricos. ¡Atención! Esta acción es irreversible.</p>
+        </div>
         <form action="/admin_tools/borrar_registros" method="POST" onsubmit="return confirm('Esta acción es irreversible. ¿Continuar?')">
-            <button type="submit" class="btn danger" style="border:none; cursor:pointer;">Ejecutar</button>
+            <button type="submit" class="btn btn-danger" style="width: 100%;">Borrar Todo</button>
         </form>
     </div>
 
-    <div class="card">
-        <h3>📊 Cargar Estándares</h3>
-        <p>Importa estándares desde excel/estandares.xlsx.</p>
-        <a class="btn primary" href="/admin_tools/cargar_estandares_excel"
-           onclick="return confirm('¿Cargar estándares desde Excel?')">
-           Ejecutar
+    <div class="tool-card">
+        <div>
+            <span class="tool-icon">📊</span>
+            <h3 class="tool-title">Cargar Estándares</h3>
+            <p class="tool-desc">Importa tiempos estándar y rutas de producción desde el archivo <code>excel/estandares.xlsx</code>.</p>
+        </div>
+        <a class="btn btn-primary" href="/admin_tools/cargar_estandares_excel" onclick="return confirm('¿Cargar estándares desde Excel?')" style="text-align: center;">
+           Cargar desde Excel
         </a>
     </div>
 
-    <div class="card">
-        <h3>☁️ Backup a S3</h3>
-        <p>Exportar y subir base de datos a la nube.</p>
-        <button id="btn-backup" class="btn warning" style="border:none; cursor:pointer;" onclick="lanzarBackup()">Disparar Backup</button>
+    <div class="tool-card">
+        <div>
+            <span class="tool-icon">☁️</span>
+            <h3 class="tool-title">Backup a S3</h3>
+            <p class="tool-desc">Exporta un volcado de la base de datos y lo sube de forma segura a la nube.</p>
+        </div>
+        <button id="btn-backup" class="btn btn-warning" onclick="lanzarBackup()" style="width: 100%; border: none; cursor: pointer;">Disparar Backup</button>
     </div>
 
 </div>
-
-<a class="back" href="/">← Volver al Dashboard</a>
 
 <script>
 async function lanzarBackup() {
     const btn = document.getElementById("btn-backup");
     btn.disabled = true;
+    const originalText = btn.textContent;
     btn.textContent = "Respaldando... (Demora un poco)";
     try {
         const res = await fetch("/admin_tools/backup_manual", { method: "POST" });
@@ -172,10 +122,8 @@ async function lanzarBackup() {
         alert("❌ Error de red o servidor al intentar el backup.");
     } finally {
         btn.disabled = false;
-        btn.textContent = "Disparar Backup";
+        btn.textContent = originalText;
     }
 }
 </script>
-
-</body>
-</html>
+{% endblock %}
