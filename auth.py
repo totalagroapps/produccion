@@ -34,6 +34,7 @@ def login_user(request: Request, username: str, password: str):
         FROM users u
         LEFT JOIN operarios o ON o.id = u.operario_id
         WHERE LOWER(u.username) = LOWER(%s)
+          AND COALESCE(u.activo, TRUE) = TRUE
     """, (username,))
     resultado = c.fetchone()
     conn.close()

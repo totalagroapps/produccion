@@ -27,64 +27,20 @@
 <title>Detalle Bono</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<style>
-body {font-family:Segoe UI;background:var(--bg-body);padding:40px;}
-.card {background:white;padding:25px;border-radius:14px;box-shadow:0 8px 25px rgba(0,0,0,0.05);}
-h2 {margin-top:0;}
-table {width:100%;border-collapse:collapse;margin-top:25px;}
-th {background:#2c3e50;color:white;padding:12px;}
-td {padding:12px;text-align:center;border-bottom:1px solid #eee;}
-.badge {padding:6px 10px;border-radius:20px;color:white;font-size:13px;}
 
 
 
-.simulador {margin-top:30px;padding:20px;background:#f8fafc;border-radius:12px;}
-input {padding:8px;width:80px;}
-</style>
-
-<style>
-/* Base Responsive Styles */
-@media (max-width: 768px) {
-    .container {
-        padding: 15px !important;
-    }
-    .card, .box, .panel {
-        padding: 12px !important;
-        margin-bottom: 15px !important;
-    }
-    .grid {
-        grid-template-columns: 1fr !important;
-    }
-    input, select, button, textarea {
-        width: 100% !important;
-        box-sizing: border-box !important;
-        margin-bottom: 8px !important;
-    }
-    table {
-        display: block !important;
-        width: 100% !important;
-        overflow-x: auto !important;
-        white-space: nowrap !important;
-    }
-    th, td {
-        padding: 8px !important;
-        font-size: 13px !important;
-    }
-    h2, h3 {
-        font-size: 1.2rem !important;
-    }
-}
-</style>
 
 </head>
 
+<link rel="stylesheet" href="/static/styles.css">
 <body>
 {% include '_navbar.html' %}
 
 <div class="card">
 
 <h2>📊 {{nombre}} - {{mes}}/{{anio}} 
-    {% if cerrado %}<span class="badge red">🔒 CERRADO</span>{% endif %}
+    {% if cerrado %}<span class="badge badge-danger">🔒 CERRADO</span>{% endif %}
 </h2>
 
 {% if alertas %}
@@ -100,7 +56,7 @@ input {padding:8px;width:80px;}
 
 <h3>Total Bono Actual: 💰 ${{ "{:,.0f}".format(total_bono).replace(",", ".") }}</h3>
 
-<table>
+<div class="table-responsive"><table class="table-striped">
 <tr>
 <th>Máquina</th>
 <th>Actividad</th>
@@ -137,11 +93,11 @@ input {padding:8px;width:80px;}
 <td>{{d.eficiencia}}%</td>
 <td>
 {% if d.porcentaje == 4 %}
-<span class="badge green">4%</span>
+<span class="badge badge-success">4%</span>
 {% elif d.porcentaje == 3 %}
-<span class="badge yellow">3%</span>
+<span class="badge badge-warning">3%</span>
 {% elif d.porcentaje == 2 %}
-<span class="badge red">2%</span>
+<span class="badge badge-danger">2%</span>
 {% else %}
 0%
 {% endif %}
@@ -154,7 +110,7 @@ input {padding:8px;width:80px;}
 </td>
 </tr>
 {% endfor %}
-</table>
+</table></div>
 
 <canvas id="grafico" style="margin-top:40px;"></canvas>
 

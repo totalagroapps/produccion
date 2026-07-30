@@ -1,149 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<style>
-    /* Estilos Kanban */
-    .kanban-board {
-        display: flex;
-        gap: 24px;
-        margin-top: 24px;
-        overflow-x: auto;
-        padding-bottom: 24px;
-        min-height: 60vh;
-    }
-    .kanban-board::-webkit-scrollbar {
-        height: 8px;
-    }
-    .kanban-board::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
-        border-radius: 4px;
-    }
-    .kanban-column {
-        flex: 1;
-        min-width: 320px;
-        background: #f8fafc;
-        border-radius: 12px;
-        padding: 16px;
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-    }
-    .kanban-column h3 {
-        margin-top: 0;
-        margin-bottom: 12px;
-        font-size: 16px;
-        font-weight: 700;
-        color: #1e293b;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding-bottom: 10px;
-        border-bottom: 3px solid #e2e8f0;
-    }
-    .kanban-column#col-PENDIENTE h3 { border-bottom-color: var(--warning); }
-    .kanban-column#col-EN_PROGRESO h3 { border-bottom-color: var(--primary); }
-    .kanban-column#col-CERRADO h3 { border-bottom-color: var(--success); }
 
-    .kanban-card {
-        background: white;
-        border-radius: 8px;
-        padding: 16px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
-        cursor: grab;
-        transition: all 0.2s ease;
-        border-left: 4px solid transparent;
-        position: relative;
-        border: 1px solid #f1f5f9;
-        border-left-width: 5px;
-    }
-    .kanban-card:active {
-        cursor: grabbing;
-    }
-    .kanban-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 12px rgba(0,0,0,0.08);
-        border-right-color: #e2e8f0;
-        border-top-color: #e2e8f0;
-        border-bottom-color: #e2e8f0;
-    }
-    .kanban-card.dragging {
-        opacity: 0.4;
-        transform: scale(0.95);
-        box-shadow: none;
-    }
-    .kanban-dropzone {
-        min-height: 100px;
-        border: 2px dashed transparent;
-        border-radius: 8px;
-        transition: all 0.2s ease;
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-    }
-    .kanban-dropzone.drag-over {
-        background: #e2e8f0;
-        border-color: #94a3b8;
-    }
-
-    @media (max-width: 768px) {
-        .kanban-board {
-            flex-direction: column;
-            overflow-x: visible;
-        }
-        .kanban-column {
-            min-width: 100%;
-        }
-    }
-    
-    /* Prioridades */
-    .prioridad-ALTA { border-left-color: #ef4444; }
-    .prioridad-MEDIA { border-left-color: #f59e0b; }
-    .prioridad-BAJA { border-left-color: #10b981; }
-    
-    .badge {
-        font-size: 11px;
-        padding: 4px 8px;
-        border-radius: 9999px;
-        font-weight: bold;
-        color: white;
-    }
-
-    .card-title {
-        font-weight: bold;
-        color: #1e293b;
-        margin-bottom: 5px;
-        font-size: 15px;
-    }
-    
-    .vencimiento-badge {
-        font-size: 11px;
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-weight: bold;
-        margin-top: 6px;
-        display: inline-block;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        margin-top: 5px;
-    }
-    
-    .card-meta {
-        font-size: 12px;
-        color: #64748b;
-        display: flex;
-        justify-content: space-between;
-        margin-top: 10px;
-    }
-    .card-actions {
-        margin-top: 12px;
-        display: flex;
-        gap: 8px;
-    }
-</style>
 
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px; flex-wrap:wrap; gap:16px;">
     <h2 style="margin:0; font-size:24px; color:#0f172a;">Tablero de Tickets (Kanban)</h2>
@@ -305,16 +163,20 @@
     const dropzones = document.querySelectorAll('.kanban-dropzone');
 
     let draggedCard = null;
+    let originalZone = null;
 
     cards.forEach(card => {
         card.addEventListener('dragstart', () => {
             draggedCard = card;
+            originalZone = card.parentElement;
             setTimeout(() => card.classList.add('dragging'), 0);
         });
 
         card.addEventListener('dragend', () => {
-            draggedCard.classList.remove('dragging');
-            draggedCard = null;
+            if (draggedCard) {
+                draggedCard.classList.remove('dragging');
+                draggedCard = null;
+            }
             updateCounts();
         });
     });
@@ -333,20 +195,24 @@
             e.preventDefault();
             zone.classList.remove('drag-over');
             if (draggedCard) {
+                const currentOriginalZone = originalZone;
                 zone.appendChild(draggedCard);
                 const nuevoEstado = zone.getAttribute('data-estado');
                 const ticketId = draggedCard.getAttribute('data-id');
+                const draggedRef = draggedCard;
                 
                 // Si se mueve a CERRADO, aplicar estilos tachados
                 if(nuevoEstado === 'CERRADO') {
-                    draggedCard.style.opacity = '0.7';
-                    draggedCard.querySelector('.card-title').style.textDecoration = 'line-through';
-                    draggedCard.querySelector('span').style.textDecoration = 'line-through';
+                    draggedRef.style.opacity = '0.7';
+                    draggedRef.querySelector('.card-title').style.textDecoration = 'line-through';
+                    draggedRef.querySelector('span').style.textDecoration = 'line-through';
                 } else {
-                    draggedCard.style.opacity = '1';
-                    draggedCard.querySelector('.card-title').style.textDecoration = 'none';
-                    draggedCard.querySelector('span').style.textDecoration = 'none';
+                    draggedRef.style.opacity = '1';
+                    draggedRef.querySelector('.card-title').style.textDecoration = 'none';
+                    draggedRef.querySelector('span').style.textDecoration = 'none';
                 }
+                
+                updateCounts();
 
                 // Llamar al backend para actualizar el estado silenciosamente
                 const formData = new FormData();
@@ -363,9 +229,18 @@
                     method: 'POST',
                     body: formData
                 }).then(res => {
-                    if (!res.ok) alert("Error al actualizar el estado del ticket.");
+                    if (!res.ok) throw new Error("Error en actualización (HTTP " + res.status + ")");
                 }).catch(err => {
                     console.error("Fetch error", err);
+                    alert("Error de conexión. Revertiendo el movimiento.");
+                    if (currentOriginalZone && draggedRef) {
+                        currentOriginalZone.appendChild(draggedRef);
+                        // Revertir estilos
+                        draggedRef.style.opacity = '1';
+                        draggedRef.querySelector('.card-title').style.textDecoration = 'none';
+                        draggedRef.querySelector('span').style.textDecoration = 'none';
+                        updateCounts();
+                    }
                 });
             }
         });

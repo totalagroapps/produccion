@@ -1,57 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<style>
-.tools-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 24px;
-    margin-top: 24px;
-}
-.tool-card {
-    background: white;
-    padding: 24px;
-    border-radius: 12px;
-    border: 1px solid var(--border-color);
-    box-shadow: var(--shadow-sm);
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-}
-.tool-card:hover {
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-}
-.tool-icon {
-    font-size: 24px;
-    margin-bottom: 12px;
-    display: inline-block;
-}
-.tool-title {
-    margin: 0 0 8px 0;
-    color: var(--text-main);
-    font-size: 18px;
-    font-weight: 600;
-}
-.tool-desc {
-    color: var(--text-muted);
-    font-size: 14px;
-    margin: 0 0 20px 0;
-    line-height: 1.5;
-    flex-grow: 1;
-}
-.page-header {
-    margin-bottom: 30px;
-}
-.page-header h1 {
-    margin: 0 0 8px 0;
-    color: var(--text-main);
-    font-size: 28px;
-}
-.page-header p {
-    margin: 0;
-    color: var(--text-muted);
-}
-</style>
+
 
 <div class="page-header">
     <h1>Panel de Herramientas Administrativas</h1>

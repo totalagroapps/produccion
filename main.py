@@ -404,6 +404,7 @@ def startup():
 
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS operario_id INTEGER")
     c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS debe_cambiar_password BOOLEAN DEFAULT FALSE")
+    c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS activo BOOLEAN DEFAULT TRUE")
     c.execute("ALTER TABLE tickets ADD COLUMN IF NOT EXISTS notas_operario TEXT")
 
     # Índices para mejorar rendimiento (Fase 2)

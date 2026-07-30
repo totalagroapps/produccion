@@ -68,7 +68,7 @@ def eliminar_fila_segura(tabla: str, id: int):
                 c.execute(sql.SQL("UPDATE {} SET activo = FALSE WHERE id = %s").format(sql.Identifier(tabla)), (id,))
                 
                 if tabla == 'operarios':
-                    c.execute("DELETE FROM users WHERE operario_id = %s", (id,))
+                    c.execute("UPDATE users SET activo = FALSE WHERE operario_id = %s", (id,))
                     
                 conn.commit()
                 return {"ok": True, "mensaje": f"El ítem estaba en uso por {total} registros en '{tabla_ref}'. Ha sido desactivado (Soft Delete) en lugar de eliminado."}
