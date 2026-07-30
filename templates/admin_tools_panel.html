@@ -88,6 +88,7 @@
             <p class="tool-desc">Reinicia producción, porcentajes y estado de órdenes. Utilízalo al inicio de un nuevo ciclo de producción.</p>
         </div>
         <form action="/admin_tools/reset_metricas" method="POST" onsubmit="return confirm('¿Seguro que deseas resetear métricas?')">
+    <input type="hidden" name="csrf_token" value="{{ request.session.csrf_token }}">
             <button type="submit" class="btn btn-danger" style="width: 100%;">Ejecutar Reset</button>
         </form>
     </div>
@@ -99,6 +100,7 @@
             <p class="tool-desc">Elimina todos los registros de producción históricos. ¡Atención! Esta acción es irreversible.</p>
         </div>
         <form action="/admin_tools/borrar_registros" method="POST" onsubmit="return confirm('Esta acción es irreversible. ¿Continuar?')">
+    <input type="hidden" name="csrf_token" value="{{ request.session.csrf_token }}">
             <button type="submit" class="btn btn-danger" style="width: 100%;">Borrar Todo</button>
         </form>
     </div>

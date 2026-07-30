@@ -40,7 +40,8 @@ ADMIN_USER = os.getenv("ADMIN_USER")
 ADMIN_PASS = os.getenv("ADMIN_PASS")
 
 from limiter import limiter
-app = FastAPI()
+from csrf import verify_csrf
+app = FastAPI(dependencies=[Depends(verify_csrf)])
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 

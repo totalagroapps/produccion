@@ -10,6 +10,7 @@
     <!-- Filtros -->
     <div class="card">
         <form id="filterForm" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+    <input type="hidden" name="csrf_token" value="{{ request.session.csrf_token }}">
             <div style="flex: 1; min-width: 200px;">
                 <label>Operario (Opcional)</label>
                 <select id="filter_operario">
@@ -66,6 +67,7 @@
     <div class="card" style="width:100%; max-width:400px; margin:20px;">
         <h3 id="modalTitle" style="margin-bottom:1rem;">Editar Registro</h3>
         <form id="editForm">
+    <input type="hidden" name="csrf_token" value="{{ request.session.csrf_token }}">
             <input type="hidden" id="edit_id">
             
             <div class="form-group">

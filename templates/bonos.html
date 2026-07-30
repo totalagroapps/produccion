@@ -32,10 +32,12 @@
             {% if not cerrado %}
                 <a class="btn btn-success" href="/bonos?mes={{mes}}&anio={{anio}}">🔄 Recalcular</a>
                 <form action="/bonos/cerrar?mes={{mes}}&anio={{anio}}" method="POST" style="display:inline;" onsubmit="return confirm('¿Seguro que deseas cerrar el mes? Esto guardará los resultados de forma permanente.');">
+    <input type="hidden" name="csrf_token" value="{{ request.session.csrf_token }}">
                     <button type="submit" class="btn" style="background:var(--primary); border:none; cursor:pointer;">🔒 Cerrar Mes</button>
                 </form>
             {% else %}
                 <form action="/bonos/reabrir?mes={{mes}}&anio={{anio}}" method="POST" style="display:inline;" onsubmit="return confirm('¿Seguro que deseas reabrir el mes? Si recalculas ahora podrías alterar bonos ya pagados.');">
+    <input type="hidden" name="csrf_token" value="{{ request.session.csrf_token }}">
                     <button type="submit" class="btn" style="background:var(--danger); border:none; cursor:pointer;">🔓 Reabrir Mes</button>
                 </form>
             {% endif %}

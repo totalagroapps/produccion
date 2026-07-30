@@ -40,6 +40,7 @@
                 </div>
                 <div class="card-body">
                     <form method="post" action="/usuarios/crear">
+    <input type="hidden" name="csrf_token" value="{{ request.session.csrf_token }}">
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Usuario</label>
@@ -100,6 +101,7 @@
                 <div class="card-body d-flex flex-column justify-content-center">
                     <p class="text-muted mb-3">Genera cuentas de usuario automáticamente para todos los operarios que están en nómina pero aún no tienen acceso al sistema.</p>
                     <form method="post" action="/usuarios/crear_operarios">
+    <input type="hidden" name="csrf_token" value="{{ request.session.csrf_token }}">
                         <div class="mb-3">
                             <label class="form-label">Password temporal por defecto</label>
                             <input type="text" class="form-control" name="password_temporal" value="{{ password_temporal_default or '123456' }}" required>
@@ -157,6 +159,7 @@
                             <td class="text-end">
                                 {% if u[2] == "operario" %}
                                 <form method="post" action="/usuarios/reset_password/{{ u[0] }}" style="display:inline;">
+    <input type="hidden" name="csrf_token" value="{{ request.session.csrf_token }}">
                                     <button type="submit" class="btn btn-sm btn-outline-warning" title="Resetear Clave">
                                         🔑
                                     </button>
@@ -166,6 +169,7 @@
                                     ✏️
                                 </a>
                                 <form action="/usuarios/eliminar/{{ u[0] }}" method="POST" style="display:inline;" onsubmit="return confirm('¿Seguro que deseas eliminar a este usuario?');">
+    <input type="hidden" name="csrf_token" value="{{ request.session.csrf_token }}">
                                     <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar Usuario">
                                         🗑️
                                     </button>

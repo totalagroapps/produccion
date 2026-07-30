@@ -1,6 +1,28 @@
 ﻿<!DOCTYPE html>
 <html lang="es">
 <head>
+    <meta name="csrf-token" content="{{ request.session.csrf_token }}">
+    <script>
+    (function() {
+        const originalFetch = window.fetch;
+        window.fetch = async function() {
+            let [resource, config] = arguments;
+            if (config && config.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(config.method.toUpperCase())) {
+                const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+                if (tokenMeta) {
+                    config.headers = config.headers || {};
+                    if (config.headers instanceof Headers) {
+                        config.headers.append('X-CSRF-Token', tokenMeta.content);
+                    } else {
+                        config.headers['X-CSRF-Token'] = tokenMeta.content;
+                    }
+                }
+            }
+            return originalFetch(resource, config);
+        };
+    })();
+    </script>
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta charset="UTF-8">
 <title>Importar Datos</title>
@@ -106,6 +128,7 @@ button:hover{
     </p>
 
     <form action="/importar_excel" method="post" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ request.session.csrf_token }}">
 
 Maquinas:<br>
 <input type="file" name="maquinas"><br><br>

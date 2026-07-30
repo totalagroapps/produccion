@@ -40,6 +40,8 @@ def login_user(request: Request, username: str, password: str):
 
     if resultado and verify_password(password, resultado[0]):
         request.session.clear()
+        import secrets
+        request.session["csrf_token"] = secrets.token_hex(32)
         request.session["username"] = username
         request.session["role"] = resultado[1]
         if resultado[2]:

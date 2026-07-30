@@ -13,6 +13,7 @@
                 </div>
                 <div class="card-body">
                     <form method="post" action="/usuarios/editar/{{ usuario[0] }}">
+    <input type="hidden" name="csrf_token" value="{{ request.session.csrf_token }}">
                         <div class="mb-3">
                             <label class="form-label">Nombre de Usuario</label>
                             <input type="text" class="form-control" value="{{ usuario[1] }}" disabled>

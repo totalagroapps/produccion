@@ -5,6 +5,7 @@
 <div class="card">
     <h3 style="margin-top:0;">Crear Orden</h3>
     <form action="/crear_orden_web" method="post" style="display:flex; gap:15px; align-items:flex-end; flex-wrap:wrap;">
+    <input type="hidden" name="csrf_token" value="{{ request.session.csrf_token }}">
         <div class="form-group" style="margin-bottom:0; flex:1; min-width:150px;">
             <label>Cantidad:</label>
             <input name="cantidad" type="number" required>
@@ -67,6 +68,7 @@
 
         {% if o.estado == "CERRADA" %}
         <form action="/eliminar/{{o.id}}" method="POST" style="display:inline;" onsubmit="return confirm('¿Seguro que deseas eliminar esta orden? No se puede deshacer.')">
+    <input type="hidden" name="csrf_token" value="{{ request.session.csrf_token }}">
             <button type="submit" class="btn btn-red" style="padding:4px 10px; font-size:0.8rem;">❌ Eliminar</button>
         </form>
         {% endif %}

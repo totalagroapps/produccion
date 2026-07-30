@@ -253,6 +253,7 @@
                     <a class="btn" href="/metricas/exportar_excel?periodo=diario">Hoy</a>
                 </div>
                 <form class="export-form" action="/metricas/exportar_excel" method="get">
+    <input type="hidden" name="csrf_token" value="{{ request.session.csrf_token }}">
                     <input type="hidden" name="periodo" value="diario">
                     <input type="date" name="fecha" required>
                     <button class="btn" type="submit">Descargar fecha</button>
@@ -265,6 +266,7 @@
                     <a class="btn" href="/metricas/exportar_excel?periodo=semanal">Semana actual</a>
                 </div>
                 <form class="export-form" action="/metricas/exportar_excel" method="get">
+    <input type="hidden" name="csrf_token" value="{{ request.session.csrf_token }}">
                     <input type="hidden" name="periodo" value="semanal">
                     <input type="date" name="fecha" required>
                     <button class="btn" type="submit">Descargar semana</button>
@@ -277,6 +279,7 @@
                     <a class="btn" href="/metricas/exportar_excel?periodo=mensual">Mes actual</a>
                 </div>
                 <form class="export-form" action="/metricas/exportar_excel" method="get">
+    <input type="hidden" name="csrf_token" value="{{ request.session.csrf_token }}">
                     <input type="hidden" name="periodo" value="mensual">
                     <input type="month" name="fecha" required>
                     <button class="btn" type="submit">Descargar mes</button>

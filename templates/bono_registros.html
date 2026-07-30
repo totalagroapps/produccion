@@ -1,6 +1,28 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta name="csrf-token" content="{{ request.session.csrf_token }}">
+    <script>
+    (function() {
+        const originalFetch = window.fetch;
+        window.fetch = async function() {
+            let [resource, config] = arguments;
+            if (config && config.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(config.method.toUpperCase())) {
+                const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+                if (tokenMeta) {
+                    config.headers = config.headers || {};
+                    if (config.headers instanceof Headers) {
+                        config.headers.append('X-CSRF-Token', tokenMeta.content);
+                    } else {
+                        config.headers['X-CSRF-Token'] = tokenMeta.content;
+                    }
+                }
+            }
+            return originalFetch(resource, config);
+        };
+    })();
+    </script>
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registros Crudos</title>
     <style>
@@ -47,6 +69,7 @@
             {% if not cerrado %}
             <td>
                 <form action="/bonos/registros/editar" method="POST" style="display:flex; align-items:center; gap:5px;">
+    <input type="hidden" name="csrf_token" value="{{ request.session.csrf_token }}">
                     <input type="hidden" name="registro_id" value="{{ r[0] }}">
                     <input type="hidden" name="operario_id" value="{{ operario_id }}">
                     <input type="hidden" name="actividad_id_actual" value="{{ actividad_id }}">
