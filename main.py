@@ -167,7 +167,7 @@ async def proteger_rutas_administrativas(request: Request, call_next):
 app.add_middleware(
     SessionMiddleware, 
     secret_key=SECRET_KEY,
-    https_only=True,
+    https_only=False,
     same_site="lax",
     max_age=86400  # 24 horas
 )
