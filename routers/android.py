@@ -145,8 +145,10 @@ def login_android(request: Request, data: dict):
                COALESCE(u.debe_cambiar_password, FALSE)
         FROM users u
         LEFT JOIN operarios o ON o.id = u.operario_id
-        WHERE LOWER(u.username) = LOWER(%s) OR LOWER(o.nombre) = LOWER(%s)
-        ORDER BY CASE WHEN LOWER(u.username) = LOWER(%s) THEN 0 ELSE 1 END
+        WHERE (REPLACE(REPLACE(LOWER(u.username), ' ', ''), '.', '') = REPLACE(REPLACE(LOWER(%s), ' ', ''), '.', '') 
+            OR REPLACE(REPLACE(LOWER(o.nombre), ' ', ''), '.', '') = REPLACE(REPLACE(LOWER(%s), ' ', ''), '.', ''))
+          AND COALESCE(u.activo, TRUE) = TRUE
+        ORDER BY CASE WHEN REPLACE(REPLACE(LOWER(u.username), ' ', ''), '.', '') = REPLACE(REPLACE(LOWER(%s), ' ', ''), '.', '') THEN 0 ELSE 1 END
         LIMIT 1
     """, (username, username, username))
     row = c.fetchone()
