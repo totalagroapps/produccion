@@ -12,6 +12,9 @@ async def verify_csrf(request: Request):
     if auth_header and auth_header.startswith("Bearer "):
         return
         
+    if request.url.path == "/android/login":
+        return
+        
     token = request.headers.get("x-csrf-token")
     if not token:
         content_type = request.headers.get("content-type", "")
