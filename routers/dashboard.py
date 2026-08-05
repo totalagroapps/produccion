@@ -124,23 +124,21 @@ def home(request: Request):
     """)
     top_operarios = [{"nombre": r[0], "produccion": r[1]} for r in c.fetchall()]
 
-    # 6. Órdenes con Mayor Avance
-    c.execute("""
-        SELECT o.id, m.nombre, o.cantidad,
-               SUM(oa.cantidad_realizada) as realizada,
-               SUM(oa.cantidad_total) as total
-        FROM ordenes o
+    # 6. Órdenes con Mayor Avance (en el periodo)
+    c.execute(f"""
+        SELECT o.id, m.nombre, o.cantidad, COALESCE(SUM(rp.cantidad), 0) as avance_periodo
+        FROM registros_produccion rp
+        JOIN ordenes o ON o.id = rp.orden_id
         JOIN maquinas m ON m.id = o.maquina_id
-        JOIN orden_actividades oa ON oa.orden_id = o.id
-        WHERE o.estado != 'CERRADA'
+        WHERE {date_filter}
         GROUP BY o.id, m.nombre, o.cantidad
-        HAVING SUM(oa.cantidad_total) > 0
-        ORDER BY (SUM(oa.cantidad_realizada)*1.0 / SUM(oa.cantidad_total)) DESC
+        HAVING o.cantidad > 0
+        ORDER BY (SUM(rp.cantidad)*1.0 / o.cantidad) DESC
         LIMIT 5
     """)
     top_ordenes = []
     for row in c.fetchall():
-        pct = round((row[3] / row[4]) * 100, 1) if row[4] > 0 else 0
+        pct = round((row[3] / row[2]) * 100, 1) if row[2] > 0 else 0
         top_ordenes.append({
             "id": row[0],
             "maquina": row[1],

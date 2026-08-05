@@ -124,7 +124,10 @@
 
     <!-- Órdenes de Mayor Avance -->
     <section class="section">
-        <h2>Órdenes de Mayor Avance</h2>
+        <h2 style="display: flex; justify-content: space-between; align-items: center;">
+            <span>Mayor Avance</span>
+            <span style="font-size: 12px; font-weight: normal; color: var(--text-muted); background: var(--surface-color); padding: 4px 8px; border-radius: 4px;">{{ rango|capitalize }}</span>
+        </h2>
         {% if top_ordenes %}
         <div class="table-container" style="margin-top: 16px;">
             <table class="data-table">
