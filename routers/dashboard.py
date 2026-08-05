@@ -112,6 +112,43 @@ def home(request: Request):
     """)
     tickets_recientes = [{"id": r[0], "titulo": r[1], "prioridad": r[2]} for r in c.fetchall()]
 
+    # 5. Top Operarios
+    c.execute(f"""
+        SELECT o.nombre, COALESCE(SUM(rp.cantidad), 0) as total_prod
+        FROM registros_produccion rp
+        JOIN operarios o ON o.id = rp.operario_id
+        WHERE {date_filter}
+        GROUP BY o.nombre
+        ORDER BY total_prod DESC
+        LIMIT 5
+    """)
+    top_operarios = [{"nombre": r[0], "produccion": r[1]} for r in c.fetchall()]
+
+    # 6. Órdenes con Mayor Avance
+    c.execute("""
+        SELECT o.id, m.nombre, o.cantidad,
+               SUM(oa.cantidad_realizada) as realizada,
+               SUM(oa.cantidad_total) as total
+        FROM ordenes o
+        JOIN maquinas m ON m.id = o.maquina_id
+        JOIN orden_actividades oa ON oa.orden_id = o.id
+        WHERE o.estado != 'CERRADA'
+        GROUP BY o.id, m.nombre, o.cantidad
+        HAVING SUM(oa.cantidad_total) > 0
+        ORDER BY (SUM(oa.cantidad_realizada)*1.0 / SUM(oa.cantidad_total)) DESC
+        LIMIT 5
+    """)
+    top_ordenes = []
+    for row in c.fetchall():
+        pct = round((row[3] / row[4]) * 100, 1) if row[4] > 0 else 0
+        top_ordenes.append({
+            "id": row[0],
+            "maquina": row[1],
+            "cantidad": row[2],
+            "realizada": row[3],
+            "porcentaje": pct
+        })
+
     conn.close()
 
     return request.app.state.templates.TemplateResponse(
@@ -127,7 +164,9 @@ def home(request: Request):
         "chart_fechas": fechas,
         "chart_cantidades": cantidades,
         "ultima_orden": ultima_orden,
-        "tickets_recientes": tickets_recientes
+        "tickets_recientes": tickets_recientes,
+        "top_operarios": top_operarios,
+        "top_ordenes": top_ordenes
     })
 
 

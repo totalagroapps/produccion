@@ -91,6 +91,75 @@
     </section>
 </div>
 
+<div class="dashboard-layout" style="margin-top: 24px;">
+    <!-- Top Operarios -->
+    <section class="section">
+        <h2 style="display: flex; justify-content: space-between; align-items: center;">
+            <span>Registro de Operarios</span>
+            <span style="font-size: 12px; font-weight: normal; color: var(--text-muted); background: var(--surface-color); padding: 4px 8px; border-radius: 4px;">{{ rango|capitalize }}</span>
+        </h2>
+        {% if top_operarios %}
+        <div class="table-container" style="margin-top: 16px;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Operario</th>
+                        <th style="text-align: right;">Producción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for op in top_operarios %}
+                    <tr>
+                        <td>{{ op.nombre }}</td>
+                        <td style="text-align: right; font-weight: 600; color: var(--primary);">{{ op.produccion }} uds</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="color: var(--text-muted); font-size: 14px; text-align: center; margin-top: 30px;">No hay registros en este periodo</p>
+        {% endif %}
+    </section>
+
+    <!-- Órdenes de Mayor Avance -->
+    <section class="section">
+        <h2>Órdenes de Mayor Avance</h2>
+        {% if top_ordenes %}
+        <div class="table-container" style="margin-top: 16px;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Producto / Orden</th>
+                        <th style="text-align: right;">Avance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ord in top_ordenes %}
+                    <tr>
+                        <td>
+                            <strong>{{ ord.maquina }}</strong>
+                            <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">ID #{{ ord.id }} &middot; {{ ord.realizada }}/{{ ord.cantidad }}</div>
+                        </td>
+                        <td style="text-align: right; vertical-align: middle;">
+                            <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
+                                <span style="font-weight: 600; color: var(--primary); font-size: 14px;">{{ ord.porcentaje }}%</span>
+                                <div class="progress-container" style="width: 50px; margin: 0; display: inline-block;">
+                                    <div class="progress-bar" style="width: {{ ord.porcentaje }}%"></div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="color: var(--text-muted); font-size: 14px; text-align: center; margin-top: 30px;">No hay órdenes activas</p>
+        {% endif %}
+    </section>
+</div>
+
 <script>
     const rootStyles = getComputedStyle(document.documentElement);
     const primaryColor = rootStyles.getPropertyValue('--primary').trim() || '#2d6a4f';
